@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ランダム指名アプリ</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:20px;
+    background:#f2f2f2;
+    font-family:sans-serif;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+}
+
+.section{
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1{
+    text-align:center;
+}
+
+.note{
+    text-align:center;
+    color:#666;
+    margin-bottom:20px;
+}
+
+.classroom{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:25px;
+}
+
+.whiteboard{
+    width:70%;
+    background:#2f855a;
+    color:white;
+    text-align:center;
+    padding:15px;
+    font-size:24px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.desk-area{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:30px 50px;
+}
+
+.desk{
+    width:190px;
+    background:#c89b3c;
+    border-radius:10px;
+    padding:10px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.seat{
+    width:75px;
+    height:65px;
+    background:white;
+    border:2px solid #333;
+    border-radius:8px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:22px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.2s;
+    user-select:none;
+}
+
+/* 使用不可 */
+.seat.off{
+    background:#999;
+    color:white;
+}
+
+/* ルーレット中 */
+.seat.rolling{
+    background:#3182ce;
+    color:white;
+    transform:scale(1.08);
+    animation:flash 0.15s infinite;
+}
+
+/* 今回選ばれた席 */
+.seat.current{
+    background:#e53e3e;
+    color:white;
+    transform:scale(1.15);
+    box-shadow:0 0 20px rgba(229,62,62,0.8);
+}
+
+/* 以前選ばれた席 */
+.seat.done{
+    background:#f6ad55;
+    color:white;
+}
+
+@keyframes flash{
+
+    0%{
+        opacity:1;
+    }
+
+    50%{
+        opacity:0.4;
+    }
+
+    100%{
+        opacity:1;
+    }
+
+}
+
+.controls{
+    text-align:center;
+    margin-top:25px;
+}
+
+.main-btn{
+    padding:15px 28px;
+    font-size:18px;
+    border:none;
+    border-radius:10px;
+    color:white;
+    cursor:pointer;
+    margin:8px;
+}
+
+.blue{
+    background:#3182ce;
+}
+
+.green{
+    background:#38a169;
+}
+
+.red{
+    background:#e53e3e;
+}
+
+.gray{
+    background:#666;
+}
+
+.main-btn:hover{
+    opacity:0.9;
+}
+
+.status{
+    text-align:center;
+    font-size:20px;
+    margin-top:15px;
+    font-weight:bold;
+}
+
+.legend{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+}
+
+.legend-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.legend-color{
+    width:25px;
+    height:25px;
+    border-radius:5px;
+    border:1px solid #333;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="section">
+
+        <h1>ランダム指名アプリ</h1>
+
+        <div class="legend">
+
+            <div class="legend-item">
+                <div class="legend-color" style="background:white;"></div>
+                未指名
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-color" style="background:#e53e3e;"></div>
+                今回の指名
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-color" style="background:#f6ad55;"></div>
+                指名済み
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-color" style="background:#999;"></div>
+                除外
+            </div>
+
+        </div>
+
+        <p class="note">
+            席をクリックすると除外できます
+        </p>
+
+        <div class="classroom">
+
+            <div class="whiteboard">
+                ホワイトボード
+            </div>
+
+            <div class="desk-area" id="deskArea"></div>
+
+        </div>
+
+        <div class="controls">
+
+            <button class="main-btn blue" onclick="selectSeat()">
+                指名する
+            </button>
+
+            <button class="main-btn green" id="numberBtn" onclick="toggleNumbers()">
+                数字 OFF
+            </button>
+
+            <button class="main-btn gray" onclick="resetSelection()">
+                指名履歴リセット
+            </button>
+
+            <button class="main-btn red" onclick="resetAll()">
+                全リセット
+            </button>
+
+        </div>
+
+        <div class="status" id="statusText">
+            準備完了
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+//////////////////////////////////////////////////////
+// データ
+//////////////////////////////////////////////////////
+
+const seats = [];
+
+for(let i=1;i<=24;i++){
+
+    seats.push({
+
+        number:i,
+        active:true,
+        selected:false
+
+    });
+
+}
+
+const deskArea = document.getElementById("deskArea");
+const statusText = document.getElementById("statusText");
+
+let isRunning = false;
+let currentSeatIndex = null;
+
+// 数字表示OFFがデフォルト
+let showNumbers = false;
+
+//////////////////////////////////////////////////////
+// WebAudio
+//////////////////////////////////////////////////////
+
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function beep(freq,duration,type="square",volume=0.03){
+
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = type;
+    osc.frequency.value = freq;
+
+    gain.gain.value = volume;
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start();
+
+    osc.stop(audioContext.currentTime + duration);
+
+}
+
+function playTick(){
+
+    beep(700,0.03);
+
+}
+
+function playFinal(){
+
+    beep(1200,0.15,"triangle",0.05);
+
+}
+
+//////////////////////////////////////////////////////
+// 数字表示切替
+//////////////////////////////////////////////////////
+
+function toggleNumbers(){
+
+    showNumbers = !showNumbers;
+
+    const btn = document.getElementById("numberBtn");
+
+    if(showNumbers){
+
+        btn.textContent = "数字 ON";
+        btn.classList.remove("green");
+        btn.classList.add("blue");
+
+    }else{
+
+        btn.textContent = "数字 OFF";
+        btn.classList.remove("blue");
+        btn.classList.add("green");
+
+    }
+
+    renderSeats();
+
+}
+
+//////////////////////////////////////////////////////
+// 描画
+//////////////////////////////////////////////////////
+
+function renderSeats(){
+
+    deskArea.innerHTML = "";
+
+    for(let desk=0; desk<12; desk++){
+
+        const deskDiv = document.createElement("div");
+
+        deskDiv.className = "desk";
+
+        for(let side=0; side<2; side++){
+
+            const seatIndex = desk*2 + side;
+
+            const seatData = seats[seatIndex];
+
+            const seatDiv = document.createElement("div");
+
+            seatDiv.className = "seat";
+
+            // 数字表示切替
+            if(showNumbers){
+
+                seatDiv.textContent = seatData.number;
+
+            }else{
+
+                seatDiv.textContent = "";
+
+            }
+
+            if(!seatData.active){
+
+                seatDiv.classList.add("off");
+
+            }
+
+            else if(seatIndex === currentSeatIndex){
+
+                seatDiv.classList.add("current");
+
+            }
+
+            else if(seatData.selected){
+
+                seatDiv.classList.add("done");
+
+            }
+
+           seatDiv.onclick = ()=>{
+
+ 		   if(isRunning) return;
+
+		    // 今回選ばれている席は変更不可
+		    if(seatIndex === currentSeatIndex) return;
+
+		    // 指名済み席をクリックしたら未指名に戻す
+		    if(seatData.selected){
+
+		        seatData.selected = false;
+
+		        renderSeats();
+
+		        return;
+
+		    }
+
+		    // 通常は除外ON/OFF
+		    seatData.active = !seatData.active;
+
+		    renderSeats();
+
+		};
+
+            deskDiv.appendChild(seatDiv);
+
+        }
+
+        deskArea.appendChild(deskDiv);
+
+    }
+
+}
+
+//////////////////////////////////////////////////////
+// 指名
+//////////////////////////////////////////////////////
+
+async function selectSeat(){
+
+    if(isRunning) return;
+
+    isRunning = true;
+
+    // 前回currentをdoneへ
+    if(currentSeatIndex !== null){
+
+        seats[currentSeatIndex].selected = true;
+
+    }
+
+    currentSeatIndex = null;
+
+    renderSeats();
+
+    // 候補
+    const candidates = seats
+        .map((seat,index)=>{
+
+            return {
+                seat:seat,
+                index:index
+            };
+
+        })
+        .filter(item=>
+
+            item.seat.active &&
+            !item.seat.selected
+
+        );
+
+    // 全終了
+    if(candidates.length === 0){
+
+        statusText.textContent =
+            "全員の指名が完了しました";
+
+        isRunning = false;
+
+        return;
+
+    }
+
+    const seatDivs = document.querySelectorAll(".seat");
+
+    let delay = 25;
+
+    let finalIndex = null;
+
+    // ルーレット
+    for(let i=0;i<18;i++){
+
+        seatDivs.forEach(seat=>{
+
+            seat.classList.remove("rolling");
+
+        });
+
+        const random =
+            candidates[
+                Math.floor(Math.random()*candidates.length)
+            ];
+
+        finalIndex = random.index;
+
+        seatDivs[finalIndex]
+            .classList.add("rolling");
+
+        playTick();
+
+        await wait(delay);
+
+        delay += 4;
+
+    }
+
+    // rolling解除
+    seatDivs.forEach(seat=>{
+
+        seat.classList.remove("rolling");
+
+    });
+
+    // 決定
+    currentSeatIndex = finalIndex;
+
+    renderSeats();
+
+    playFinal();
+
+    if(showNumbers){
+
+        statusText.textContent =
+            seats[currentSeatIndex].number + "番 を指名";
+
+    }else{
+
+        statusText.textContent =
+            "席を指名しました";
+
+    }
+
+    isRunning = false;
+
+}
+
+//////////////////////////////////////////////////////
+// リセット
+//////////////////////////////////////////////////////
+
+function resetSelection(){
+
+    if(isRunning) return;
+
+    seats.forEach(seat=>{
+
+        seat.selected = false;
+
+    });
+
+    currentSeatIndex = null;
+
+    renderSeats();
+
+    statusText.textContent =
+        "指名履歴をリセットしました";
+
+}
+
+
+function resetAll(){
+
+    if(isRunning) return;
+
+    seats.forEach(seat=>{
+
+        seat.active = true;
+        seat.selected = false;
+
+    });
+
+    currentSeatIndex = null;
+
+    renderSeats();
+
+    statusText.textContent =
+        "全リセットしました";
+
+}
+
+//////////////////////////////////////////////////////
+// wait
+//////////////////////////////////////////////////////
+
+function wait(ms){
+
+    return new Promise(resolve=>setTimeout(resolve,ms));
+
+}
+
+//////////////////////////////////////////////////////
+// 初期描画
+//////////////////////////////////////////////////////
+
+renderSeats();
+
+</script>
+
+</body>
+</html>
