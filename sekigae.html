@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>自動席替えアプリ</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:20px;
+    background:#f2f2f2;
+    font-family:sans-serif;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+.section{
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1,h2{
+    text-align:center;
+}
+
+.note{
+    text-align:center;
+    color:#666;
+}
+
+.student-grid{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:10px;
+    margin-top:15px;
+}
+
+.student-btn{
+    padding:12px;
+    font-size:18px;
+    border:none;
+    border-radius:8px;
+    background:#4CAF50;
+    color:white;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.student-btn.off{
+    background:#999;
+}
+
+.classroom{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:25px;
+}
+
+.whiteboard{
+    width:70%;
+    background:#2f855a;
+    color:white;
+    text-align:center;
+    padding:15px;
+    font-size:24px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.desk-area{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:30px 50px;
+}
+
+.desk{
+    width:190px;
+    background:#c89b3c;
+    border-radius:10px;
+    padding:10px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.seat{
+    width:75px;
+    height:65px;
+    background:white;
+    border:2px solid #333;
+    border-radius:8px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:24px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.2s;
+    user-select:none;
+}
+
+.seat.off{
+    background:#999;
+    color:white;
+}
+
+.seat.rolling{
+    background:#3182ce;
+    color:white;
+    animation:flash 0.2s infinite;
+}
+
+@keyframes flash{
+
+    0%{
+        opacity:1;
+    }
+
+    50%{
+        opacity:0.4;
+    }
+
+    100%{
+        opacity:1;
+    }
+
+}
+
+.seat.final{
+    animation:pop 0.5s;
+}
+
+@keyframes pop{
+
+    0%{
+        transform:scale(1);
+    }
+
+    50%{
+        transform:scale(1.25);
+    }
+
+    100%{
+        transform:scale(1);
+    }
+
+}
+
+.controls{
+    text-align:center;
+    margin-top:20px;
+}
+
+.main-btn{
+    padding:15px 25px;
+    font-size:18px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    color:white;
+    margin:8px;
+}
+
+.blue{
+    background:#3182ce;
+}
+
+.green{
+    background:#38a169;
+}
+
+.red{
+    background:#e53e3e;
+}
+
+.main-btn:hover{
+    opacity:0.9;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="section">
+
+        <h1>自動席替えアプリ</h1>
+
+        <h2>出席番号（クリックで欠席）</h2>
+
+        <p class="note">
+            緑＝参加 ／ グレー＝欠席
+        </p>
+
+        <div class="student-grid" id="studentGrid"></div>
+
+    </div>
+
+    <div class="section">
+
+        <h2>座席（クリックで使用不可）</h2>
+
+        <p class="note">
+            白＝使用 ／ グレー＝使用しない
+        </p>
+
+        <div class="classroom">
+
+            <div class="whiteboard">
+                ホワイトボード
+            </div>
+
+            <div class="desk-area" id="deskArea"></div>
+
+        </div>
+
+        <div class="controls">
+
+            <button class="main-btn blue" onclick="shuffleSequential()">
+                一人ずつ決定
+            </button>
+
+            <button class="main-btn blue" onclick="shuffleAll()">
+                一斉に決定
+            </button>
+
+            <button class="main-btn green" id="soundBtn" onclick="toggleSound()">
+                🔊 効果音 ON
+            </button>
+
+            <button class="main-btn blue" onclick="resetAll()">
+                リセット
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+//////////////////////////////////////////////////////
+// データ
+//////////////////////////////////////////////////////
+
+const students = [];
+
+for(let i=1;i<=24;i++){
+
+    students.push({
+        number:i,
+        active:true
+    });
+
+}
+
+const seats = [];
+
+for(let i=0;i<24;i++){
+
+    seats.push({
+        active:true,
+        student:""
+    });
+
+}
+
+const studentGrid = document.getElementById("studentGrid");
+const deskArea = document.getElementById("deskArea");
+
+let soundEnabled = true;
+let isRunning = false;
+
+//////////////////////////////////////////////////////
+// WebAudio API
+// Chrome / Edge 完全対応
+//////////////////////////////////////////////////////
+
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function beep(freq,duration,type="square",volume=0.03){
+
+    if(!soundEnabled) return;
+
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = type;
+    osc.frequency.value = freq;
+
+    gain.gain.value = volume;
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start();
+
+    osc.stop(audioContext.currentTime + duration);
+
+}
+
+function playTick(){
+
+    beep(700,0.03);
+
+}
+
+function playFinal(){
+
+    beep(1200,0.12,"triangle",0.05);
+
+}
+
+function playFinish(){
+
+    beep(800,0.08,"triangle",0.05);
+
+    setTimeout(()=>{
+        beep(1200,0.12,"triangle",0.05);
+    },120);
+
+}
+
+//////////////////////////////////////////////////////
+// 効果音ON OFF
+//////////////////////////////////////////////////////
+
+function toggleSound(){
+
+    soundEnabled = !soundEnabled;
+
+    const btn = document.getElementById("soundBtn");
+
+    if(soundEnabled){
+
+        btn.innerHTML = "🔊 効果音 ON";
+
+        btn.classList.remove("red");
+        btn.classList.add("green");
+
+        playFinal();
+
+    }else{
+
+        btn.innerHTML = "🔇 効果音 OFF";
+
+        btn.classList.remove("green");
+        btn.classList.add("red");
+
+    }
+
+}
+
+//////////////////////////////////////////////////////
+// 描画
+//////////////////////////////////////////////////////
+
+function renderStudents(){
+
+    studentGrid.innerHTML = "";
+
+    students.forEach(student=>{
+
+        const btn = document.createElement("button");
+
+        btn.className = "student-btn";
+
+        if(!student.active){
+
+            btn.classList.add("off");
+
+        }
+
+        btn.textContent = student.number;
+
+        btn.onclick = ()=>{
+
+            if(isRunning) return;
+
+            student.active = !student.active;
+
+            renderStudents();
+
+        };
+
+        studentGrid.appendChild(btn);
+
+    });
+
+}
+
+
+function renderSeats(){
+
+    deskArea.innerHTML = "";
+
+    for(let desk=0; desk<12; desk++){
+
+        const deskDiv = document.createElement("div");
+
+        deskDiv.className = "desk";
+
+        for(let side=0; side<2; side++){
+
+            const seatIndex = desk*2 + side;
+
+            const seatData = seats[seatIndex];
+
+            const seatDiv = document.createElement("div");
+
+            seatDiv.className = "seat";
+
+            if(!seatData.active){
+
+                seatDiv.classList.add("off");
+
+            }
+
+            seatDiv.textContent = seatData.student;
+
+            seatDiv.onclick = ()=>{
+
+                if(isRunning) return;
+
+                seatData.active = !seatData.active;
+
+                renderSeats();
+
+            };
+
+            deskDiv.appendChild(seatDiv);
+
+        }
+
+        deskArea.appendChild(deskDiv);
+
+    }
+
+}
+
+//////////////////////////////////////////////////////
+// シャッフル
+//////////////////////////////////////////////////////
+
+function shuffleArray(array){
+
+    for(let i=array.length-1;i>0;i--){
+
+        const j = Math.floor(Math.random()*(i+1));
+
+        [array[i],array[j]] = [array[j],array[i]];
+
+    }
+
+}
+
+
+function createAssignments(){
+
+    const activeStudents = students
+        .filter(s=>s.active)
+        .map(s=>s.number);
+
+    const activeSeatIndexes = seats
+        .map((seat,index)=> seat.active ? index : null)
+        .filter(index=>index !== null);
+
+    if(activeStudents.length > activeSeatIndexes.length){
+
+        alert("座席数が足りません");
+
+        return null;
+
+    }
+
+    shuffleArray(activeStudents);
+    shuffleArray(activeSeatIndexes);
+
+    const assignments = [];
+
+    activeStudents.forEach((student,index)=>{
+
+        assignments.push({
+            student:student,
+            seatIndex:activeSeatIndexes[index]
+        });
+
+    });
+
+    return assignments;
+
+}
+
+//////////////////////////////////////////////////////
+// 一人ずつ
+//////////////////////////////////////////////////////
+
+async function shuffleSequential(){
+
+    if(isRunning) return;
+
+    isRunning = true;
+
+    clearSeats();
+
+    const assignments = createAssignments();
+
+    if(!assignments){
+
+        isRunning = false;
+        return;
+
+    }
+
+    const seatDivs = document.querySelectorAll(".seat");
+
+    for(const item of assignments){
+
+        const seatDiv = seatDivs[item.seatIndex];
+
+        seatDiv.classList.add("rolling");
+
+        let delay = 30;
+
+        for(let i=0;i<15;i++){
+
+            seatDiv.textContent =
+                Math.floor(Math.random()*24)+1;
+
+            playTick();
+
+            await wait(delay);
+
+            delay += 5;
+
+        }
+
+        seatDiv.textContent = item.student;
+
+        seats[item.seatIndex].student = item.student;
+
+        seatDiv.classList.remove("rolling");
+
+        seatDiv.classList.add("final");
+
+        playFinal();
+
+        await wait(300);
+
+        seatDiv.classList.remove("final");
+
+    }
+
+    playFinish();
+
+    isRunning = false;
+
+}
+
+//////////////////////////////////////////////////////
+// 一斉決定
+//////////////////////////////////////////////////////
+
+async function shuffleAll(){
+
+    if(isRunning) return;
+
+    isRunning = true;
+
+    clearSeats();
+
+    const assignments = createAssignments();
+
+    if(!assignments){
+
+        isRunning = false;
+        return;
+
+    }
+
+    const seatDivs = document.querySelectorAll(".seat");
+
+    // 回転開始
+    assignments.forEach(item=>{
+
+        seatDivs[item.seatIndex]
+            .classList.add("rolling");
+
+    });
+
+    // ルーレット
+    let delay = 60;
+
+    for(let t=0;t<22;t++){
+
+        assignments.forEach(item=>{
+
+            seatDivs[item.seatIndex].textContent =
+                Math.floor(Math.random()*24)+1;
+
+        });
+
+        playTick();
+
+        await wait(delay);
+
+        delay += 10;
+
+    }
+
+    // 決定
+    assignments.forEach(item=>{
+
+        const seatDiv = seatDivs[item.seatIndex];
+
+        seatDiv.textContent = item.student;
+
+        seats[item.seatIndex].student = item.student;
+
+        seatDiv.classList.remove("rolling");
+
+        seatDiv.classList.add("final");
+
+    });
+
+    playFinal();
+
+    await wait(600);
+
+    seatDivs.forEach(seat=>{
+
+        seat.classList.remove("final");
+
+    });
+
+    playFinish();
+
+    isRunning = false;
+
+}
+
+//////////////////////////////////////////////////////
+// 共通
+//////////////////////////////////////////////////////
+
+function clearSeats(){
+
+    seats.forEach(s=>{
+
+        s.student = "";
+
+    });
+
+    renderSeats();
+
+}
+
+
+function resetAll(){
+
+    if(isRunning) return;
+
+    students.forEach(s=>{
+
+        s.active = true;
+
+    });
+
+    seats.forEach(s=>{
+
+        s.active = true;
+        s.student = "";
+
+    });
+
+    renderStudents();
+    renderSeats();
+
+}
+
+
+function wait(ms){
+
+    return new Promise(resolve=>setTimeout(resolve,ms));
+
+}
+
+//////////////////////////////////////////////////////
+// 初期描画
+//////////////////////////////////////////////////////
+
+renderStudents();
+renderSeats();
+
+</script>
+
+</body>
+</html>
