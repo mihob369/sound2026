@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>データ圧縮シミュレーション</title>
+<style>
+body {
+    font-family: sans-serif;
+    padding: 20px;
+}
+
+.row {
+    display: flex;
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #333;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+#grid {
+    display: inline-block;
+    border: 1px solid #999;
+    padding: 5px;
+}
+
+.info-good {
+    color: green;
+    font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<h2>データ圧縮シミュレーション</h2>
+
+<div>
+    サイズ:
+    <button onclick="setSize(3)">3×3</button>
+    <button onclick="setSize(5)">5×5</button>
+    <button onclick="setSize(7)">7×7</button>
+    <button onclick="setSize(10)">10×10</button>
+
+    モード:
+    <button onclick="setMode('1bit')">白黒</button>
+    <button onclick="setMode('4color')">4色</button>
+
+    <button onclick="randomize()">ランダム生成</button>
+</div>
+
+<div style="margin-top:10px; display:flex; gap:40px;">
+    <div id="grid"></div>
+
+    <div>
+        <h3>データ情報</h3>
+        <div id="original"></div>
+        <div id="compressedBits"></div>
+        <div id="ratio"></div>
+
+        <h3>元データ</h3>
+        <div id="raw"></div>
+
+        <h3>圧縮データ</h3>
+        <div id="compressedText"></div>
+    </div>
+</div>
+
+<script>
+let size = 5;
+let mode = "1bit";
+let grid = [];
+
+function getColors() {
+    return mode === "1bit" ? ["白","黒"] : ["白","黒","赤","青"];
+}
+
+function getColorMap() {
+    return {
+        "白":"#eeeeee",
+        "黒":"#000000",
+        "赤":"#ff0000",
+        "青":"#0000ff"
+    };
+}
+
+function setSize(s) {
+    size = s;
+    grid = Array(s * s).fill(0);
+    render();
+}
+
+function setMode(m) {
+    mode = m;
+    grid = Array(size * size).fill(0);
+    render();
+}
+
+function toggleCell(i) {
+    const colors = getColors();
+    grid[i] = (grid[i] + 1) % colors.length;
+    render();
+}
+
+function randomize() {
+    const colors = getColors();
+    grid = grid.map(() => Math.floor(Math.random() * colors.length));
+    render();
+}
+
+function compress() {
+    if (grid.length === 0) return [];
+
+    let result = [];
+    let current = grid[0];
+    let count = 1;
+
+    for (let i = 1; i < grid.length; i++) {
+        if (grid[i] === current) {
+            count++;
+        } else {
+            result.push({color: current, count: count});
+            current = grid[i];
+            count = 1;
+        }
+    }
+
+    result.push({color: current, count: count});
+    return result;
+}
+
+function render() {
+    const colors = getColors();
+    const map = getColorMap();
+
+    const gridDiv = document.getElementById("grid");
+    gridDiv.innerHTML = "";
+
+    for (let y = 0; y < size; y++) {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        for (let x = 0; x < size; x++) {
+            const i = y * size + x;
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.style.backgroundColor = map[colors[grid[i]]];
+            cell.onclick = () => toggleCell(i);
+
+            row.appendChild(cell);
+        }
+
+        gridDiv.appendChild(row);
+    }
+
+    const comp = compress();
+
+    const rawText = grid.map(c => colors[c]).join("");
+const compText = comp.map(x => {
+    return colors[x.color] + (x.count === 1 ? "" : x.count);
+}).join("");
+    const originalBits = grid.length;
+ const compressedBits = comp.reduce((sum,x)=>{
+    return sum + 1 + (x.count === 1 ? 0 : x.count.toString().length);
+},0);
+
+    const ratioValue = originalBits === 0 ? 0 : compressedBits / originalBits;
+
+    document.getElementById("original").innerText =
+        "圧縮前: " + originalBits + " bit";
+
+    document.getElementById("compressedBits").innerText =
+        "圧縮後: " + compressedBits + " bit";
+
+    const ratioElem = document.getElementById("ratio");
+    ratioElem.innerText =
+        "圧縮率: " + ratioValue.toFixed(3) +
+        " (" + (ratioValue * 100).toFixed(1) + "%)";
+
+    ratioElem.className = ratioValue < 1 ? "info-good" : "";
+
+    document.getElementById("raw").innerText = rawText;
+    document.getElementById("compressedText").innerText = compText;
+}
+
+window.addEventListener("load", () => {
+    setSize(5);
+});
+</script>
+
+</body>
+</html>
