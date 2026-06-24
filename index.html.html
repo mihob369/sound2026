@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>音のデジタル化 完全版</title>
+
+<style>
+body { font-family:sans-serif; padding:20px; }
+.box{ border:2px solid #333; padding:10px; margin-bottom:10px;}
+canvas{ border:1px solid #333; width:100%; height:320px;}
+
+#wire{
+  position:relative;
+  height:80px;
+  border:2px solid #333;
+  margin-top:20px;
+  overflow:hidden;
+}
+
+.bit{
+  position:absolute;
+  top:40px;
+  animation:move 2s linear forwards;
+}
+
+@keyframes move {
+  from { left:10px; }
+  to { left:95%; }
+}
+</style>
+</head>
+
+<body>
+
+<h1>音のデジタル化</h1>
+
+<div class="box">
+標本化：
+<input type="range" id="sf" min="2" max="20" value="10" oninput="update()">
+<span id="sfv"></span><br><br>
+
+量子化：
+<input type="range" id="qb" min="1" max="5" value="3" oninput="update()">
+<span id="qbv"></span><br><br>
+
+時間：
+<input type="number" id="sec" value="5" oninput="update()"> 秒<br><br>
+
+<button onclick="digitize()">デジタル化</button>
+<button onclick="resetDigit()">リセット</button>
+<button onclick="play()">再生</button>
+<button onclick="send()">送信</button>
+
+<span id="result" style="margin-left:15px;color:blue;"></span>
+</div>
+
+<canvas id="wave"></canvas>
+
+<div id="wire"></div>
+
+<script>
+
+let isDigitized=false;
+let samples=[];
+let interval=null;
+
+const MASTER_LEVELS = 32; // ✅ 固定（ここが本質）
+
+const sfSlider=document.getElementById("sf");
+const qbSlider=document.getElementById("qb");
+const secInput=document.getElementById("sec");
+
+// ===== 更新 =====
+function update(){
+  let sf=sfSlider.value;
+  let qb=qbSlider.value;
+
+  sfv.innerHTML=`${sf}Hz（1秒を${sf}分割）`;
+  qbv.innerHTML=`${qb}bit（${Math.pow(2,qb)}段階）`;
+
+  draw();
+}
+
+// ===== デジタル化 =====
+function digitize(){
+
+  isDigitized=true;
+
+  let sf=sfSlider.value;
+  let qb=qbSlider.value;
+  let sec=secInput.value;
+
+  let total=sf*qb*sec;
+
+  result.innerHTML=`${sf} × ${qb} × ${sec} = ${total} bit`;
+
+  draw();
+}
+
+// ===== リセット =====
+function resetDigit(){
+  isDigitized=false;
+  samples=[];
+  result.innerHTML="";
+  draw();
+}
+
+// ===== 描画 =====
+function draw(highlight=-1){
+
+  let sf=parseInt(sfSlider.value);
+  let qb=parseInt(qbSlider.value);
+
+  let canvas=document.getElementById("wave");
+  let ctx=canvas.getContext("2d");
+
+  canvas.width=canvas.offsetWidth;
+  canvas.height=300;
+
+  let W=canvas.width;
+  let H=canvas.height;
+
+  ctx.clearRect(0,0,W,H);
+
+  // 波
+  ctx.beginPath();
+  for(let x=0;x<W;x++){
+    let y=H/2 + Math.sin(x*0.02)*80 + Math.sin(x*0.05)*30;
+    ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle="blue";
+  ctx.stroke();
+
+  // 縦線
+  for(let i=0;i<sf;i++){
+    let x=i*(W/sf);
+    ctx.strokeStyle="rgba(0,0,0,0.2)";
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,H);
+    ctx.stroke();
+  }
+
+  // 横線
+  let displayLevels=Math.pow(2,qb);
+  let stepY=H/displayLevels;
+
+  ctx.font="10px monospace";
+
+  for(let i=0;i<displayLevels;i++){
+
+    let y=H - (i*stepY) - stepY/2;
+
+    ctx.strokeStyle="rgba(0,0,0,0.2)";
+    ctx.beginPath();
+    ctx.moveTo(0,H - i*stepY);
+    ctx.lineTo(W,H - i*stepY);
+    ctx.stroke();
+
+    if(qb<=4 || i%2===0){
+      let bin=i.toString(2).padStart(qb,"0");
+      ctx.fillStyle="gray";
+      ctx.fillText(bin,5,y+3);
+    }
+  }
+
+  if(!isDigitized) return;
+
+  samples=[];
+
+  for(let i=0;i<sf;i++){
+
+    let x=i*(W/sf);
+
+    let raw=H/2 + Math.sin(x*0.02)*80 + Math.sin(x*0.05)*30;
+
+    // ✅ 元データ（固定32段階）
+    let baseLevel=Math.floor((H-raw)/(H/MASTER_LEVELS));
+
+    // ✅ 量子化（丸めるだけ）
+    let scaled=baseLevel/(MASTER_LEVELS-1);
+    let qLevel=Math.round(scaled*(displayLevels-1));
+
+    let y=H - (qLevel*stepY) - stepY/2;
+
+    samples.push({x,y,level:qLevel,base:baseLevel});
+
+    ctx.fillStyle=(i===highlight)?"orange":"red";
+    ctx.beginPath();
+    ctx.arc(x,y,6,0,Math.PI*2);
+    ctx.fill();
+
+    let bin=qLevel.toString(2).padStart(qb,"0");
+    ctx.fillStyle="black";
+    ctx.fillText(bin,x-15,y-10);
+  }
+
+  // 階段
+  ctx.beginPath();
+  ctx.strokeStyle="green";
+  ctx.lineWidth=3;
+
+  for(let i=0;i<samples.length;i++){
+    let s=samples[i];
+    let nextX=(i+1<samples.length)?samples[i+1].x:W;
+
+    if(i===0) ctx.moveTo(s.x,s.y);
+
+    ctx.lineTo(s.x,s.y);
+    ctx.lineTo(nextX,s.y);
+  }
+
+  ctx.stroke();
+}
+
+// ===== 再生 =====
+function play(){
+
+  if(!isDigitized) return;
+
+  let ctx=new AudioContext();
+  let sf=parseInt(sfSlider.value);
+  let sec=parseInt(secInput.value);
+
+  let repeat=0;
+  let i=0;
+
+  function step(){
+
+    if(repeat>=sec) return;
+
+    if(i>=samples.length){
+      i=0;
+      repeat++;
+    }
+
+    draw(i);
+
+    let osc=ctx.createOscillator();
+    let gain=ctx.createGain();
+
+    // ✅ 元データで音生成（ここ重要）
+    let base=samples[i].base;
+
+    osc.frequency.value=200 + base*(800/MASTER_LEVELS);
+
+    gain.gain.value=0.1;
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime+0.08);
+
+    i++;
+
+    setTimeout(step,1000/sf);
+  }
+
+  step();
+}
+
+// ===== 送信 =====
+function send(){
+
+  if(!isDigitized) return;
+
+  if(interval) clearInterval(interval);
+
+  document.querySelectorAll(".bit").forEach(e=>e.remove());
+
+  let qb=parseInt(qbSlider.value);
+  let wire=document.getElementById("wire");
+
+  let data="";
+
+  samples.forEach(s=>{
+    data += s.level.toString(2).padStart(qb,"0");
+  });
+
+  let i=0;
+
+  interval=setInterval(()=>{
+
+    if(i>=data.length){
+      clearInterval(interval);
+      return;
+    }
+
+    let bit=document.createElement("div");
+    bit.className="bit";
+    bit.innerText=data[i];
+
+    wire.appendChild(bit);
+
+    setTimeout(()=>bit.remove(),2000);
+
+    i++;
+
+  },20);
+}
+
+// 初期
+update();
+
+</script>
+
+</body>
+</html>
