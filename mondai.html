@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>スプレッドシートクイズ（複数シート対応）</title>
+<title>スプレッドシートクイズ（修正版）</title>
 <style>
 body { font-family: Arial; text-align: center; padding: 20px; }
 button { margin: 5px; padding: 10px 20px; font-size: 16px; }
@@ -28,15 +28,16 @@ select { padding: 10px; margin: 5px; }
 <div id="result" style="font-size:24px; margin-top:20px;"></div>
 
 <script>
-// ✅ 固定スプレッドシートID
+// 固定スプレッドシートID
 const SHEET_ID = "1CTpPXWgQKivHTVyQI5aTjY7H2ZcJk5158oD8ACo6J6A";
-// ✅ シート一覧
+
+// シート一覧（gidは各シートURLから取得）
 const SHEETS = [
-  { name: "問題A", gid: "0" },
-  { name: "問題B", gid: "880344344" },
-  { name: "問題C", gid: "829673232" },
-  { name: "問題D", gid: "1562289067" },
-  { name: "問題E", gid: "2036610256" }
+  { name: "問題A", gid: "0" },
+  { name: "問題B", gid: "880344344" },
+  { name: "問題C", gid: "829673232" },
+  { name: "問題D", gid: "1562289067" },
+  { name: "問題E", gid: "2036610256" }
 ];
 
 let quizData = [];
@@ -47,46 +48,47 @@ let totalQuestions = 10;
 // セレクト初期化
 const selector = document.getElementById("sheetSelector");
 SHEETS.forEach(sheet => {
-    const option = document.createElement("option");
-    option.value = sheet.gid;
-    option.textContent = sheet.name;
-    selector.appendChild(option);
+    const option = document.createElement("option");
+    option.value = sheet.gid;
+    option.textContent = sheet.name;
+    selector.appendChild(option);
 });
 
-// 読み込み
+// 読み込み処理
 function loadSheet() {
-    const gid = document.getElementById("sheetSelector").value;
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+    const gid = document.getElementById("sheetSelector").value;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
 
-    
-    fetch(url)
-        .then(res => res.text())
-        .then(text => {
-            const rows = text.split("
-").slice(1);
-            quizData = rows.map(row => {
-                const cols = row.split(",");
-                return {
-                    q: cols[0],
-                    A: cols[1],
-                    B: cols[2],
-                    C: cols[3],
-                    answer: cols[4]?.trim()
-                };
-            }).filter(x => x.q);
+    console.log("読み込みURL:", url);
 
-            alert("読み込み完了: " + quizData.length + "問");
-        })
-        .catch(err => {
-            console.error(err);
-            alert("読み込み失敗：URLまたは公開設定を確認してください");
-        });
+    fetch(url)
+        .then(res => res.text())
+        .then(text => {
+            const rows = text.split("\n").slice(1);
+
+            quizData = rows.map(row => {
+                const cols = row.split(",");
+                return {
+                    q: cols[0],
+                    A: cols[1],
+                    B: cols[2],
+                    C: cols[3],
+                    answer: cols[4] ? cols[4].trim() : ""
+                };
+            }).filter(x => x.q);
+
+            alert("読み込み完了: " + quizData.length + "問");
+        })
+        .catch(err => {
+            console.error("エラー:", err);
+            alert("読み込み失敗。スプレッドシートの公開設定を確認してください。");
+        });
 }
 
 // クイズ開始
 function startQuiz() {
     if (quizData.length === 0) {
-        alert("先に読み込んでください");
+        alert("先に読み込んでください");
         return;
     }
 
@@ -107,7 +109,7 @@ function nextQuestion() {
     }
 
     const q = quizData[current];
-    document.getElementById("question").innerText = (current+1) + "問目: " + q.q;
+    document.getElementById("question").innerText = (current + 1) + "問目: " + q.q;
 
     const choicesDiv = document.getElementById("choices");
     choicesDiv.innerHTML = "";
@@ -138,7 +140,7 @@ function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
-
 </script>
 
 </body>
+</html>
