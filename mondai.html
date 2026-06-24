@@ -56,8 +56,9 @@ SHEETS.forEach(sheet => {
 // 読み込み
 function loadSheet() {
     const gid = document.getElementById("sheetSelector").value;
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
 
+    
     fetch(url)
         .then(res => res.text())
         .then(text => {
