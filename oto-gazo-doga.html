@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>デジタル表現ラボ｜情報Ⅰ</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A1628;--panel:#0F2040;--panel2:#162952;--border:#1E3A6E;
+  --green:#00E5A0;--blue:#4A9EFF;--purple:#A78BFA;--orange:#FFAA44;
+  --text:#E0ECFF;--muted:#6A85A8;
+  --mono:'JetBrains Mono',monospace;--sans:'Noto Sans JP',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;}
+
+header{height:40px;flex-shrink:0;background:linear-gradient(135deg,#0A1628,#0F2040);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;padding:0 18px;}
+.logo{width:24px;height:24px;background:var(--green);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:10px;color:#0A1628;flex-shrink:0;}
+header h1{font-size:13px;font-weight:500;letter-spacing:.04em;}
+header h1 span{color:var(--green);font-weight:700;}
+
+.tabs{height:36px;flex-shrink:0;display:flex;gap:3px;padding:5px 18px 0;border-bottom:1px solid var(--border);}
+.tab{padding:0 16px;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
+.tab:hover{color:var(--text);background:var(--panel);}
+.tab.active{background:var(--panel);color:var(--green);border-color:var(--border);border-bottom-color:var(--panel);position:relative;bottom:-1px;}
+
+main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.section{display:none;height:100%;}
+.section.active{display:flex;flex-direction:column;}
+.layout{flex:1;display:grid;grid-template-columns:370px 1fr;overflow:hidden;}
+.col-left{padding:10px 8px 8px 14px;overflow-y:auto;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.col-right{padding:10px 14px 8px 8px;overflow:hidden;display:flex;flex-direction:column;gap:6px;}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:9px 13px;}
+.ct{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.ct::before{content:'';display:block;width:2px;height:11px;background:var(--green);border-radius:2px;}
+
+.cr{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap;}
+.cl{font-size:11px;color:var(--muted);min-width:105px;font-weight:500;}
+.seg{display:flex;gap:2px;background:var(--panel2);padding:3px;border-radius:6px;border:1px solid var(--border);}
+.sbtn{padding:3px 10px;border-radius:4px;border:none;background:transparent;color:var(--muted);font-family:var(--mono);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;white-space:nowrap;}
+.sbtn.active{background:var(--green);color:#0A1628;}
+.sbtn:hover:not(.active){color:var(--text);}
+
+input[type=range]{-webkit-appearance:none;height:4px;background:var(--panel2);border-radius:3px;outline:none;border:1px solid var(--border);width:120px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;border:2px solid #0A1628;}
+.rv-disp{font-family:var(--mono);font-size:12px;color:var(--green);min-width:70px;}
+
+select{background:var(--panel2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:6px;outline:none;cursor:pointer;}
+select:focus{border-color:var(--green);}
+input[type=number]{background:var(--panel2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:6px;outline:none;width:72px;}
+input[type=number]:focus{border-color:var(--green);}
+
+.rg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.ri{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;}
+.rl{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px;}
+.rvv{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--green);line-height:1;}
+.ru{font-size:9px;color:var(--muted);margin-top:2px;font-family:var(--mono);}
+.ri.ab .rvv{color:var(--blue);}
+.ri.ap .rvv{color:var(--purple);}
+.ri.ao .rvv{color:var(--orange);}
+
+.formula{background:#060F1E;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--mono);font-size:10px;color:var(--orange);white-space:pre;}
+.badge{display:inline-flex;align-items:center;background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.3);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--blue);}
+.badge.g{background:rgba(0,229,160,.1);border-color:rgba(0,229,160,.3);color:var(--green);}
+.badge.p{background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.3);color:var(--purple);}
+
+.pflow{display:flex;align-items:stretch;margin:5px 0;}
+.ps{flex:1;background:var(--panel2);border:1px solid var(--border);padding:6px 4px;text-align:center;position:relative;}
+.ps:first-child{border-radius:7px 0 0 7px;}
+.ps:last-child{border-radius:0 7px 7px 0;}
+.ps:not(:last-child)::after{content:'→';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:var(--green);font-size:12px;z-index:2;background:var(--panel);padding:0 1px;}
+.psn{font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--green);margin-bottom:2px;}
+.psv{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);}
+.psd{font-size:8px;color:var(--muted);margin-top:1px;line-height:1.3;}
+
+.step3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.sc{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;}
+.sc-t{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;}
+.sc:nth-child(1) .sc-t{color:var(--green);}
+.sc:nth-child(2) .sc-t{color:var(--blue);}
+.sc:nth-child(3) .sc-t{color:var(--purple);}
+.sc p{font-size:10px;color:var(--muted);line-height:1.55;}
+
+.cw{background:#060F1E;border:1px solid var(--border);border-radius:7px;padding:7px;flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.clbl{font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;letter-spacing:.05em;}
+
+canvas{border-radius:5px;display:block;}
+#pixelCanvas{image-rendering:pixelated;cursor:crosshair;}
+
+.brow{display:flex;flex-wrap:wrap;gap:2px;margin-top:5px;}
+.bchip{font-family:var(--mono);font-size:9px;padding:1px 5px;background:#0A1628;border:1px solid var(--border);border-radius:3px;color:var(--blue);}
+
+.sbar-bg{background:var(--panel2);border:1px solid var(--border);border-radius:4px;height:7px;overflow:hidden;margin-top:5px;}
+.sbar-fill{height:100%;border-radius:4px;transition:width .4s;background:linear-gradient(90deg,var(--green),var(--blue));}
+
+.fps-big{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--purple);text-align:center;line-height:1;}
+.fps-big span{font-size:13px;color:var(--muted);font-weight:400;}
+
+/* 画像アップロード */
+.upload-area{border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;cursor:pointer;transition:border-color .2s;background:var(--panel2);margin-bottom:8px;}
+.upload-area:hover{border-color:var(--green);}
+.upload-area input{display:none;}
+.upload-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">01</div>
+  <h1><span>デジタル表現ラボ</span>　情報Ⅰ 学習補助アプリ</h1>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('sound',this)">🎵 音声のデジタル化</button>
+  <button class="tab" onclick="switchTab('image',this)">🖼️ 画像のデジタル化</button>
+  <button class="tab" onclick="switchTab('video',this)">🎬 動画のデータ量</button>
+</div>
+
+<main>
+
+<!-- ══════════ SOUND ══════════ -->
+<div id="sec-sound" class="section active">
+  <div class="layout">
+    <div class="col-left">
+
+      <div class="step3">
+        <div class="sc"><div class="sc-t">① 標本化</div><p>一定間隔で波形を測定。1秒間の回数＝<b>サンプリング周波数（Hz）</b></p></div>
+        <div class="sc"><div class="sc-t">② 量子化</div><p>測定値を<b>2ⁿ段階</b>の整数に丸める。nが量子化ビット数。少ないと粗い。</p></div>
+        <div class="sc"><div class="sc-t">③ 符号化</div><p>数値を<b>2進数</b>に変換。1サンプルあたり n ビット使う。</p></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">設定</div>
+
+        <div class="cr">
+          <span class="cl">🎙️ サンプリング周波数</span>
+          <input type="range" id="sf-range" min="0" max="5" step="1" value="0" oninput="setSFSlider(this.value)">
+          <span class="rv-disp" id="sf-disp">4 Hz</span>
+          <span class="badge g" id="sf-label">学習用</span>
+        </div>
+
+        <div class="cr">
+          <span class="cl">📊 量子化ビット数</span>
+          <input type="range" id="qb-range" min="1" max="8" step="1" value="2" oninput="setQBSlider(this.value)">
+          <span class="rv-disp" id="qb-disp">2 bit</span>
+          <span class="badge" id="qb-label">4段階</span>
+        </div>
+
+        <div class="cr">
+          <span class="cl">🔊 チャンネル</span>
+          <div class="seg" id="ch-btns">
+            <button class="sbtn active" onclick="setCH(this,1)">モノラル</button>
+            <button class="sbtn" onclick="setCH(this,2)">ステレオ</button>
+          </div>
+        </div>
+
+        <div class="cr">
+          <span class="cl">⏱️ 録音時間</span>
+          <input type="number" id="sound-sec" value="10" min="1" max="3600" oninput="updateSound()">
+          <span style="font-size:11px;color:var(--muted)">秒</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">デジタル化のながれ</div>
+        <div class="pflow">
+          <div class="ps"><div class="psn">入力</div><div class="psv">アナログ</div><div class="psd">連続した波</div></div>
+          <div class="ps"><div class="psn">標本化</div><div class="psv" id="pf-sf">4/秒</div><div class="psd">一定間隔で測定</div></div>
+          <div class="ps"><div class="psn">量子化</div><div class="psv" id="pf-qb">4段階</div><div class="psd">数値に丸める</div></div>
+          <div class="ps"><div class="psn">符号化</div><div class="psv" id="pf-code">2bit/個</div><div class="psd">2進数に変換</div></div>
+          <div class="ps"><div class="psn">出力</div><div class="psv">デジタル</div><div class="psd">0と1の列</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:3px">符号化サンプル（2進数）</div>
+        <div class="brow" id="binary-row"></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">計算結果</div>
+        <div class="formula" id="sound-formula"></div>
+        <div class="rg" style="margin-top:6px">
+          <div class="ri"><div class="rl">データ量(bit)</div><div class="rvv" id="r-bits">—</div><div class="ru">bit</div></div>
+          <div class="ri ab"><div class="rl">データ量(Byte)</div><div class="rvv" id="r-bytes">—</div><div class="ru">Byte</div></div>
+          <div class="ri ap"><div class="rl">データ量(KB)</div><div class="rvv" id="r-kb">—</div><div class="ru">KB</div></div>
+          <div class="ri ao"><div class="rl">データ量(MB)</div><div class="rvv" id="r-mb">—</div><div class="ru">MB</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右：波形ビジュアライザー -->
+    <div class="col-right">
+      <div class="clbl">波形の可視化 — スライダーを動かして標本化・量子化の違いを確認しよう</div>
+      <div class="cw" style="flex:1">
+        <canvas id="waveCanvas" style="width:100%;flex:1;"></canvas>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;font-size:10px;color:var(--muted);font-family:var(--mono);">
+        <span style="color:rgba(74,158,255,.8)">━ アナログ波形</span>
+        <span style="color:var(--green)">━ デジタル（量子化後）</span>
+        <span style="color:rgba(0,229,160,.5)">● サンプル点</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ IMAGE ══════════ -->
+<div id="sec-image" class="section">
+  <div class="layout">
+    <div class="col-left">
+
+      <div class="step3">
+        <div class="sc"><div class="sc-t">① 標本化</div><p>画像を格子状に分割。1マス＝<b>ピクセル</b>。縦×横がピクセル数（解像度）。</p></div>
+        <div class="sc"><div class="sc-t">② 量子化</div><p>各ピクセルの色を有限段階で表す。ビット数が多いほど色数↑・なめらか。</p></div>
+        <div class="sc"><div class="sc-t">③ 符号化</div><p>色の数値を<b>2進数</b>で記録。1ピクセルあたり n ビット使う。</p></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">元画像の選択</div>
+        <div class="upload-area" id="upload-area" onclick="document.getElementById('img-upload').click()">
+          <div style="font-size:22px">📁</div>
+          <div style="font-size:11px;color:var(--text);margin-top:4px">クリックして画像をアップロード</div>
+          <div class="upload-hint">JPG / PNG / GIF など</div>
+          <input type="file" id="img-upload" accept="image/*" onchange="loadUploadedImage(event)">
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">または内蔵サンプルを使用：</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="sbtn active" style="border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:10px;" onclick="selectSample('scene')">🏙️ 風景</button>
+          <button class="sbtn" style="border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:10px;" onclick="selectSample('portrait')">🧑 人物</button>
+          <button class="sbtn" style="border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:10px;" onclick="selectSample('gradient')">🌈 グラデーション</button>
+          <button class="sbtn" style="border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:10px;" onclick="selectSample('checker')">♟️ チェッカー</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">設定</div>
+        <div class="cr">
+          <span class="cl">📐 表示ピクセル数</span>
+          <input type="range" id="img-px-range" min="0" max="5" step="1" value="3" oninput="setImgPxSlider(this.value)">
+          <span class="rv-disp" id="img-px-disp">32×32</span>
+        </div>
+        <div class="cr">
+          <span class="cl">🎨 ビット数/pixel</span>
+          <input type="range" id="img-bit-range" min="1" max="8" step="1" value="8" oninput="setImgBitSlider(this.value)">
+          <span class="rv-disp" id="img-bit-disp">8 bit</span>
+          <span class="badge g" id="img-color-info">256色</span>
+        </div>
+        <div class="cr" style="margin-top:4px">
+          <span class="cl">📏 実際の解像度</span>
+          <input type="number" id="img-w" value="1920" min="1" max="7680" oninput="updateImageCalc()">
+          <span style="font-size:10px;color:var(--muted)">×</span>
+          <input type="number" id="img-h" value="1080" min="1" max="4320" oninput="updateImageCalc()">
+          <span style="font-size:10px;color:var(--muted)">px（計算用）</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">計算結果（実際の解像度）</div>
+        <div class="formula" id="img-formula"></div>
+        <div class="rg" style="margin-top:6px">
+          <div class="ri"><div class="rl">総ピクセル数</div><div class="rvv" id="i-px">—</div><div class="ru">pixel</div></div>
+          <div class="ri ab"><div class="rl">データ量(bit)</div><div class="rvv" id="i-bits">—</div><div class="ru">bit</div></div>
+          <div class="ri ap"><div class="rl">データ量(MB)</div><div class="rvv" id="i-mb">—</div><div class="ru">MB</div></div>
+          <div class="ri ao"><div class="rl">表現できる色数</div><div class="rvv" id="i-colors">—</div><div class="ru">色</div></div>
+        </div>
+        <div style="margin-top:7px;font-size:9px;color:var(--muted)">
+          ピクセルをクリック → 2進数：<span id="pixel-binary" style="color:var(--blue);font-family:var(--mono);font-size:9px">（右の画像をクリック）</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右：画像ビジュアライザー -->
+    <div class="col-right">
+      <div class="clbl">デジタル化の可視化 — ピクセル数・ビット数を変えると画質がどう変わるか確認しよう</div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow:hidden;">
+        <div class="cw" style="flex:1;align-items:center;justify-content:center;">
+          <div class="clbl">元画像（オリジナル）</div>
+          <canvas id="origCanvas" style="max-width:100%;max-height:90%;object-fit:contain;image-rendering:auto;"></canvas>
+        </div>
+        <div class="cw" style="flex:1;align-items:center;justify-content:center;">
+          <div class="clbl" id="digital-label">デジタル化後（32×32 px / 8bit）</div>
+          <canvas id="digitalCanvas" style="max-width:100%;max-height:90%;object-fit:contain;image-rendering:pixelated;" onclick="pickPixel(event)"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ VIDEO ══════════ -->
+<div id="sec-video" class="section">
+  <div class="layout">
+    <div class="col-left">
+
+      <div class="card">
+        <div class="ct">動画 = 静止画の連続</div>
+        <p style="font-size:10px;color:var(--muted);line-height:1.7">動画は<b style="color:var(--text)">静止画（フレーム）を素早く切り替えて表示</b>したもの。1秒間のフレーム数＝<b style="color:var(--purple)">fps（frames per second）</b>。fpsが低いと動きがカクカクし、解像度が低いと画像が荒くなる。</p>
+      </div>
+
+      <div class="card">
+        <div class="ct">設定</div>
+        <div class="cr">
+          <span class="cl">🎞️ フレームレート</span>
+          <input type="range" id="fps-range" min="0" max="5" step="1" value="1" oninput="setFPSSlider(this.value)">
+          <span class="rv-disp" id="fps-disp">4 fps</span>
+          <span class="badge p" id="fps-label">学習用</span>
+        </div>
+        <div class="cr">
+          <span class="cl">📐 解像度</span>
+          <input type="range" id="vid-px-range" min="0" max="5" step="1" value="2" oninput="setVidPxSlider(this.value)">
+          <span class="rv-disp" id="vid-px-disp">16×12</span>
+        </div>
+        <div class="cr">
+          <span class="cl">🎨 カラービット数</span>
+          <div class="seg" id="vcol-btns">
+            <button class="sbtn" onclick="setVCol(this,8)">8bit</button>
+            <button class="sbtn active" onclick="setVCol(this,16)">16bit</button>
+            <button class="sbtn" onclick="setVCol(this,24)">24bit</button>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin:6px 0;padding-top:6px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">実際の計算用（大きな値を設定）</div>
+          <div class="cr">
+            <span class="cl">↔️ 横px（計算用）</span>
+            <input type="number" id="v-w" value="1920" min="1" max="7680" oninput="updateVideo()">
+          </div>
+          <div class="cr">
+            <span class="cl">↕️ 縦px（計算用）</span>
+            <input type="number" id="v-h" value="1080" min="1" max="4320" oninput="updateVideo()">
+          </div>
+          <div class="cr">
+            <span class="cl">⏱️ 動画の尺</span>
+            <input type="number" id="v-sec" value="120" min="1" max="7200" oninput="updateVideo()">
+            <span style="font-size:10px;color:var(--muted)">秒</span>
+            <span class="badge" id="v-time-label">2分</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct">計算のながれ</div>
+        <div class="pflow">
+          <div class="ps"><div class="psn">1frame</div><div class="psv" id="vp-frame">—</div><div class="psd">1枚の静止画</div></div>
+          <div class="ps"><div class="psn">× fps</div><div class="psv" id="vp-fps">—</div><div class="psd">1秒あたり</div></div>
+          <div class="ps"><div class="psn">= 1秒</div><div class="psv" id="vp-sec1">—</div><div class="psd">1秒データ</div></div>
+          <div class="ps"><div class="psn">× 秒数</div><div class="psv" id="vp-secs">—</div><div class="psd">動画の長さ</div></div>
+          <div class="ps"><div class="psn">合計</div><div class="psv" id="vp-total">—</div><div class="psd">全データ量</div></div>
+        </div>
+        <div class="formula" id="video-formula" style="margin-top:5px"></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">計算結果</div>
+        <div class="rg">
+          <div class="ri"><div class="rl">総フレーム数</div><div class="rvv" id="v-frames">—</div><div class="ru">frames</div></div>
+          <div class="ri ab"><div class="rl">1フレーム</div><div class="rvv" id="v-fsize">—</div><div class="ru">MB</div></div>
+          <div class="ri ap"><div class="rl">データ量(GB)</div><div class="rvv" id="v-gb">—</div><div class="ru">GB</div></div>
+          <div class="ri ao"><div class="rl">データ量(MB)</div><div class="rvv" id="v-mb">—</div><div class="ru">MB</div></div>
+        </div>
+        <div class="sbar-bg"><div class="sbar-fill" id="v-bar" style="width:0%"></div></div>
+        <div style="font-size:9px;color:var(--muted);margin-top:2px">← 小　データ量の目安（最大200GB基準）　大 →　※圧縮なし</div>
+      </div>
+
+    </div>
+
+    <!-- 右：動画プレビュー -->
+    <div class="col-right">
+      <div class="clbl">動画プレビュー — fps・解像度を変えてカクカク感・画質の変化を確認しよう</div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow:hidden;">
+        <div class="cw" style="flex:1;align-items:center;justify-content:center;">
+          <div class="clbl">なめらか版（60fps 高解像度）</div>
+          <canvas id="vidSmoothCanvas" style="max-width:100%;max-height:90%;image-rendering:auto;"></canvas>
+        </div>
+        <div class="cw" style="flex:1;align-items:center;justify-content:center;">
+          <div class="clbl" id="vid-label">設定中（4fps 16×12px）</div>
+          <canvas id="vidPixelCanvas" style="max-width:100%;max-height:90%;image-rendering:pixelated;"></canvas>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:20px;flex-shrink:0;padding:4px 0">
+        <div style="text-align:center">
+          <div class="fps-big" id="fps-big">4 <span>fps</span></div>
+          <div style="font-size:9px;color:var(--muted)">現在の設定</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.9">
+          <div>🎬 1〜4 fps → カクカク（学習用）</div>
+          <div>📺 24〜30 fps → 自然な動き</div>
+          <div>🎮 60 fps → なめらか</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+/* ═══════════ STATE ═══════════ */
+let soundSF=4, soundQB=2, soundCH=1;
+const SF_VALS=[4,8,100,1000,8000,44100];
+const SF_LBLS=['学習用(4Hz)','学習用(8Hz)','低品質(100Hz)','電話品質(1kHz)','電話品質(8kHz)','CD音質(44.1kHz)'];
+
+let imgPixelStep=3, imgBits=8;
+const IMG_PX_VALS=[4,8,16,32,64,128];
+
+let videoFPS=4, videoBits=16, videoW=1920, videoH=1080, videoSec=120;
+const FPS_VALS=[1,2,4,8,24,60];
+const FPS_LBLS=['学習用(1fps)','学習用(2fps)','学習用(4fps)','低品質(8fps)','映画(24fps)','ゲーム(60fps)'];
+const VID_PX_VALS=[[8,6],[16,12],[32,24],[64,48],[128,96],[256,192]];
+
+let imgSrc=null; // OffscreenCanvas or null
+let selectedPixelImg=null;
+let fpsAnimId=null, smoothAnimId=null;
+
+/* ═══════════ TAB ═══════════ */
+function switchTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(fpsAnimId){cancelAnimationFrame(fpsAnimId);fpsAnimId=null;}
+  if(smoothAnimId){cancelAnimationFrame(smoothAnimId);smoothAnimId=null;}
+  if(id==='sound'){updateSound();requestAnimationFrame(drawWave);}
+  if(id==='image'){updateImage();}
+  if(id==='video'){updateVideo();startVideoAnim();}
+}
+
+/* ═══════════ FORMAT ═══════════ */
+function fmt(n){
+  if(n>=1e12)return(n/1e12).toFixed(2)+'兆';
+  if(n>=1e8)return(n/1e8).toFixed(2)+'億';
+  if(n>=1e4)return(n/1e4).toFixed(1)+'万';
+  return n.toLocaleString('ja-JP');
+}
+function ff(n,d=2){return n.toFixed(d);}
+function toBin(v,b){return v.toString(2).padStart(b,'0');}
+
+/* ═══════════ SOUND ═══════════ */
+function setSFSlider(i){
+  soundSF=SF_VALS[i];
+  document.getElementById('sf-disp').textContent=soundSF>=1000?(soundSF/1000)+'kHz':soundSF+' Hz';
+  document.getElementById('sf-label').textContent=SF_LBLS[i].replace(/\(.*\)/,'').trim();
+  updateSound(); requestAnimationFrame(drawWave);
+}
+function setQBSlider(i){
+  soundQB=parseInt(i);
+  document.getElementById('qb-disp').textContent=soundQB+' bit';
+  document.getElementById('qb-label').textContent=Math.pow(2,soundQB)+'段階';
+  updateSound(); requestAnimationFrame(drawWave);
+}
+function setCH(el,v){soundCH=v;document.querySelectorAll('#ch-btns .sbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');updateSound();}
+
+function updateSound(){
+  const sec=parseInt(document.getElementById('sound-sec').value)||1;
+  const bits=soundSF*soundQB*soundCH*sec;
+  const bytes=bits/8, kb=bytes/1024, mb=kb/1024;
+  document.getElementById('r-bits').textContent=fmt(bits);
+  document.getElementById('r-bytes').textContent=fmt(Math.round(bytes));
+  document.getElementById('r-kb').textContent=ff(kb);
+  document.getElementById('r-mb').textContent=ff(mb);
+  const sfStr=soundSF>=1000?(soundSF/1000)+'kHz':soundSF+'Hz';
+  document.getElementById('pf-sf').textContent=sfStr;
+  document.getElementById('pf-qb').textContent=Math.pow(2,soundQB)+'段階';
+  document.getElementById('pf-code').textContent=soundQB+'bit/個';
+  document.getElementById('sound-formula').textContent=
+    `データ量 = サンプリング周波数 × 量子化ビット数 × ch数 × 時間\n`+
+    `       = ${soundSF} × ${soundQB} × ${soundCH} × ${sec}\n`+
+    `       = ${fmt(bits)} bit = ${ff(mb)} MB`;
+  // binary
+  const row=document.getElementById('binary-row'); row.innerHTML='';
+  const levels=Math.pow(2,soundQB);
+  for(let i=0;i<Math.min(24,Math.ceil(soundSF*0.2)+4);i++){
+    const val=Math.floor(Math.abs(Math.sin(i*0.7+0.3))*levels);
+    const chip=document.createElement('div');
+    chip.className='bchip';chip.textContent=toBin(Math.min(val,levels-1),soundQB);
+    chip.title='10進: '+val; row.appendChild(chip);
+  }
+}
+
+/* ─── WAVE ─── */
+function drawWave(){
+  const canvas=document.getElementById('waveCanvas');
+  const parent=canvas.parentElement;
+  const W=parent.clientWidth-14, H=parent.clientHeight-14;
+  if(W<=0||H<=0)return;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#060F1E'; ctx.fillRect(0,0,W,H);
+
+  const levels=Math.pow(2,soundQB);
+  // Quantize grid lines
+  ctx.strokeStyle='rgba(30,58,110,.6)'; ctx.lineWidth=1;
+  for(let i=0;i<=levels;i++){
+    const y=(i/levels)*H;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  // Level labels (up to 8)
+  if(levels<=16){
+    ctx.font='9px JetBrains Mono'; ctx.fillStyle='rgba(74,158,255,.5)'; ctx.textAlign='left';
+    for(let i=0;i<levels;i++){
+      const y=((i+0.5)/levels)*H;
+      ctx.fillText(toBin(levels-1-i,soundQB),4,y+3);
+    }
+  }
+
+  // Analog wave
+  ctx.beginPath(); ctx.strokeStyle='rgba(74,158,255,.55)'; ctx.lineWidth=1.5;
+  for(let x=0;x<W;x++){
+    const t=x/W;
+    const y=H/2-(H/2-4)*(Math.sin(t*Math.PI*4)*.65+Math.sin(t*Math.PI*7.3)*.25+Math.sin(t*Math.PI*13)*.1);
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Sample count visible in 1 second worth of display
+  const numS=Math.max(2,Math.min(soundSF,W/2));
+  const sStep=W/numS;
+
+  // Compute quantized samples
+  const samples=[];
+  for(let i=0;i<numS;i++){
+    const t=(i/numS);
+    const rawY=H/2-(H/2-4)*(Math.sin(t*Math.PI*4)*.65+Math.sin(t*Math.PI*7.3)*.25+Math.sin(t*Math.PI*13)*.1);
+    const norm=rawY/H; // 0..1
+    const lv=Math.min(Math.round(norm*levels),levels-1);
+    const qY=(lv/levels)*H + (H/levels/2);
+    samples.push({x:i*sStep, rawY, qY, lv});
+  }
+
+  // Quantized step wave
+  ctx.beginPath(); ctx.strokeStyle='rgba(0,229,160,.85)'; ctx.lineWidth=2;
+  samples.forEach((s,i)=>{
+    const nx=(i+1)*sStep;
+    i===0?ctx.moveTo(s.x,s.qY):null;
+    ctx.lineTo(s.x,s.qY);
+    ctx.lineTo(nx,s.qY);
+  });
+  ctx.stroke();
+
+  // Sample dots + error lines
+  samples.forEach(s=>{
+    ctx.setLineDash([2,3]); ctx.strokeStyle='rgba(0,229,160,.25)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(s.x,s.rawY); ctx.lineTo(s.x,s.qY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(s.x,s.qY,Math.min(3,sStep*.4),0,Math.PI*2);
+    ctx.fillStyle='#00E5A0'; ctx.fill();
+  });
+
+  // Axis labels
+  ctx.fillStyle='rgba(255,255,255,.35)'; ctx.font='9px JetBrains Mono'; ctx.textAlign='right';
+  ctx.fillText(`${soundSF}Hz × ${soundQB}bit = ${soundSF*soundQB}bit/ch/秒`,W-4,H-4);
+}
+
+/* ═══════════ IMAGE ═══════════ */
+const IMG_COLOR_INFO={1:'2色（白黒）',2:'4色',3:'8色',4:'16色',5:'32色',6:'64色',7:'128色',8:'256色'};
+
+function setImgPxSlider(i){
+  imgPixelStep=parseInt(i);
+  const p=IMG_PX_VALS[i];
+  document.getElementById('img-px-disp').textContent=p+'×'+p;
+  updateImage();
+}
+function setImgBitSlider(i){
+  imgBits=parseInt(i);
+  document.getElementById('img-bit-disp').textContent=i+' bit';
+  document.getElementById('img-color-info').textContent=IMG_COLOR_INFO[i]||Math.pow(2,i)+'色';
+  updateImage();
+}
+
+function updateImageCalc(){
+  const imgW=parseInt(document.getElementById('img-w').value)||1;
+  const imgH=parseInt(document.getElementById('img-h').value)||1;
+  const px=imgW*imgH, bits=px*imgBits, mb=bits/8/1024/1024;
+  document.getElementById('i-px').textContent=fmt(px);
+  document.getElementById('i-bits').textContent=fmt(bits);
+  document.getElementById('i-mb').textContent=ff(mb);
+  document.getElementById('i-colors').textContent=Math.pow(2,imgBits).toLocaleString();
+  document.getElementById('img-formula').textContent=
+    `データ量 = ${imgW.toLocaleString()}×${imgH.toLocaleString()} × ${imgBits}bit\n`+
+    `       = ${fmt(bits)} bit = ${ff(mb)} MB`;
+}
+
+function updateImage(){
+  updateImageCalc();
+  renderDigitalImage();
+}
+
+/* サンプル画像生成 */
+let currentSample='scene';
+const offCanvas=document.createElement('canvas');
+offCanvas.width=256; offCanvas.height=192;
+
+function selectSample(type){
+  currentSample=type;
+  imgSrc=null;
+  document.querySelector('#upload-area').style.borderColor='';
+  renderSampleToOffCanvas(type);
+  renderOrigCanvas();
+  renderDigitalImage();
+}
+
+function renderSampleToOffCanvas(type){
+  const ctx=offCanvas.getContext('2d');
+  const W=256,H=192;
+  ctx.clearRect(0,0,W,H);
+  if(type==='scene'){
+    // Sky
+    const sky=ctx.createLinearGradient(0,0,0,H*0.55);
+    sky.addColorStop(0,'#1a6fc4'); sky.addColorStop(1,'#87ceeb');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,H*0.55);
+    // Sun
+    ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.arc(200,40,22,0,Math.PI*2); ctx.fill();
+    // Mountains
+    ctx.fillStyle='#4a7c59';
+    [[0,H,80,H*0.35,160,H],[60,H,140,H*0.25,220,H],[100,H,200,H*0.3,W,H]].forEach(pts=>{
+      ctx.beginPath(); ctx.moveTo(pts[0],pts[1]); ctx.lineTo(pts[2],pts[3]); ctx.lineTo(pts[4],pts[5]); ctx.fill();
+    });
+    // Ground
+    const gr=ctx.createLinearGradient(0,H*0.6,0,H);
+    gr.addColorStop(0,'#5a9e3c'); gr.addColorStop(1,'#2d6e1e');
+    ctx.fillStyle=gr; ctx.fillRect(0,H*0.6,W,H);
+    // River
+    ctx.fillStyle='rgba(100,180,255,.7)';
+    ctx.beginPath(); ctx.moveTo(70,H); ctx.lineTo(90,H*0.65); ctx.lineTo(110,H); ctx.fill();
+    // Clouds
+    ctx.fillStyle='rgba(255,255,255,.9)';
+    [[50,30,30,12],[130,20,25,10],[30,50,20,8]].forEach(([cx,cy,rx,ry])=>{
+      ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.fill();
+    });
+  } else if(type==='portrait'){
+    // Background
+    const bg=ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,'#2d1b69'); bg.addColorStop(1,'#11998e');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    // Body
+    ctx.fillStyle='#4a3728';
+    ctx.beginPath(); ctx.ellipse(W/2,H*0.85,55,70,0,0,Math.PI*2); ctx.fill();
+    // Shirt
+    ctx.fillStyle='#2563eb';
+    ctx.beginPath(); ctx.ellipse(W/2,H*0.9,50,60,0,0,Math.PI*2); ctx.fill();
+    // Face
+    ctx.fillStyle='#FDBCB4';
+    ctx.beginPath(); ctx.ellipse(W/2,H*0.38,38,44,0,0,Math.PI*2); ctx.fill();
+    // Hair
+    ctx.fillStyle='#3d2b1f';
+    ctx.beginPath(); ctx.arc(W/2,H*0.26,36,Math.PI,0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W/2-36,H*0.32,10,22,-.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W/2+36,H*0.32,10,22,.3,0,Math.PI*2); ctx.fill();
+    // Eyes
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.ellipse(W/2-13,H*0.36,8,5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W/2+13,H*0.36,8,5,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#333';
+    ctx.beginPath(); ctx.arc(W/2-13,H*0.36,4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W/2+13,H*0.36,4,0,Math.PI*2); ctx.fill();
+    // Mouth
+    ctx.strokeStyle='#c0726b'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(W/2,H*0.42,12,0.2,Math.PI-.2); ctx.stroke();
+  } else if(type==='gradient'){
+    // Rainbow gradient
+    const colors=['#FF0000','#FF7700','#FFFF00','#00FF00','#0077FF','#8800FF'];
+    const gw=W/colors.length;
+    colors.forEach((c,i)=>{
+      const gr=ctx.createLinearGradient(i*gw,0,(i+1)*gw,0);
+      gr.addColorStop(0,c); gr.addColorStop(1,colors[(i+1)%colors.length]);
+      ctx.fillStyle=gr; ctx.fillRect(i*gw,0,gw,H*0.5);
+    });
+    // Grayscale bottom
+    const gg=ctx.createLinearGradient(0,H*0.5,W,H*0.5);
+    gg.addColorStop(0,'#000'); gg.addColorStop(1,'#fff');
+    ctx.fillStyle=gg; ctx.fillRect(0,H*0.5,W,H*0.5);
+  } else if(type==='checker'){
+    const sz=16;
+    for(let r=0;r<H/sz;r++){for(let c=0;c<W/sz;c++){
+      const v=(r+c)%2;
+      ctx.fillStyle=v?'#ffffff':'#000000';
+      if(r==Math.floor(H/sz/2)&&c==Math.floor(W/sz/2)) ctx.fillStyle='#FF0000';
+      ctx.fillRect(c*sz,r*sz,sz,sz);
+    }}
+    ctx.fillStyle='#0000FF';
+    ctx.beginPath(); ctx.arc(W/2,H/2,30,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#FFFF00';
+    ctx.beginPath(); ctx.arc(W/4,H/4,15,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#00FF00';
+    ctx.beginPath(); ctx.arc(W*3/4,H*3/4,15,0,Math.PI*2); ctx.fill();
+  }
+}
+
+function loadUploadedImage(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const ctx=offCanvas.getContext('2d');
+      // Fit to offCanvas
+      const scale=Math.min(256/img.width,192/img.height);
+      const dw=Math.round(img.width*scale), dh=Math.round(img.height*scale);
+      const dx=Math.round((256-dw)/2), dy=Math.round((192-dh)/2);
+      ctx.fillStyle='#000'; ctx.fillRect(0,0,256,192);
+      ctx.drawImage(img,dx,dy,dw,dh);
+      imgSrc='upload';
+      renderOrigCanvas(); renderDigitalImage();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderOrigCanvas(){
+  const canvas=document.getElementById('origCanvas');
+  const parent=canvas.parentElement;
+  const maxW=parent.clientWidth-14, maxH=parent.clientHeight-30;
+  const scale=Math.min(maxW/256,maxH/192);
+  canvas.width=Math.round(256*scale); canvas.height=Math.round(192*scale);
+  canvas.style.width=canvas.width+'px'; canvas.style.height=canvas.height+'px';
+  canvas.getContext('2d').drawImage(offCanvas,0,0,canvas.width,canvas.height);
+}
+
+function renderDigitalImage(){
+  const px=IMG_PX_VALS[imgPixelStep];
+  const bits=imgBits;
+  document.getElementById('digital-label').textContent=`デジタル化後（${px}×${Math.round(px*0.75)} px / ${bits}bit）`;
+
+  // Downsample offCanvas → small canvas
+  const small=document.createElement('canvas');
+  const sh=Math.round(px*0.75);
+  small.width=px; small.height=sh;
+  const sc=small.getContext('2d');
+  sc.drawImage(offCanvas,0,0,px,sh);
+
+  // Quantize colors
+  if(bits<8){
+    const id=sc.getImageData(0,0,px,sh);
+    const d=id.data;
+    const steps=Math.pow(2,Math.floor(bits/3));
+    const step=Math.round(255/(steps-1||1));
+    for(let i=0;i<d.length;i+=4){
+      d[i]=Math.round(d[i]/step)*step;
+      d[i+1]=Math.round(d[i+1]/step)*step;
+      d[i+2]=Math.round(d[i+2]/step)*step;
+    }
+    sc.putImageData(id,0,0);
+  }
+
+  // Render to display canvas (upscaled pixelated)
+  const canvas=document.getElementById('digitalCanvas');
+  const parent=canvas.parentElement;
+  const maxW=parent.clientWidth-14, maxH=parent.clientHeight-30;
+  const scale=Math.min(maxW/px,maxH/sh);
+  const dw=Math.round(px*scale), dh=Math.round(sh*scale);
+  canvas.width=dw; canvas.height=dh;
+  canvas.style.width=dw+'px'; canvas.style.height=dh+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(small,0,0,dw,dh);
+
+  // grid lines for small px
+  if(px<=32){
+    const pw=dw/px, ph=dh/sh;
+    ctx.strokeStyle='rgba(30,58,110,.5)'; ctx.lineWidth=1;
+    for(let c=0;c<=px;c++){ctx.beginPath();ctx.moveTo(c*pw,0);ctx.lineTo(c*pw,dh);ctx.stroke();}
+    for(let r=0;r<=sh;r++){ctx.beginPath();ctx.moveTo(0,r*ph);ctx.lineTo(dw,r*ph);ctx.stroke();}
+  }
+
+  updateImageCalc();
+}
+
+function pickPixel(e){
+  const canvas=document.getElementById('digitalCanvas');
+  const rect=canvas.getBoundingClientRect();
+  const px=IMG_PX_VALS[imgPixelStep], sh=Math.round(px*0.75);
+  const sx=(e.clientX-rect.left)/rect.width*px;
+  const sy=(e.clientY-rect.top)/rect.height*sh;
+  const small=document.createElement('canvas'); small.width=px; small.height=sh;
+  small.getContext('2d').drawImage(offCanvas,0,0,px,sh);
+  const [r,g,b]=small.getContext('2d').getImageData(Math.floor(sx),Math.floor(sy),1,1).data;
+  const bits=imgBits;
+  let s='';
+  if(bits===1){const l=0.299*r+0.587*g+0.114*b;s=l>128?'1（白）':'0（黒）';}
+  else if(bits<=3)s=`${toBin(Math.round(r/255*(Math.pow(2,bits)-1)),bits)}（グレー）`;
+  else{
+    const rb=Math.ceil(bits/3), gb=Math.ceil(bits/3), bb=Math.floor(bits/3);
+    s=`R:${toBin(Math.round(r/255*(Math.pow(2,rb)-1)),rb)} G:${toBin(Math.round(g/255*(Math.pow(2,gb)-1)),gb)} B:${toBin(Math.round(b/255*(Math.pow(2,bb)-1)),bb)}`;
+  }
+  document.getElementById('pixel-binary').textContent=s+` (RGB:${r},${g},${b})`;
+}
+
+/* ═══════════ VIDEO ═══════════ */
+const VFP_LBLS=['学習用(1fps)','学習用(2fps)','学習用(4fps)','低品質(8fps)','映画(24fps)','ゲーム(60fps)'];
+
+function setFPSSlider(i){
+  videoFPS=FPS_VALS[i];
+  document.getElementById('fps-disp').textContent=videoFPS+' fps';
+  document.getElementById('fps-label').textContent=VFP_LBLS[i].replace(/\(.*\)/,'').trim();
+  document.getElementById('fps-big').innerHTML=`${videoFPS} <span>fps</span>`;
+  updateVideo();
+}
+function setVidPxSlider(i){
+  const [w,h]=VID_PX_VALS[i];
+  document.getElementById('vid-px-disp').textContent=w+'×'+h;
+  document.getElementById('vid-label').textContent=`設定中（${videoFPS}fps ${w}×${h}px）`;
+  updateVideo();
+}
+function setVCol(el,v){videoBits=v;document.querySelectorAll('#vcol-btns .sbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');updateVideo();}
+
+function s2lbl(s){if(s<60)return s+'秒';const m=Math.floor(s/60),r=s%60;return r?`${m}分${r}秒`:`${m}分`;}
+
+function updateVideo(){
+  videoW=parseInt(document.getElementById('v-w').value)||1;
+  videoH=parseInt(document.getElementById('v-h').value)||1;
+  videoSec=parseInt(document.getElementById('v-sec').value)||1;
+  document.getElementById('v-time-label').textContent=s2lbl(videoSec);
+
+  const i=parseInt(document.getElementById('vid-px-range').value);
+  const [vw,vh]=VID_PX_VALS[i];
+  document.getElementById('vid-label').textContent=`設定中（${videoFPS}fps ${vw}×${vh}px）`;
+  document.getElementById('fps-big').innerHTML=`${videoFPS} <span>fps</span>`;
+
+  const fb=videoW*videoH*videoBits, fMB=fb/8/1024/1024;
+  const tF=videoFPS*videoSec, tMB=fMB*tF, tGB=tMB/1024;
+  document.getElementById('v-frames').textContent=tF.toLocaleString();
+  document.getElementById('v-fsize').textContent=ff(fMB,3);
+  document.getElementById('v-gb').textContent=ff(tGB,2);
+  document.getElementById('v-mb').textContent=ff(tMB,1);
+  document.getElementById('vp-frame').textContent=ff(fMB,2)+' MB';
+  document.getElementById('vp-fps').textContent=videoFPS+' fps';
+  document.getElementById('vp-sec1').textContent=ff(fMB*videoFPS,1)+' MB/秒';
+  document.getElementById('vp-secs').textContent=videoSec.toLocaleString()+'秒';
+  document.getElementById('vp-total').textContent=ff(tGB,2)+' GB';
+  document.getElementById('video-formula').textContent=
+    `データ量 = ${videoW.toLocaleString()}×${videoH.toLocaleString()} × ${videoBits}bit × ${videoFPS}fps × ${videoSec}秒\n`+
+    `       = ${ff(tGB,2)} GB = ${ff(tMB,1)} MB（圧縮なし）`;
+  document.getElementById('v-bar').style.width=Math.min(tGB/200*100,100)+'%';
+}
+
+/* ─── VIDEO ANIMATION ─── */
+function drawVideoFrame(canvas, time, pxW, pxH, fps, smooth){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.fillStyle='#060F1E'; ctx.fillRect(0,0,W,H);
+
+  // Procedural animated scene (colored bouncing shapes)
+  const t=time/1000;
+  const sc=document.createElement('canvas'); sc.width=pxW; sc.height=pxH;
+  const sctx=sc.getContext('2d');
+  // Sky
+  const sky=sctx.createLinearGradient(0,0,0,pxH);
+  sky.addColorStop(0,'#0d2137'); sky.addColorStop(1,'#1a5276');
+  sctx.fillStyle=sky; sctx.fillRect(0,0,pxW,pxH);
+  // Stars (blink)
+  for(let i=0;i<8;i++){
+    const sx=(i*37+13)%pxW, sy=(i*19+7)%Math.floor(pxH*.4);
+    const bri=Math.abs(Math.sin(t*0.7+i));
+    sctx.fillStyle=`rgba(255,255,200,${bri})`;
+    sctx.fillRect(sx,sy,1,1);
+  }
+  // Ground
+  sctx.fillStyle='#1e4620'; sctx.fillRect(0,Math.floor(pxH*.65),pxW,pxH);
+  // Bouncing ball
+  const bx=Math.floor(pxW/2 + Math.sin(t*1.5)*pxW*0.35);
+  const by=Math.floor(pxH*.55 - Math.abs(Math.sin(t*2.5))*pxH*.45);
+  const br=Math.max(1,Math.floor(pxW*.08));
+  sctx.fillStyle='#FF6B6B'; sctx.beginPath(); sctx.arc(bx,by,br,0,Math.PI*2); sctx.fill();
+  // Moon moving
+  const mx=Math.floor(pxW*.8+Math.cos(t*.3)*pxW*.15);
+  const my=Math.floor(pxH*.15+Math.sin(t*.3)*pxH*.08);
+  sctx.fillStyle='#FECA57'; sctx.beginPath(); sctx.arc(mx,my,Math.max(2,Math.floor(pxW*.07)),0,Math.PI*2); sctx.fill();
+  // Tree
+  sctx.fillStyle='#5d4e37'; sctx.fillRect(Math.floor(pxW*.15)-1,Math.floor(pxH*.5),2,Math.floor(pxH*.2));
+  sctx.fillStyle='#27ae60'; sctx.beginPath(); sctx.arc(Math.floor(pxW*.15),Math.floor(pxH*.45),Math.max(2,Math.floor(pxW*.07)),0,Math.PI*2); sctx.fill();
+  // Wave on ground
+  for(let i=0;i<pxW;i+=2){
+    const wy=Math.floor(pxH*.65)+Math.round(Math.sin(t*2+i*.5)*.5);
+    sctx.fillStyle='rgba(100,200,100,.3)'; sctx.fillRect(i,wy,2,1);
+  }
+
+  // Draw to main canvas
+  ctx.imageSmoothingEnabled=smooth;
+  ctx.drawImage(sc,0,0,W,H);
+
+  // Pixel grid overlay for coarse resolutions
+  if(!smooth && pxW<=32){
+    const pw=W/pxW, ph=H/pxH;
+    ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+    for(let c=0;c<=pxW;c++){ctx.beginPath();ctx.moveTo(c*pw,0);ctx.lineTo(c*pw,H);ctx.stroke();}
+    for(let r=0;r<=pxH;r++){ctx.beginPath();ctx.moveTo(0,r*ph);ctx.lineTo(W,r*ph);ctx.stroke();}
+  }
+}
+
+function sizeVideoCanvas(canvas){
+  const parent=canvas.parentElement;
+  const maxW=parent.clientWidth-14, maxH=parent.clientHeight-30;
+  if(canvas.width!==maxW||canvas.height!==maxH){canvas.width=maxW;canvas.height=maxH;}
+}
+
+function startVideoAnim(){
+  let lastSmooth=0, lastPixel=0;
+  const SMOOTH_FPS=60;
+
+  function loop(ts){
+    const smoothCanvas=document.getElementById('vidSmoothCanvas');
+    const pixelCanvas=document.getElementById('vidPixelCanvas');
+    if(!smoothCanvas||!pixelCanvas){return;}
+    sizeVideoCanvas(smoothCanvas); sizeVideoCanvas(pixelCanvas);
+
+    const i=parseInt(document.getElementById('vid-px-range').value);
+    const [vpw,vph]=VID_PX_VALS[i];
+
+    if(ts-lastSmooth>=1000/SMOOTH_FPS){
+      drawVideoFrame(smoothCanvas,ts,128,96,SMOOTH_FPS,true);
+      lastSmooth=ts;
+    }
+    if(ts-lastPixel>=1000/videoFPS){
+      drawVideoFrame(pixelCanvas,ts,vpw,vph,videoFPS,false);
+      lastPixel=ts;
+    }
+    fpsAnimId=requestAnimationFrame(loop);
+  }
+  if(fpsAnimId)cancelAnimationFrame(fpsAnimId);
+  fpsAnimId=requestAnimationFrame(loop);
+}
+
+/* ═══════════ INIT ═══════════ */
+window.addEventListener('load',()=>{
+  renderSampleToOffCanvas('scene');
+  setSFSlider(0); setQBSlider(2);
+  updateSound(); requestAnimationFrame(drawWave);
+});
+window.addEventListener('resize',()=>{
+  if(document.getElementById('sec-sound').classList.contains('active'))requestAnimationFrame(drawWave);
+  if(document.getElementById('sec-image').classList.contains('active')){renderOrigCanvas();renderDigitalImage();}
+});
+</script>
+</body>
+</html>
