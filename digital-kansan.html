@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>情報量 総合学習アプリ</title>
+<style>
+body { font-family: sans-serif; padding:20px; }
+
+table { border-collapse: collapse; margin-top:20px; }
+td, th { border:1px solid #333; padding:6px 12px; text-align:center; }
+
+#wire {
+  position: relative;
+  height: 80px;
+  border:2px solid #333;
+  margin-top:20px;
+  overflow:hidden;
+}
+
+.pointA { position:absolute; left:5px; top:5px; }
+.pointB { position:absolute; right:5px; top:5px; }
+
+.bit { position:absolute; top:40px; animation: move 2s linear forwards; }
+
+@keyframes move {
+  from { left:40px; }
+  to { left:95%; }
+}
+
+.result { color:blue; font-weight:bold; margin-top:10px; }
+.formula { font-size:14px; margin-top:5px; color:#444; }
+
+.quiz { margin-top:30px; border:2px solid #333; padding:10px; }
+.correct { color:green; }
+.wrong { color:red; }
+
+.modeBox {
+  border:2px solid #666;
+  padding:10px;
+  margin-top:15px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>情報量 総合学習アプリ</h1>
+
+<select id="mode" onchange="changeMode()">
+  <option value="bit">① bit→変換</option>
+  <option value="byte">② バイト→bit</option>
+  <option value="quiz">③ クイズ</option>
+</select>
+
+<!-- ===== ① bit変換 ===== -->
+<div id="bitMode" class="modeBox">
+
+<h3>bit → 各単位</h3>
+
+bit：
+<input type="number" id="bitInput" value="10">
+<button onclick="convertBit()">変換</button>
+<button onclick="resetAnim()">リセット</button>
+
+<div class="result" id="bitResult"></div>
+
+<table>
+<tr>
+  <th rowspan="2">単位</th>
+  <th rowspan="2">読み方</th>
+  <th colspan="2">10進（SI）</th>
+  <th colspan="2">2進（IEC）</th>
+</tr>
+
+<tr>
+  <th>意味</th><th>結果</th>
+  <th>意味</th><th>結果</th>
+</tr>
+
+<tr>
+  <td>B</td><td>バイト</td>
+  <td>8 bit</td><td id="b10"></td>
+  <td>8 bit</td><td id="b2"></td>
+</tr>
+
+<tr>
+  <td>KB / KiB</td><td>キロ / キビ</td>
+  <td>10³</td><td id="kb10"></td>
+  <td>2¹⁰</td><td id="kb2"></td>
+</tr>
+
+<tr>
+  <td>MB / MiB</td><td>メガ / メビ</td>
+  <td>10⁶</td><td id="mb10"></td>
+  <td>2²⁰</td><td id="mb2"></td>
+</tr>
+
+<tr>
+  <td>GB / GiB</td><td>ギガ / ギビ</td>
+  <td>10⁹</td><td id="gb10"></td>
+  <td>2³⁰</td><td id="gb2"></td>
+</tr>
+
+</table>
+
+</div>
+
+<!-- ===== ② byte→bit ===== -->
+<div id="byteMode" class="modeBox" style="display:none">
+
+<h3>バイト系 → bit</h3>
+
+<input type="number" id="byteInput" value="1">
+
+<select id="unit">
+  <option value="B">B（バイト）</option>
+  <option value="KB">KB（キロ）</option>
+  <option value="KiB">KiB（キビ）</option>
+  <option value="MB">MB（メガ）</option>
+  <option value="MiB">MiB（メビ）</option>
+  <option value="GB">GB（ギガ）</option>
+  <option value="GiB">GiB（ギビ）</option>
+</select>
+
+<button onclick="convertByte()">変換</button>
+<button onclick="resetAnim()">リセット</button>
+
+<div class="result" id="byteResult"></div>
+<div class="formula" id="byteFormula"></div>
+
+</div>
+
+<!-- ===== ③ クイズ ===== -->
+<div id="quizMode" class="modeBox" style="display:none">
+
+<h3>クイズ</h3>
+
+<div id="question"></div>
+<input type="number" id="answer">
+
+<button onclick="checkAnswer()">答え合わせ</button>
+<button onclick="newQuiz()">次の問題</button>
+
+<div id="feedback"></div>
+<div class="formula" id="quizFormula"></div>
+
+</div>
+
+<!-- ===== 通信 ===== -->
+<div id="wire">
+  <div class="pointA">A</div>
+  <div class="pointB">B</div>
+</div>
+
+<script>
+
+let interval=null;
+let correctAnswer=0;
+let formulaText="";
+
+// ===== モード切替 =====
+function changeMode(){
+  document.getElementById("bitMode").style.display="none";
+  document.getElementById("byteMode").style.display="none";
+  document.getElementById("quizMode").style.display="none";
+
+  let mode=document.getElementById("mode").value;
+
+  if(mode==="bit") document.getElementById("bitMode").style.display="block";
+  if(mode==="byte") document.getElementById("byteMode").style.display="block";
+  if(mode==="quiz") document.getElementById("quizMode").style.display="block";
+}
+
+// ===== bit変換 =====
+function convertBit(){
+  let bits=parseFloat(document.getElementById("bitInput").value)||0;
+  let bytes=bits/8;
+
+  function set(id,val,unit){
+    document.getElementById(id).innerHTML=val.toFixed(4)+" "+unit;
+  }
+
+  set("b10",bytes,"B");
+  set("b2",bytes,"B");
+
+  set("kb10",bytes/1000,"KB");
+  set("kb2",bytes/1024,"KiB");
+
+  set("mb10",bytes/1e6,"MB");
+  set("mb2",bytes/(1024**2),"MiB");
+
+  set("gb10",bytes/1e9,"GB");
+  set("gb2",bytes/(1024**3),"GiB");
+
+  document.getElementById("bitResult").innerHTML=bits+" bit";
+
+  startAnimation(bits);
+}
+
+// ===== byte→bit =====
+function convertByte(){
+
+  let val=parseFloat(document.getElementById("byteInput").value)||0;
+  let unit=document.getElementById("unit").value;
+
+  let bytes=val;
+  let formula="";
+
+  if(unit==="B"){ formula=`${val} × 8`; }
+  if(unit==="KB"){ bytes*=1000; formula=`${val} × 1000 × 8`; }
+  if(unit==="KiB"){ bytes*=1024; formula=`${val} × 2¹⁰ × 8`; }
+  if(unit==="MB"){ bytes*=1e6; formula=`${val} × 10⁶ × 8`; }
+  if(unit==="MiB"){ bytes*=1024**2; formula=`${val} × 2²⁰ × 8`; }
+  if(unit==="GB"){ bytes*=1e9; formula=`${val} × 10⁹ × 8`; }
+  if(unit==="GiB"){ bytes*=1024**3; formula=`${val} × 2³⁰ × 8`; }
+
+  let bits=bytes*8;
+
+  document.getElementById("byteResult").innerHTML=
+    bits.toLocaleString()+" bit";
+
+  document.getElementById("byteFormula").innerHTML=
+    formula + " = " + bits.toLocaleString() + " bit";
+
+  startAnimation(bits);
+}
+
+// ===== 通信 =====
+function startAnimation(speed){
+
+  resetAnim();
+  if(speed>2000) speed=2000;
+
+  let wire=document.getElementById("wire");
+  let count=0;
+
+  interval=setInterval(()=>{
+    if(count>=speed){
+      clearInterval(interval);
+      return;
+    }
+
+    let bit=document.createElement("div");
+    bit.className="bit";
+    bit.innerText=Math.random()<0.5?"0":"1";
+    bit.style.top=(30+Math.random()*20)+"px";
+
+    wire.appendChild(bit);
+    setTimeout(()=>bit.remove(),2000);
+
+    count++;
+
+  },1000/speed);
+}
+
+function resetAnim(){
+  if(interval) clearInterval(interval);
+  document.querySelectorAll(".bit").forEach(e=>e.remove());
+}
+
+// ===== クイズ =====
+function newQuiz(){
+
+  let units=["KB","KiB","MB","MiB"];
+  let unit=units[Math.floor(Math.random()*units.length)];
+  let value=Math.floor(Math.random()*10)+1;
+
+  let bits=0;
+
+  if(unit==="KB"){
+    bits=value*1000*8;
+    formulaText=`${value} × 1000 × 8`;
+  }
+  if(unit==="KiB"){
+    bits=value*1024*8;
+    formulaText=`${value} × 2¹⁰ × 8`;
+  }
+  if(unit==="MB"){
+    bits=value*1e6*8;
+    formulaText=`${value} × 10⁶ × 8`;
+  }
+  if(unit==="MiB"){
+    bits=value*(1024**2)*8;
+    formulaText=`${value} × 2²⁰ × 8`;
+  }
+
+  correctAnswer=bits;
+
+  document.getElementById("question").innerHTML=
+    `${value} ${unit} は何 bit？`;
+
+  document.getElementById("feedback").innerHTML="";
+  document.getElementById("quizFormula").innerHTML="";
+  document.getElementById("answer").value="";
+}
+
+function checkAnswer(){
+
+  let ans=parseFloat(document.getElementById("answer").value);
+
+  if(ans===correctAnswer){
+    document.getElementById("feedback").innerHTML=
+      "<span class='correct'>正解！</span>";
+  }else{
+    document.getElementById("feedback").innerHTML=
+      "<span class='wrong'>不正解</span>";
+  }
+
+  document.getElementById("quizFormula").innerHTML=
+    `${formulaText} = ${correctAnswer.toLocaleString()} bit`;
+}
+
+// 初期問題
+newQuiz();
+
+</script>
+
+</body>
+</html>

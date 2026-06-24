@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>デジタル学習アプリ</title>
+<style>
+body { font-family: sans-serif; padding:20px; }
+.row { margin-bottom:20px; }
+
+.digits span {
+  display:inline-block;
+  width:32px;
+  height:32px;
+  line-height:32px;
+  border:1px solid #333;
+  margin:2px;
+  text-align:center;
+  cursor:pointer;
+}
+
+/* ✅ コントラスト強化カラー */
+.g0 { background:#ff8a8a; } /* 赤 */
+.g1 { background:#ffd966; } /* 黄 */
+.g2 { background:#c299ff; } /* 紫 */
+.g3 { background:#80d4ff; } /* 水色 */
+
+.formula { font-size:12px; margin-top:5px; }
+.formula span {
+  padding:2px 4px;
+  margin:1px;
+  display:inline-block;
+}
+</style>
+</head>
+<body>
+
+<h1>デジタル学習アプリ</h1>
+
+<button onclick="setMode('bin')">2進数</button>
+<button onclick="setMode('dec')">10進数</button>
+<button onclick="setMode('hex')">16進数</button>
+
+<hr>
+<div id="app"></div>
+
+<script>
+let value = 0;
+let mode = "bin";
+
+function setMode(m){ mode = m; render(); }
+
+function changeValue(n){
+  value += n;
+  if(value < 0) value = 0;
+  if(value > 65535) value = 65535;
+  render();
+}
+
+function getBinary(){ return value.toString(2).padStart(16,"0"); }
+function getDecimal(){ return value.toString(10).padStart(5,"0"); }
+function getHex(){ return value.toString(16).toUpperCase().padStart(4,"0"); }
+
+// -------- 操作 --------
+
+function toggleBit(i){
+  value ^= (1 << (15-i));
+  render();
+}
+
+function incDecimal(i){
+  let d = getDecimal().split("");
+  d[i] = (parseInt(d[i]) + 1) % 10;
+  value = parseInt(d.join(""));
+  render();
+}
+
+function incHex(i){
+  let h = getHex().split("");
+  let n = parseInt(h[i],16);
+  n = (n + 1) % 16;
+  h[i] = n.toString(16).toUpperCase();
+  value = parseInt(h.join(""),16);
+  render();
+}
+
+// -------- 2進数 --------
+
+function binaryRow(){
+  let b = getBinary();
+  let html = "<div class='row'><b>2進数</b><br>";
+  html += "<button onclick='changeValue(1)'>＋</button>";
+  html += "<button onclick='changeValue(-1)'>－</button>";
+  html += "<div class='digits'>";
+
+  for(let i=0;i<16;i++){
+    let group = Math.floor(i/4);
+    html += `<span class="g${group}" onclick="toggleBit(${i})">${b[i]}</span>`;
+  }
+  html += "</div>";
+
+  let f = "";
+  for(let i=0;i<16;i++){
+    let group = Math.floor(i/4);
+    f += `<span class="g${group}">${b[i]}×2<sup>${15-i}</sup></span>`;
+    if(i<15) f += " + ";
+  }
+
+  html += `<div class="formula">${f}</div></div>`;
+  return html;
+}
+
+// -------- 10進数 --------
+
+function decimalRow(){
+  let d = getDecimal();
+  let html = "<div class='row'><b>10進数</b><br>";
+  html += "<button onclick='changeValue(1)'>＋</button>";
+  html += "<button onclick='changeValue(-1)'>－</button>";
+  html += "<div class='digits'>";
+
+  for(let i=0;i<d.length;i++){
+    html += `<span onclick="incDecimal(${i})">${d[i]}</span>`;
+  }
+  html += "</div>";
+
+  let f = "";
+  for(let i=0;i<d.length;i++){
+    f += `<span>${d[i]}×10<sup>${d.length-1-i}</sup></span>`;
+    if(i<d.length-1) f += " + ";
+  }
+
+  html += `<div class="formula">${f}</div></div>`;
+  return html;
+}
+
+// -------- 16進数 --------
+
+function hexRow(){
+  let h = getHex();
+  let html = "<div class='row'><b>16進数</b><br>";
+  html += "<button onclick='changeValue(1)'>＋</button>";
+  html += "<button onclick='changeValue(-1)'>－</button>";
+  html += "<div class='digits'>";
+
+  for(let i=0;i<h.length;i++){
+    html += `<span class="g${i}" onclick="incHex(${i})">${h[i]}</span>`;
+  }
+  html += "</div>";
+
+  let f = "";
+  for(let i=0;i<h.length;i++){
+    f += `<span class="g${i}">${h[i]}×16<sup>${h.length-1-i}</sup></span>`;
+    if(i<h.length-1) f += " + ";
+  }
+
+  html += `<div class="formula">${f}</div></div>`;
+  return html;
+}
+
+// -------- 表示 --------
+
+function render(){
+  let app = document.getElementById("app");
+
+  let order = [];
+  if(mode==="bin"){
+    order = [binaryRow(), decimalRow(), hexRow()];
+  } else if(mode==="dec"){
+    order = [decimalRow(), binaryRow(), hexRow()];
+  } else {
+    order = [hexRow(), binaryRow(), decimalRow()];
+  }
+
+  app.innerHTML = order.join("");
+}
+
+render();
+</script>
+
+</body>
+</html>

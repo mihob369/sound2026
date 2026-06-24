@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>文字コード総合アプリ</title>
+
+<style>
+body { font-family:sans-serif; padding:20px; }
+
+table { border-collapse:collapse; }
+td,th {
+  border:1px solid #333;
+  width:50px;
+  height:40px;
+  text-align:center;
+  font-size:12px;
+}
+
+.headerTop{ background:#ffe599; }
+.headerSide{ background:#9fc5e8; }
+
+.hit{ background:red; color:#fff; }
+
+.wrap{
+  max-height:450px;
+  overflow:auto;
+  border:2px solid #333;
+  margin-top:10px;
+}
+
+.box{
+  margin-top:10px;
+  padding:10px;
+  border:2px solid #666;
+}
+
+.correct{ color:green; }
+.wrong{ color:red; }
+
+</style>
+</head>
+
+<body>
+
+<h1>文字コード学習アプリ</h1>
+
+<select id="mode" onchange="changeMode()">
+  <option value="code">① コード→文字</option>
+  <option value="char">② 文字→コード</option>
+  <option value="quiz">③ クイズ</option>
+</select>
+
+<!-- ================= ① ================= -->
+<div id="codeBox" class="box">
+
+上位：
+<input id="high" value="4">
+
+下位：
+<input id="low" value="1">
+
+<select id="base">
+  <option value="hex">16進</option>
+  <option value="bin">2進</option>
+</select>
+
+<button onclick="searchCode()">検索</button>
+
+<div id="result1"></div>
+
+</div>
+
+<!-- ================= ② ================= -->
+<div id="charBox" class="box" style="display:none">
+
+文字：
+<input id="charInput" maxlength="1">
+<button onclick="searchChar()">検索</button>
+
+<div id="result2"></div>
+
+</div>
+
+<!-- ================= ③ ================= -->
+<div id="quizBox" class="box" style="display:none">
+
+<div id="question"></div>
+
+<input id="answer">
+<button onclick="checkQuiz()">答え合わせ</button>
+<button onclick="nextQuiz()">次</button>
+
+<div id="feedback"></div>
+<div id="explain"></div>
+
+</div>
+
+<!-- 表 -->
+<div class="wrap">
+<div id="table"></div>
+</div>
+
+<script>
+
+// 制御コード
+const control = [
+"NUL","SOH","STX","ETX","EOT","ENQ","ACK","BEL",
+"BS","HT","LF","VT","FF","CR","SO","SI",
+"DLE","DC1","DC2","DC3","DC4","NAK","SYN","ETB",
+"CAN","EM","SUB","ESC","FS","GS","RS","US"
+];
+
+function getChar(code){
+  if(code < 32) return control[code];
+  if(code === 32) return "␣";
+  if(code <= 126) return String.fromCharCode(code);
+  if(code === 127) return "DEL";
+  return "";
+}
+
+// ===== 表 =====
+function draw(hit=-1){
+
+  let html="<table>";
+
+  // 上（2進）
+  html+="<tr><th></th>";
+  for(let i=0;i<16;i++){
+    html+=`<th class="headerTop">${i.toString(2).padStart(4,"0")}</th>`;
+  }
+  html+="</tr>";
+
+  // 上（16進）
+  html+="<tr><th></th>";
+  for(let i=0;i<16;i++){
+    html+=`<th class="headerTop">${i.toString(16).toUpperCase()}</th>`;
+  }
+  html+="</tr>";
+
+  // 本体
+  for(let y=0;y<16;y++){
+
+    html+="<tr>";
+
+    // 左（下位桁）
+    html+=`<th class="headerSide">
+      ${y.toString(2).padStart(4,"0")}<br>
+      ${y.toString(16).toUpperCase()}
+    </th>`;
+
+    for(let x=0;x<16;x++){
+
+      let code = (x<<4)|y; // ✅ 教科書通り
+
+      let cls = (code===hit) ? "hit" : "";
+
+      html+=`<td class="${cls}">${getChar(code)}</td>`;
+    }
+
+    html+="</tr>";
+  }
+
+  html+="</table>";
+  document.getElementById("table").innerHTML=html;
+}
+
+// ===== ① コード検索 =====
+function searchCode(){
+
+  let h=document.getElementById("high").value;
+  let l=document.getElementById("low").value;
+  let base=document.getElementById("base").value;
+
+  let code = (base==="hex")
+    ? parseInt(h+l,16)
+    : parseInt(h+l,2);
+
+  document.getElementById("result1").innerHTML =
+    `${code} → ${getChar(code)}`;
+
+  draw(code);
+}
+
+// ===== ② 文字検索 =====
+function searchChar(){
+
+  let ch=document.getElementById("charInput").value;
+  let code=ch.charCodeAt(0);
+
+  document.getElementById("result2").innerHTML =
+    `2進：${code.toString(2).padStart(8,"0")}<br>
+     16進：${code.toString(16).toUpperCase()}<br>
+     10進：${code}`;
+
+  draw(code);
+}
+
+// ===== モード切替 =====
+function changeMode(){
+  codeBox.style.display="none";
+  charBox.style.display="none";
+  quizBox.style.display="none";
+
+  let m=mode.value;
+
+  if(m==="code") codeBox.style.display="block";
+  if(m==="char") charBox.style.display="block";
+  if(m==="quiz") quizBox.style.display="block";
+}
+
+// ===== クイズ =====
+let ans=0;
+let exp="";
+
+function nextQuiz(){
+
+  let code;
+  do{
+    code=Math.floor(Math.random()*128);
+  }while(code<32 || code===127);
+
+  let char=String.fromCharCode(code);
+
+  let type=["bin","hex"][Math.floor(Math.random()*2)];
+
+  if(type==="bin"){
+    ans=code.toString(2).padStart(8,"0");
+    document.getElementById("question").innerHTML =
+      `${char} の2進コードは？`;
+  }else{
+    ans=code.toString(16).toUpperCase();
+    document.getElementById("question").innerHTML =
+      `${char} の16進コードは？`;
+  }
+
+  exp=
+    `上位 ${(code>>4).toString(2).padStart(4,"0")} / 下位 ${(code&15).toString(2).padStart(4,"0")}<br>
+     → ${code.toString(2).padStart(8,"0")} (2進)<br>
+     → ${code.toString(16).toUpperCase()} (16進)<br>
+     → ${code}`;
+
+  document.getElementById("feedback").innerHTML="";
+  document.getElementById("explain").innerHTML="";
+  document.getElementById("answer").value="";
+
+  draw(code);
+}
+
+function checkQuiz(){
+
+  let input=document.getElementById("answer").value;
+
+  if(input===ans){
+    feedback.innerHTML="<span class='correct'>正解！</span>";
+  }else{
+    feedback.innerHTML="<span class='wrong'>不正解</span>";
+  }
+
+  document.getElementById("explain").innerHTML=exp;
+}
+
+// 初期
+draw();
+nextQuiz();
+
+</script>
+
+</body>
+</html>
