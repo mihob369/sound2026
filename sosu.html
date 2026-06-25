@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>素数分解・ふわふわ風船ゲーム</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #eef2f5;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden; 
+            user-select: none;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* モード選択・設定画面 */
+        #menu-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            text-align: center;
+            pointer-events: auto;
+            margin-top: 10vh;
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 450px;
+            width: 90%;
+        }
+
+        .menu-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        /* 状況表示パネル */
+        #info-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            pointer-events: auto; 
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+            display: none;
+        }
+
+        #status-text {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        #current-numbers {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+        }
+
+        #mode-indicator {
+            font-size: 0.9rem;
+            color: #3498db;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        /* ボタン群 */
+        button {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+
+        .btn-random { background: linear-gradient(135deg, #4CAF50, #45a049); }
+        .btn-sequence { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .btn-input { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .btn-back { background: #95a5a6; margin-top: 10px; pointer-events: auto;}
+
+        /* 入力エリア */
+        .input-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        input[type="number"] {
+            padding: 10px 15px;
+            font-size: 1.1rem;
+            border: 2px solid #bdc3c7;
+            border-radius: 20px;
+            width: 120px;
+            text-align: center;
+            outline: none;
+        }
+        input[type="number"]:focus {
+            border-color: #9b59b6;
+        }
+
+        #game-space {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* 風船オブジェクト */
+        .balloon {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+            box-shadow: inset 0 -8px 20px rgba(0,0,0,0.3), 0 6px 15px rgba(0,0,0,0.15);
+            cursor: pointer;
+            will-change: left, top;
+            transition: transform 0.1s ease;
+        }
+
+        .balloon:hover {
+            transform: scale(1.05);
+        }
+
+        /* 素数（クリア状態） */
+        .prime-balloon {
+            background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+            cursor: default;
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: inset 0 -8px 20px rgba(0,0,0,0.3), 0 0 10px rgba(231,76,60,0.5); }
+            100% { box-shadow: inset 0 -8px 20px rgba(0,0,0,0.3), 0 0 25px rgba(231,76,60,0.9); }
+        }
+
+        /* クリア文字演出 */
+        .clear-banner {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: bold;
+            color: #e67e22;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+            pointer-events: none;
+            z-index: 5;
+            animation: clearPop 1.5s ease forwards;
+        }
+
+        @keyframes clearPop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            30% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            40% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+
+        /* テキスト演出 */
+        .prime-message {
+            position: absolute;
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 1.2rem;
+            pointer-events: none;
+            animation: fadeUp 1.5s forwards;
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 20;
+        }
+
+        @keyframes fadeUp {
+            0% { opacity: 0; transform: translate(-50%, -50%) translateY(0px); }
+            20% { opacity: 1; transform: translate(-50%, -50%) translateY(-20px); }
+            80% { opacity: 1; transform: translate(-50%, -50%) translateY(-25px); }
+            100% { opacity: 0; transform: translate(-50%, -50%) translateY(-40px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="menu-panel">
+            <div class="menu-title">素数分解風船ゲーム</div>
+            <button class="btn-random" onclick="selectMode('random')">ランダムモード (1～5000)</button>
+            <button class="btn-sequence" onclick="selectMode('sequence')">順番にすすむモード (2～5000)</button>
+            <div style="border-top: 1px solid #eee; margin: 5px 0;"></div>
+            <div class="input-group">
+                <input type="number" id="custom-num" min="2" max="5000" value="100" placeholder="数字を入力">
+                <button class="btn-input" onclick="selectMode('input')">入力モードで開始</button>
+            </div>
+        </div>
+
+        <div id="info-panel">
+            <div id="status-text"></div>
+            <div id="current-numbers"></div>
+            <div id="mode-indicator"></div>
+            <button class="btn-back" id="back-btn" onclick="backToMenu()">メニューに戻る</button>
+        </div>
+    </div>
+
+    <div id="game-space"></div>
+
+    <script>
+        const stage = document.getElementById('game-space');
+        const menuPanel = document.getElementById('menu-panel');
+        const infoPanel = document.getElementById('info-panel');
+        const statusText = document.getElementById('status-text');
+        const currentNumbersDiv = document.getElementById('current-numbers');
+        const modeIndicator = document.getElementById('mode-indicator');
+
+        let balloons = [];
+        let gameActive = false;
+        let originalNumber = 0;
+        let animationId = null;
+        
+        let currentMode = 'random'; // 'random', 'sequence', 'input'
+        let sequenceCount = 2;       // 順番モード用のカウンタ
+
+        // 素数判定
+        function isPrime(num) {
+            if (num <= 1) return false;
+            for (let i = 2; i <= Math.sqrt(num); i++) {
+                if (num % i === 0) return false;
+            }
+            return true;
+        }
+
+        // 因数のペアをランダムに取得
+        function getRandomFactorPair(num) {
+            let factors = [];
+            for (let i = 2; i <= Math.sqrt(num); i++) {
+                if (num % i === 0) factors.push(i);
+            }
+            if (factors.length === 0) return null;
+            const chosenFactor = factors[Math.floor(Math.random() * factors.length)];
+            return [chosenFactor, num / chosenFactor];
+        }
+
+        // 色グラデーション
+        function getBalloonStyle(num) {
+            const hue = (num * 43) % 360; 
+            return `background: linear-gradient(135deg, hsl(${hue}, 85%, 60%), hsl(${(hue+35)%360}, 85%, 45%));`;
+        }
+
+        // サイズ計算
+        function calculateSize(num) {
+            const minSize = 80;
+            const maxSize = 180;
+            const size = minSize + (Math.log(Math.max(2, num)) / Math.log(5000)) * (maxSize - minSize);
+            return Math.max(minSize, Math.min(maxSize, size));
+        }
+
+        // モード選択処理
+        function selectMode(mode) {
+            currentMode = mode;
+            
+            if (mode === 'random') {
+                originalNumber = Math.floor(Math.random() * 4999) + 2;
+            } else if (mode === 'sequence') {
+                originalNumber = sequenceCount;
+            } else if (mode === 'input') {
+                const inputEl = document.getElementById('custom-num');
+                let val = parseInt(inputEl.value, 10);
+                if (isNaN(val) || val < 2) val = 2;
+                if (val > 5000) val = 5000;
+                originalNumber = val;
+            }
+
+            menuPanel.style.display = 'none';
+            infoPanel.style.display = 'block';
+            
+            startGame();
+        }
+
+        // メニューに戻る
+        function backToMenu() {
+            gameActive = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            stage.innerHTML = '';
+            balloons = [];
+            infoPanel.style.display = 'none';
+            menuPanel.style.display = 'flex';
+        }
+
+        // ゲーム起動
+        function startGame() {
+            if (animationId) cancelAnimationFrame(animationId);
+            stage.innerHTML = '';
+            balloons = [];
+            gameActive = true;
+
+            const x = window.innerWidth / 2;
+            const y = window.innerHeight / 2 + 60;
+
+            createBalloon(originalNumber, x, y);
+            updateUI();
+            animate();
+        }
+
+        // 風船の生成
+        function createBalloon(num, centerX, centerY) {
+            const prime = isPrime(num);
+            const size = calculateSize(num);
+            const radius = size / 2;
+
+            const el = document.createElement('div');
+            el.className = `balloon ${prime ? 'prime-balloon' : ''}`;
+            el.innerText = num;
+            el.style.width = `${size}px`;
+            el.style.height = `${size}px`;
+            el.style.fontSize = `${Math.max(18, size / 2.3)}px`;
+            
+            if (!prime) {
+                el.style.cssText += getBalloonStyle(num);
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    splitBalloon(balloonObj);
+                };
+            } else {
+                el.onclick = (e) => {
+                    e.stopPropagation();
+                    showPrimeMessage(balloonObj);
+                };
+            }
+
+            stage.appendChild(el);
+
+            const speedMultiplier = 2.5;
+            const balloonObj = {
+                num: num,
+                isPrime: prime,
+                element: el,
+                size: size,
+                radius: radius,
+                x: centerX - radius,
+                y: centerY - radius,
+                vx: (Math.random() - 0.5) * speedMultiplier,
+                vy: (Math.random() - 0.5) * speedMultiplier
+            };
+
+            balloons.push(balloonObj);
+
+            // 最初から素数の場合への対応
+            if (balloons.length === 1 && prime) {
+                setTimeout(() => checkGameEnd(), 1000);
+            }
+        }
+
+        // 分裂処理
+        function splitBalloon(balloon) {
+            if (!gameActive || balloon.isPrime) return;
+
+            const factors = getRandomFactorPair(balloon.num);
+            if (!factors) return;
+
+            const [f1, f2] = factors;
+            const centerX = balloon.x + balloon.radius;
+            const centerY = balloon.y + balloon.radius;
+
+            if (balloon.element.parentNode) {
+                stage.removeChild(balloon.element);
+            }
+            balloons = balloons.filter(b => b !== balloon);
+
+            createBalloon(f1, centerX - 20, centerY);
+            createBalloon(f2, centerX + 20, centerY);
+
+            updateUI();
+            checkGameEnd();
+        }
+
+        // 素数メッセージ表示
+        function showPrimeMessage(balloon) {
+            const msg = document.createElement('div');
+            msg.className = 'prime-message';
+            const isOriginal = (balloons.length === 1 && balloon.num === originalNumber);
+            msg.innerText = isOriginal ? "最初から素数です！" : "素数です";
+            msg.style.left = `${balloon.x + balloon.radius}px`;
+            msg.style.top = `${balloon.y + balloon.radius}px`;
+            stage.appendChild(msg);
+            
+            setTimeout(() => {
+                if (msg.parentNode) stage.removeChild(msg);
+            }, 1500);
+        }
+
+        // 物理アニメーションループ
+        function animate() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            balloons.forEach(b => {
+                b.x += b.vx;
+                b.y += b.vy;
+
+                if (b.x < 0) { b.x = 0; b.vx *= -1; }
+                else if (b.x + b.size > width) { b.x = width - b.size; b.vx *= -1; }
+
+                const topLimit = 140;
+                if (b.y < topLimit) { b.y = topLimit; b.vy *= -1; }
+                else if (b.y + b.size > height) { b.y = height - b.size; b.vy *= -1; }
+
+                b.element.style.left = `${b.x}px`;
+                b.element.style.top = `${b.y}px`;
+            });
+
+            // 風船同士の衝突・重なり防止
+            for (let i = 0; i < balloons.length; i++) {
+                for (let j = i + 1; j < balloons.length; j++) {
+                    const b1 = balloons[i];
+                    const b2 = balloons[j];
+
+                    const c1x = b1.x + b1.radius;
+                    const c1y = b1.y + b1.radius;
+                    const c2x = b2.x + b2.radius;
+                    const c2y = b2.y + b2.radius;
+
+                    const dx = c2x - c1x;
+                    const dy = c2y - c1y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const minDistance = b1.radius + b2.radius;
+
+                    if (distance < minDistance) {
+                        const overlap = minDistance - distance;
+                        const nx = dx / (distance || 1);
+                        const ny = dy / (distance || 1);
+
+                        b1.x -= nx * overlap * 0.5;
+                        b1.y -= ny * overlap * 0.5;
+                        b2.x += nx * overlap * 0.5;
+                        b2.y += ny * overlap * 0.5;
+
+                        const kx = b1.vx - b2.vx;
+                        const ky = b1.vy - b2.vy;
+                        const p = 2 * (nx * kx + ny * ky) / 2;
+
+                        b1.vx -= p * nx;
+                        b1.vy -= p * ny;
+                        b2.vx += p * nx;
+                        b2.vy += p * ny;
+                    }
+                }
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // 上部UI更新
+        function updateUI() {
+            const nums = balloons.map(b => b.num).sort((a,b)=>a-b);
+            statusText.innerText = `現在の因数: ${nums.join(' × ')}`;
+            currentNumbersDiv.innerHTML = `元の数字: <strong>${originalNumber}</strong> （風船: ${balloons.length}個）`;
+            
+            if (currentMode === 'random') {
+                modeIndicator.innerText = "【ランダムモード】";
+            } else if (currentMode === 'sequence') {
+                modeIndicator.innerText = `【順番モード】 次は: ${originalNumber + 1}`;
+            } else {
+                modeIndicator.innerText = "【入力モード】";
+            }
+        }
+
+        // 終了判定（ポップアップなし、自動次ステージ移行対応）
+        function checkGameEnd() {
+            const allPrime = balloons.every(b => b.isPrime);
+            if (allPrime && gameActive) {
+                gameActive = false;
+
+                // 全風船を赤く光らせる
+                balloons.forEach(b => {
+                    b.element.classList.add('prime-balloon');
+                });
+
+                // 画面上に「クリア！」の文字エフェクトを表示
+                const banner = document.createElement('div');
+                banner.className = 'clear-banner';
+                banner.innerText = '✨ CLEAR! ✨';
+                stage.appendChild(banner);
+
+                // 少し余韻を残して次へ、またはメニューへ
+                setTimeout(() => {
+                    if (banner.parentNode) stage.removeChild(banner);
+                    
+                    if (currentMode === 'sequence') {
+                        // 順番モードなら次のステージへ自動移行
+                        sequenceCount++;
+                        if (sequenceCount > 5000) sequenceCount = 2; // ループ
+                        originalNumber = sequenceCount;
+                        startGame();
+                    } else {
+                        // ランダム・入力モードなら、そのままメニューに戻す
+                        backToMenu();
+                    }
+                }, 1800);
+            }
+        }
+    </script>
+</body>
+</html>
