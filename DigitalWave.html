@@ -1,0 +1,242 @@
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>デジタル信号とノイズ（完成版）</title>
+<style>
+ body { font-family: Arial; padding: 20px; }
+ .box { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+ canvas { border: 1px solid #ccc; }
+ button { margin-right: 10px; }
+</style>
+</head>
+<body>
+
+<h2>ノイズによるデジタル判定の変化</h2>
+<p>左：元信号＋ノイズ　右：合成波形と判定（元波形も比較表示）</p>
+<div class="box">
+<label>ノイズ量：</label>
+<input type="range" id="noise" min="0" max="3" step="0.1" value="1">
+<span id="noiseValue">1</span>
+<br><br>
+<button onclick="mode='binary'; simulate()">2進数</button>
+<button onclick="mode='decimal'; simulate()">10進数</button>
+</div>
+
+<div class="box">
+<canvas id="canvas" width="860" height="420"></canvas>
+</div>
+
+<div class="box">
+<p id="result"></p>
+</div>
+
+<script>
+const noiseInput = document.getElementById("noise");
+noiseInput.addEventListener("input", () => {
+  document.getElementById("noiseValue").textContent = noiseInput.value;
+});
+
+let mode = "binary";
+
+function simulate() {
+  const noise = parseFloat(noiseInput.value);
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const leftWidth = 320;
+  const rightWidth = canvas.width - leftWidth - 20;
+  const marginTop = 40;
+  const marginBottom = 40;
+
+
+  const minV = -3;
+  const maxV = 12;
+
+  const graphHeight = canvas.height - marginTop - marginBottom;
+  const points = 10;
+  const step = rightWidth / points;
+
+  let original = [];
+  let noiseArr = [];
+  let combined = [];
+
+  for (let i = 0; i < points; i++) {
+    let val = (mode === "binary")
+      ? (Math.random() > 0.5 ? 9 : 0)
+      : Math.floor(Math.random() * 10);
+
+    let n = (Math.random() * 2 - 1) * noise;
+
+    original.push(val);
+    noiseArr.push(n);
+    combined.push(val + n);
+  }
+
+  function Y(v) {
+    return marginTop + (maxV - v) / (maxV - minV) * graphHeight;
+  }
+
+  ctx.font = "12px Arial";
+
+  /* ===== 左：元信号 ===== */
+  ctx.fillStyle = "black";
+  ctx.fillText("元信号（10Hz）", 20, 20);
+
+  ctx.beginPath();
+  for (let i = 0; i < points; i++) {
+    let x = 20 + i * 25;
+    let y = 70 + (9 - original[i]) * 8;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+    ctx.lineTo(x + 25, y);
+    let displayVal = (mode === "binary") ? ((original[i] < 5) ? 0 : 1) : original[i];
+    ctx.fillText(displayVal, x + 12, y - 5);
+  }
+  ctx.strokeStyle = "green";
+  ctx.stroke();
+
+  /* ===== 左：ノイズ（波形） ===== */
+  ctx.fillText("ノイズ波形", 20, 180);
+
+
+  ctx.beginPath();
+  for (let i = 0; i < points; i++) {
+    let x = 20 + i * 25;
+    let y = 200 - noiseArr[i] * 20;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+    ctx.lineTo(x + 25, y);
+
+
+    let text = (noiseArr[i] >= 0 ? "+" : "") + noiseArr[i].toFixed(1);
+    ctx.fillText(text, x + 12, y - 5);
+  }
+  ctx.strokeStyle = "gray";
+  ctx.stroke();
+
+
+  /* ===== 右：合成波形 ===== */
+  const offsetX = leftWidth;
+
+  ctx.strokeStyle = "#aaa";
+  ctx.strokeRect(offsetX, marginTop, rightWidth, graphHeight);
+
+  // 目盛（モード別）
+  if (mode === "binary") {
+    [0,9].forEach(v => {
+      let y = Y(v);
+      ctx.fillText(v===0?"0":"1", offsetX - 25, y + 4);
+
+
+      ctx.strokeStyle = "#eee";
+      ctx.beginPath();
+      ctx.moveTo(offsetX, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    });
+  } else {
+    for (let i = Math.ceil(minV); i <= Math.floor(maxV); i++) {
+      let y = Y(i);
+      ctx.fillText(i, offsetX - 25, y + 4);
+
+
+      ctx.strokeStyle = "#eee";
+      ctx.beginPath();
+      ctx.moveTo(offsetX, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+  }
+
+  // 合成波形
+  ctx.beginPath();
+  for (let i = 0; i < points; i++) {
+    let x = offsetX + i * step;
+    let y = Y(combined[i]);
+
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+
+    ctx.lineTo(x + step, y);
+  }
+  ctx.strokeStyle = "blue";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // ★ 元波形（緑点線）追加
+  ctx.setLineDash([5,5]);
+  ctx.beginPath();
+  for (let i = 0; i < points; i++) {
+    let x = offsetX + i * step;
+    let y = Y(original[i]);
+
+
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+    ctx.lineTo(x + step, y);
+  }
+  ctx.strokeStyle = "green";
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+
+  // しきい値
+  if (mode === "binary") {
+    let y = Y(5);
+    ctx.setLineDash([5,5]);
+    ctx.strokeStyle = "red";
+
+    ctx.beginPath();
+    ctx.moveTo(offsetX, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /* ===== 判定 ===== */
+  ctx.textAlign = "center";
+
+  let errors = 0;
+
+  for (let i = 0; i < points; i++) {
+    let x = offsetX + i * step + step/2;
+    let y = Y(combined[i]);
+
+    let detected;
+
+    if (mode === "binary") {
+      detected = (combined[i] < 5) ? 0 : 1;
+      let originalBit = (original[i] < 5) ? 0 : 1;
+
+      if (detected !== originalBit) {
+        ctx.fillStyle = "red";
+        errors++;
+      } else ctx.fillStyle = "black";
+
+    } else {
+      detected = Math.round(combined[i]);
+
+      if (detected !== original[i]) {
+        ctx.fillStyle = "red";
+        errors++;
+      } else ctx.fillStyle = "black";
+    }
+
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillText(detected, x, y - 8);
+  }
+
+  document.getElementById("result").innerHTML =
+    `${mode === "binary" ? "2進数" : "10進数"}モード｜誤判定 ${errors} / ${points}`;
+}
+</script>
+
+</body>
