@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>たすきがけシミュレーター</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@500;700&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --blue-color: #0047bd;
+            --green-color: #00a826;
+            --red-color: #e74c3c;
+            --purple-color: #8e44ad;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Noto Serif JP', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            max-width: 650px;
+            width: 100%;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .container.matched {
+            border: 3px solid var(--green-color);
+            box-shadow: 0 8px 30px rgba(0, 168, 38, 0.2);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .math {
+            font-family: 'Playfair Display', 'Times New Roman', serif;
+            font-style: italic;
+            font-weight: 600;
+        }
+        sup {
+            font-style: normal;
+            font-size: 0.75em;
+        }
+
+        .c-blue { color: var(--blue-color); }
+        .c-green { color: var(--green-color); }
+        .c-red { color: var(--red-color); }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        button:hover { background: #f0f0f0; }
+        #btnNewQuestion {
+            background: var(--blue-color);
+            color: white;
+            border: none;
+        }
+        #btnNewQuestion:hover { background: #003692; }
+
+        #btnSupport {
+            background: #fff;
+            border: 2px solid var(--purple-color);
+            color: var(--purple-color);
+        }
+        #btnSupport.active {
+            background: var(--purple-color);
+            color: white;
+        }
+
+        .formula-section {
+            background: #f1f2f6;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.6rem;
+            margin-bottom: 25px;
+        }
+
+        .matrix-area {
+            display: grid;
+            grid-template-columns: 1.7fr 0.3fr 1.7fr 0.3fr 1.5fr;
+            align-items: center;
+            justify-items: center;
+            row-gap: 25px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 1.6rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: inline-block;
+            padding-top: 15px;
+        }
+        
+        .input-wrapper .box-label {
+            position: absolute;
+            top: -3px;
+            left: 2px;
+            font-size: 1rem;
+            line-height: 1;
+            color: #333;
+        }
+
+        input[type="number"] {
+            width: 65px; /* マイナス表示用に少し幅を広げました */
+            padding: 6px;
+            font-size: 1.3rem;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+        }
+        input[type="number"]:focus { border-color: var(--blue-color); }
+
+        .arrow { font-size: 1.2rem; font-weight: bold; user-select: none; }
+        .cross { font-size: 2rem; color: var(--red-color); user-select: none; }
+        
+        .calc-text {
+            font-size: 1.5rem;
+            text-align: left;
+            width: 100%;
+            padding-left: 10px;
+        }
+
+        .divider-line {
+            grid-column: span 5;
+            width: 100%;
+            border-top: 2px solid #333;
+            margin: 5px 0;
+        }
+
+        .bottom-result {
+            font-size: 1.6rem;
+            font-weight: bold;
+        }
+
+        .hide-on-omit { transition: opacity 0.2s; }
+        .omitted .hide-on-omit {
+            opacity: 0;
+            width: 0;
+            display: none !important;
+        }
+
+        .support-panel {
+            display: none;
+            background: #fdf7ff;
+            border: 1px dashed var(--purple-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .support-panel.active { display: block; }
+        .support-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--purple-color);
+            margin-bottom: 8px;
+        }
+        .candidate-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .candidate-btn {
+            padding: 5px 10px;
+            font-size: 0.85rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .candidate-btn:hover { background: #eee; border-color: #999; }
+        .candidate-btn.blue-btn { border-color: var(--blue-color); color: var(--blue-color); }
+        .candidate-btn.green-btn { border-color: var(--green-color); color: var(--green-color); }
+
+        .status-box {
+            grid-column: span 5;
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status-unmatched { color: var(--red-color); background: #fde8e8; }
+        .status-matched { color: white; background: var(--green-color); }
+
+        .result-section {
+            margin-top: 25px;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 8px;
+            font-size: 1.6rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="appCard">
+    <h1>たすきがけシミュレーター</h1>
+
+    <div class="controls">
+        <button id="btnNewQuestion">別の問題にする</button>
+        <button id="toggleOmit">文字・カッコを省略する</button>
+        <button id="btnSupport">サポート機能: OFF</button>
+    </div>
+
+    <div class="formula-section">
+        ターゲットの式: <span class="math" id="targetFormula">3x<sup>2</sup> + 11x + 6</span>
+    </div>
+
+    <div id="supportPanel" class="support-panel">
+        <div class="support-title">❶ <span class="math">x<sup>2</sup></span>の係数の候補 (クリックすると <span class="math">a, c</span> に自動入力)</div>
+        <div id="candidatesAC" class="candidate-list"></div>
+        
+        <div class="support-title">❷ 定数項の候補 (クリックすると <span class="math">b, d</span> に自動入力)</div>
+        <div id="candidatesBD" class="candidate-list"></div>
+    </div>
+
+    <div class="matrix-area" id="matrixArea">
+        
+        <div class="input-group">
+            <span class="math hide-on-omit">(</span>
+            <div class="input-wrapper">
+                <span class="math box-label">a</span>
+                <input type="number" id="inputA" value="1">
+            </div>
+            <span class="math hide-on-omit">x</span>
+        </div>
+        <div class="cross" style="grid-row: span 2; margin-top: 12px;">×</div>
+        <div class="input-group">
+            <span class="math hide-on-omit" id="signB" style="margin-right:2px;">+</span>
+            <div class="input-wrapper">
+                <span class="math box-label">b</span>
+                <input type="number" id="inputB" value="1">
+            </div>
+            <span class="math hide-on-omit">)</span>
+        </div>
+        <div class="arrow c-red" style="margin-top: 12px;">→</div>
+        <div class="calc-text c-red" style="margin-top: 12px;"><span class="math">bc</span> = <span id="textBC">3</span></div>
+
+        <div class="input-group" style="position: relative;">
+            <div class="arrow c-blue" style="position: absolute; top: -18px; left: 35px;">↓</div>
+            <span class="math hide-on-omit">(</span>
+            <div class="input-wrapper">
+                <span class="math box-label">c</span>
+                <input type="number" id="inputC" value="3">
+            </div>
+            <span class="math hide-on-omit">x</span>
+        </div>
+        <div class="input-group" style="position: relative;">
+            <div class="arrow c-green" style="position: absolute; top: -18px; left: 45px;">↓</div>
+            <span class="math hide-on-omit" id="signD" style="margin-right:2px;">+</span>
+            <div class="input-wrapper">
+                <span class="math box-label">d</span>
+                <input type="number" id="inputD" value="6">
+            </div>
+            <span class="math hide-on-omit">)</span>
+        </div>
+        <div class="arrow c-red">→</div>
+        <div class="calc-text c-red"><span class="math">ad</span> = <span id="textAD">6</span></div>
+
+        <div class="divider-line"></div>
+
+        <div class="bottom-result c-blue"><span class="math">ac</span> = <span id="textAC">3</span></div>
+        <div></div>
+        <div class="bottom-result c-green"><span class="math">bd</span> = <span id="textBD">6</span></div>
+        <div class="math c-red" style="font-size:1.5rem;">+</div>
+        <div class="bottom-result c-red"><span class="math">ad+bc</span> = <span id="textSum">9</span></div>
+
+        <div id="statusBox" class="status-box status-unmatched">
+            縦の掛け算が一致していません
+        </div>
+    </div>
+
+    <div class="result-section">
+        因数分解の形: <span class="math" id="finalResult"></span>
+    </div>
+</div>
+
+<script>
+    const questionBank = [
+        {targetA: 3, targetB: 11, targetC: 6},
+        {targetA: 2, targetB: 5,  targetC: 3},
+        {targetA: 3, targetB: -5, targetC: -2},
+        {targetA: 2, targetB: -7, targetC: 6},
+        {targetA: 4, targetB: 8,  targetC: 3},
+        {targetA: 6, targetB: 7,  targetC: 2},
+        {targetA: 5, targetB: -13,targetC: 6}
+    ];
+
+    let currentQuestion = questionBank[0];
+    let isSupportOn = false;
+    let isOmitted = false;
+
+    // DOM要素
+    const targetFormula = document.getElementById('targetFormula');
+    const inputA = document.getElementById('inputA');
+    const inputB = document.getElementById('inputB');
+    const inputC = document.getElementById('inputC');
+    const inputD = document.getElementById('inputD');
+
+    const signB = document.getElementById('signB');
+    const signD = document.getElementById('signD');
+
+    const textBC = document.getElementById('textBC');
+    const textAD = document.getElementById('textAD');
+    const textAC = document.getElementById('textAC');
+    const textBD = document.getElementById('textBD');
+    const textSum = document.getElementById('textSum');
+    const finalResult = document.getElementById('finalResult');
+
+    const statusBox = document.getElementById('statusBox');
+    const appCard = document.getElementById('appCard');
+    const matrixArea = document.getElementById('matrixArea');
+    const toggleOmit = document.getElementById('toggleOmit');
+    const btnNewQuestion = document.getElementById('btnNewQuestion');
+    
+    const btnSupport = document.getElementById('btnSupport');
+    const supportPanel = document.getElementById('supportPanel');
+    const candidatesAC = document.getElementById('candidatesAC');
+    const candidatesBD = document.getElementById('candidatesBD');
+
+    function formatTerm(num, term, isFirst = false) {
+        if (num === 0) return "";
+        let sign = num > 0 ? (isFirst ? "" : " + ") : " - ";
+        let absNum = Math.abs(num);
+        let numStr = absNum === 1 && term !== "" ? "" : absNum;
+        return `${sign}${numStr}${term}`;
+    }
+
+    // 因数分解結果のテキスト整形
+    function formatFactorPairs(a, b, c, d) {
+        let part1 = "";
+        if (a === 1) part1 += "x";
+        else if (a === -1) part1 += "-x";
+        else part1 += a + "x";
+
+        if (b >= 0) part1 += " + " + b;
+        else part1 += " - " + Math.abs(b);
+
+        let part2 = "";
+        if (c === 1) part2 += "x";
+        else if (c === -1) part2 += "-x";
+        else part2 += c + "x";
+
+        if (d >= 0) part2 += " + " + d;
+        else part2 += " - " + Math.abs(d);
+
+        return `(${part1})(${part2})`;
+    }
+
+    function getFactorPairs(num) {
+        const pairs = [];
+        const absNum = Math.abs(num);
+        for (let i = -absNum; i <= absNum; i++) {
+            if (i === 0) continue;
+            if (num % i === 0) pairs.push([i, num / i]);
+        }
+        return pairs;
+    }
+
+    function renderSupportCandidates() {
+        candidatesAC.innerHTML = '';
+        candidatesBD.innerHTML = '';
+
+        const pairsAC = getFactorPairs(currentQuestion.targetA);
+        pairsAC.forEach(pair => {
+            const btn = document.createElement('button');
+            btn.className = 'candidate-btn blue-btn';
+            btn.textContent = `[ ${pair[0]} , ${pair[1]} ]`;
+            btn.addEventListener('click', () => {
+                inputA.value = pair[0];
+                inputC.value = pair[1];
+                updateCalculations();
+            });
+            candidatesAC.appendChild(btn);
+        });
+
+        const pairsBD = getFactorPairs(currentQuestion.targetC);
+        pairsBD.forEach(pair => {
+            const btn = document.createElement('button');
+            btn.className = 'candidate-btn green-btn';
+            btn.textContent = `[ ${pair[0]} , ${pair[1]} ]`;
+            btn.addEventListener('click', () => {
+                inputB.value = pair[0];
+                inputD.value = pair[1];
+                updateCalculations();
+            });
+            candidatesBD.appendChild(btn);
+        });
+    }
+
+    function displayQuestion() {
+        let aPart = formatTerm(currentQuestion.targetA, "x<sup>2</sup>", true);
+        let bPart = formatTerm(currentQuestion.targetB, "x");
+        let cPart = formatTerm(currentQuestion.targetC, "");
+        targetFormula.innerHTML = `${aPart}${bPart}${cPart}`;
+        
+        renderSupportCandidates();
+        updateCalculations();
+    }
+
+    function updateCalculations() {
+        const a = parseInt(inputA.value) || 0;
+        const b = parseInt(inputB.value) || 0;
+        const c = parseInt(inputC.value) || 0;
+        const d = parseInt(inputD.value) || 0;
+
+        // ★中部の表示における符号の重複防止ロジックの刷新
+        // 入力ボックス自体の値を弄らず、手前のラベルの文字だけで見た目を調整する
+        if (b >= 0) {
+            signB.textContent = "+";
+            signB.style.marginRight = "2px";
+        } else {
+            // ボックスの中に「-」が表示されるため、手前の「+」は消去する
+            signB.textContent = "";
+            signB.style.marginRight = "0px";
+        }
+
+        if (d >= 0) {
+            signD.textContent = "+";
+            signD.style.marginRight = "2px";
+        } else {
+            signD.textContent = "";
+            signD.style.marginRight = "0px";
+        }
+
+        const ac = a * c;
+        const bd = b * d;
+        const bc = b * c;
+        const ad = a * d;
+        const sumResult = ad + bc;
+
+        textBC.textContent = bc;
+        textAD.textContent = ad;
+        textAC.textContent = ac;
+        textBD.textContent = bd;
+        textSum.textContent = sumResult;
+
+        finalResult.textContent = formatFactorPairs(a, b, c, d);
+
+        const matchA = (ac === currentQuestion.targetA);
+        const matchC = (bd === currentQuestion.targetC);
+        const matchB = (sumResult === currentQuestion.targetB);
+
+        if (matchA && matchC && matchB) {
+            statusBox.textContent = `正解！中央の項 ${sumResult} と一致しました！`;
+            statusBox.className = "status-box status-matched";
+            appCard.classList.add('matched');
+        } else {
+            statusBox.className = "status-box status-unmatched";
+            appCard.classList.remove('matched');
+            
+            if (!matchA || !matchC) {
+                statusBox.textContent = `縦の掛け算が一致していません (目標 ac:${currentQuestion.targetA}, bd:${currentQuestion.targetC})`;
+            } else {
+                statusBox.textContent = `たすき掛けの和が ${currentQuestion.targetB} になっていません (現在: ${sumResult})`;
+            }
+        }
+    }
+
+    [inputA, inputB, inputC, inputD].forEach(input => {
+        input.addEventListener('input', updateCalculations);
+    });
+
+    toggleOmit.addEventListener('click', () => {
+        isOmitted = !isOmitted;
+        if (isOmitted) {
+            matrixArea.classList.add('omitted');
+            toggleOmit.textContent = "文字・カッコを表示する";
+        } else {
+            matrixArea.classList.remove('omitted');
+            toggleOmit.textContent = "文字・カッコを省略する";
+        }
+    });
+
+    btnSupport.addEventListener('click', () => {
+        isSupportOn = !isSupportOn;
+        if (isSupportOn) {
+            btnSupport.textContent = "サポート機能: ON";
+            btnSupport.classList.add('active');
+            supportPanel.classList.add('active');
+        } else {
+            btnSupport.textContent = "サポート機能: OFF";
+            btnSupport.classList.remove('active');
+            supportPanel.classList.remove('active');
+        }
+    });
+
+    btnNewQuestion.addEventListener('click', () => {
+        let nextQuestion;
+        do {
+            nextQuestion = questionBank[Math.floor(Math.random() * questionBank.length)];
+        } while (nextQuestion === currentQuestion && questionBank.length > 1);
+        
+        currentQuestion = nextQuestion;
+        
+        inputA.value = 1;
+        inputB.value = 1;
+        inputC.value = 1;
+        inputD.value = 1;
+        signB.textContent = "+";
+        signD.textContent = "+";
+        
+        displayQuestion();
+    });
+
+    displayQuestion();
+</script>
+
+</body>
+</html>
