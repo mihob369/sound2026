@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ゲーム式ランダム指名</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:#1d1d1d;
+    color:white;
+    text-align:center;
+    overflow-x:hidden;
+}
+
+h1{
+    margin-top:10px;
+}
+
+.topButtons{
+    margin:10px;
+}
+
+button{
+    padding:10px 18px;
+    border:none;
+    border-radius:10px;
+    margin:5px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.modeButton{
+    background:#444;
+    color:white;
+}
+
+.modeButton.active{
+    background:#ff9800;
+}
+
+#result{
+    font-size:40px;
+    font-weight:bold;
+    min-height:60px;
+    margin:15px;
+}
+
+/* ======================
+   モード
+====================== */
+
+.gameArea{
+    display:none;
+}
+
+.gameArea.active{
+    display:block;
+}
+
+/* ======================
+   除外番号
+====================== */
+
+.excludePanel{
+    width:95%;
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(12,1fr);
+    gap:6px;
+    max-width:800px;
+    margin-bottom:20px;
+}
+
+.excludeNum{
+    background:#444;
+    padding:8px;
+    border-radius:8px;
+    cursor:pointer;
+    user-select:none;
+}
+
+.excludeNum.off{
+    background:#777;
+    opacity:0.3;
+}
+
+/* ======================
+   カードゲーム
+====================== */
+
+.cardContainer{
+    width:95%;
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:15px;
+    max-width:1000px;
+}
+
+.card{
+    height:110px;
+    perspective:1000px;
+    cursor:pointer;
+}
+
+.card.disabled{
+    opacity:0.25;
+    pointer-events:none;
+}
+
+.cardInner{
+    width:100%;
+    height:100%;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:transform 0.6s;
+}
+
+.card.flipped .cardInner{
+    transform:rotateY(180deg);
+}
+
+.cardFront,
+.cardBack{
+    position:absolute;
+    width:100%;
+    height:100%;
+    border-radius:12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:34px;
+    font-weight:bold;
+    backface-visibility:hidden;
+}
+
+.cardFront{
+    background:linear-gradient(135deg,#1565c0,#42a5f5);
+}
+
+.cardBack{
+    background:#ffeb3b;
+    color:black;
+    transform:rotateY(180deg);
+}
+
+/* ======================
+   的あて
+====================== */
+
+.targetGameWrap{
+    width:1100px;
+    margin:0 auto;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    gap:20px;
+}
+
+.targetArea{
+    width:900px;
+    height:520px;
+    position:relative;
+    background:#202020;
+    border:3px solid #555;
+    overflow:hidden;
+}
+
+.target{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    position:absolute;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:26px;
+    font-weight:bold;
+    color:black;
+    background:
+    radial-gradient(circle,
+    white 0%,
+    white 15%,
+    red 15%,
+    red 30%,
+    white 30%,
+    white 45%,
+    red 45%,
+    red 60%);
+}
+
+.target.disabled{
+    opacity:0.2;
+}
+
+/* ======================
+   左右照準
+====================== */
+
+#movingAim{
+    width:22px;
+    height:22px;
+    border:4px solid #00ffcc;
+    border-radius:50%;
+    position:absolute;
+    bottom:10px;
+    left:0;
+}
+
+/* ======================
+   右コントロール
+====================== */
+
+.controlPanel{
+    width:140px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:15px;
+}
+
+.controlPanel h3{
+    margin:0;
+    font-size:18px;
+}
+
+/* ======================
+   上下バー
+====================== */
+
+.angleWrapper{
+    width:50px;
+    height:260px;
+    background:#444;
+    position:relative;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+#angleCursor{
+    width:50px;
+    height:20px;
+    background:#00ffcc;
+    position:absolute;
+    top:0;
+    left:0;
+    border-radius:10px;
+}
+
+/* ======================
+   ボタン
+====================== */
+
+.gameButton{
+    width:120px;
+    padding:10px;
+    font-size:15px;
+    background:#2196f3;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.gameButton:hover{
+    opacity:0.85;
+}
+
+/* ======================
+   矢
+====================== */
+
+.arrow{
+    position:absolute;
+    font-size:60px;
+    pointer-events:none;
+}
+
+.hit{
+    animation:hitAnim 0.5s;
+}
+
+@keyframes hitAnim{
+
+    0%{
+        transform:scale(1);
+    }
+
+    50%{
+        transform:scale(1.3);
+    }
+
+    100%{
+        transform:scale(1);
+    }
+
+}
+
+.resetButton{
+    background:#f44336;
+    color:white;
+    margin-bottom:20px;
+}
+
+</style>
+</head>
+<body>
+
+<h1>🎮 ゲーム式ランダム指名</h1>
+
+<div class="topButtons">
+
+    <button class="modeButton active"
+        onclick="switchMode('card')">
+
+        🃏 カード
+
+    </button>
+
+    <button class="modeButton"
+        onclick="switchMode('target')">
+
+        🎯 的あて
+
+    </button>
+
+</div>
+
+<h3>除外する番号をクリック</h3>
+
+<div class="excludePanel"
+    id="excludePanel">
+</div>
+
+<div id="result"></div>
+
+<!-- ======================
+     カードゲーム
+====================== -->
+
+<div id="cardGame"
+    class="gameArea active">
+
+    <div class="cardContainer"
+        id="cardContainer">
+    </div>
+
+</div>
+
+<!-- ======================
+     的あてゲーム
+====================== -->
+
+<div id="targetGame"
+    class="gameArea">
+
+    <div class="targetGameWrap">
+
+        <!-- 的エリア -->
+
+        <div class="targetArea"
+            id="targetArea">
+
+            <div id="movingAim"></div>
+
+        </div>
+
+        <!-- コントロール -->
+
+        <div class="controlPanel">
+
+            <button class="gameButton"
+                onclick="lockHorizontal()">
+
+                左右決定
+
+            </button>
+
+            <h3>上下角度</h3>
+
+            <div class="angleWrapper">
+
+                <div id="angleCursor"></div>
+
+            </div>
+
+            <button class="gameButton"
+                onclick="lockAngle()">
+
+                発射
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<button class="resetButton"
+    onclick="resetGame()">
+
+    リセット
+
+</button>
+
+<script>
+
+const maxNumber = 24;
+
+let excluded = [];
+
+const resultDiv =
+    document.getElementById("result");
+
+const excludePanel =
+    document.getElementById("excludePanel");
+
+const cardContainer =
+    document.getElementById("cardContainer");
+
+const targetArea =
+    document.getElementById("targetArea");
+
+/* ======================
+   モード切替
+====================== */
+
+function switchMode(mode){
+
+    document.querySelectorAll(".gameArea")
+        .forEach(g=>g.classList.remove("active"));
+
+    document.querySelectorAll(".modeButton")
+        .forEach(b=>b.classList.remove("active"));
+
+    if(mode==="card"){
+
+        document.getElementById("cardGame")
+            .classList.add("active");
+
+        document.querySelectorAll(".modeButton")[0]
+            .classList.add("active");
+
+    }else{
+
+        document.getElementById("targetGame")
+            .classList.add("active");
+
+        document.querySelectorAll(".modeButton")[1]
+            .classList.add("active");
+    }
+
+}
+
+/* ======================
+   除外番号
+====================== */
+
+function createExcludePanel(){
+
+    excludePanel.innerHTML = "";
+
+    for(let i=1;i<=maxNumber;i++){
+
+        const div =
+            document.createElement("div");
+
+        div.className = "excludeNum";
+
+        if(excluded.includes(i)){
+            div.classList.add("off");
+        }
+
+        div.textContent = i;
+
+        div.onclick = ()=>toggleExclude(i);
+
+        excludePanel.appendChild(div);
+
+    }
+
+}
+
+function toggleExclude(num){
+
+    if(excluded.includes(num)){
+
+        excluded =
+            excluded.filter(n=>n!==num);
+
+    }else{
+
+        excluded.push(num);
+
+    }
+
+    refreshDisabled();
+
+}
+
+/* ======================
+   カード
+====================== */
+
+let cardNumbers = [];
+
+function createCards(){
+
+    if(cardNumbers.length===0){
+
+        for(let i=1;i<=maxNumber;i++){
+            cardNumbers.push(i);
+        }
+
+        cardNumbers.sort(()=>Math.random()-0.5);
+
+    }
+
+    cardContainer.innerHTML = "";
+
+    cardNumbers.forEach(num=>{
+
+        const card =
+            document.createElement("div");
+
+        card.className = "card";
+
+        card.dataset.number = num;
+
+        if(excluded.includes(num)){
+            card.classList.add("disabled");
+        }
+
+        card.innerHTML = `
+        <div class="cardInner">
+            <div class="cardFront">？</div>
+            <div class="cardBack">${num}</div>
+        </div>
+        `;
+
+        card.onclick =
+            ()=>selectCard(card,num);
+
+        cardContainer.appendChild(card);
+
+    });
+
+}
+
+function selectCard(card,num){
+
+    if(excluded.includes(num)) return;
+
+    card.classList.add("flipped");
+
+    setTimeout(()=>{
+
+        resultDiv.textContent =
+            `✨ ${num} 番 ✨`;
+
+        excluded.push(num);
+
+        refreshDisabled();
+
+    },500);
+
+}
+
+/* ======================
+   的配置
+====================== */
+
+const positions = [];
+
+for(let i=1;i<=24;i++){
+
+    positions.push({
+
+        num:i,
+
+        x:100 + (i%6)*120,
+
+        y:40 + Math.floor((i-1)/6)*110
+
+    });
+
+}
+
+function createTargets(){
+
+    document
+        .querySelectorAll(".target")
+        .forEach(t=>t.remove());
+
+    positions.forEach(p=>{
+
+        const div =
+            document.createElement("div");
+
+        div.className = "target";
+
+        div.dataset.number = p.num;
+
+        div.style.left = p.x+"px";
+
+        div.style.top = p.y+"px";
+
+        div.textContent = p.num;
+
+        if(excluded.includes(p.num)){
+            div.classList.add("disabled");
+        }
+
+        targetArea.appendChild(div);
+
+    });
+
+}
+
+createTargets();
+
+/* ======================
+   左右照準
+====================== */
+
+const movingAim =
+    document.getElementById("movingAim");
+
+let aimX = 0;
+
+let direction = 1;
+
+let horizontalLocked = false;
+
+setInterval(()=>{
+
+    if(horizontalLocked) return;
+
+    aimX += direction * 5;
+
+    if(aimX > 860){
+        direction = -1;
+    }
+
+    if(aimX < 0){
+        direction = 1;
+    }
+
+    movingAim.style.left = aimX+"px";
+
+},20);
+
+/* ======================
+   上下バー
+====================== */
+
+const angleCursor =
+    document.getElementById("angleCursor");
+
+let angleY = 0;
+
+let angleDir = 1;
+
+let angleLocked = false;
+
+setInterval(()=>{
+
+    if(angleLocked) return;
+
+    angleY += angleDir * 4;
+
+    if(angleY > 240){
+        angleDir = -1;
+    }
+
+    if(angleY < 0){
+        angleDir = 1;
+    }
+
+    angleCursor.style.top =
+        angleY+"px";
+
+},20);
+
+/* ======================
+   左右決定
+====================== */
+
+function lockHorizontal(){
+
+    horizontalLocked = true;
+
+}
+
+/* ======================
+   発射
+====================== */
+
+function lockAngle(){
+
+    if(!horizontalLocked) return;
+
+    angleLocked = true;
+
+    shootArrow();
+
+}
+
+/* ======================
+   矢発射
+====================== */
+
+function shootArrow(){
+
+    let best = null;
+
+    let bestScore = 999999;
+
+    positions.forEach(p=>{
+
+        if(excluded.includes(p.num)) return;
+
+        const dx =
+            Math.abs(p.x - aimX);
+
+        const dy =
+            Math.abs(p.y - angleY);
+
+        const score = dx + dy;
+
+        if(score < bestScore){
+
+            bestScore = score;
+
+            best = p;
+
+        }
+
+    });
+
+    if(!best) return;
+
+    const target =
+        [...document.querySelectorAll(".target")]
+        .find(t=>
+            Number(t.dataset.number)
+            === best.num
+        );
+
+    target.classList.add("hit");
+
+    const arrow =
+        document.createElement("div");
+
+    arrow.className = "arrow";
+
+    arrow.textContent = "🏹";
+
+    arrow.style.left = aimX+"px";
+
+    arrow.style.bottom = "0px";
+
+    targetArea.appendChild(arrow);
+
+    arrow.animate([
+        {
+            left:aimX+"px",
+            bottom:"0px"
+        },
+        {
+            left:best.x+"px",
+            bottom:(450-best.y)+"px"
+        }
+    ],{
+        duration:600,
+        easing:"ease-out"
+    });
+
+    setTimeout(()=>{
+
+        resultDiv.textContent =
+            `🎯 ${best.num} 番 命中！`;
+
+        excluded.push(best.num);
+
+        refreshDisabled();
+
+        arrow.remove();
+
+        target.classList.remove("hit");
+
+        horizontalLocked = false;
+
+        angleLocked = false;
+
+    },700);
+
+}
+
+/* ======================
+   更新
+====================== */
+
+function refreshDisabled(){
+
+    createExcludePanel();
+
+    createTargets();
+
+    document
+        .querySelectorAll(".card")
+        .forEach(card=>{
+
+        const num =
+            Number(card.dataset.number);
+
+        if(excluded.includes(num)){
+
+            card.classList.add("disabled");
+
+        }
+
+    });
+
+}
+
+/* ======================
+   リセット
+====================== */
+
+function resetGame(){
+
+    excluded = [];
+
+    resultDiv.textContent = "";
+
+    horizontalLocked = false;
+
+    angleLocked = false;
+
+    cardNumbers = [];
+
+    createExcludePanel();
+
+    createCards();
+
+    createTargets();
+
+}
+
+/* ======================
+   初期化
+====================== */
+
+createExcludePanel();
+
+createCards();
+
+</script>
+
+</body>
+</html>
