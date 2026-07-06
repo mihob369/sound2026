@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>加法・減法混色アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>加法混色・減法混色 学習アプリ</h1>
+    <p class="subtitle">情報Ⅰ向け：RGB（加法）と CMY（減法）を操作して色の違いを学びましょう。</p>
+
+    <nav class="modes">
+      <button id="mode-add" class="mode-btn active">加法 (RGB)</button>
+      <button id="mode-sub" class="mode-btn">減法 (CMY)</button>
+      <button id="mode-compare" class="mode-btn">比較モード</button>
+    </nav>
+
+    <section id="app-area">
+      <!-- 加法モード -->
+      <div id="additive" class="mode-panel">
+        <h2>加法混色 (RGB)</h2>
+        <div class="controls">
+          <label>R <input id="r" type="range" min="0" max="255" value="255"><input id="r-num" type="number" min="0" max="255" value="255"></label>
+          <label>G <input id="g" type="range" min="0" max="255" value="0"><input id="g-num" type="number" min="0" max="255" value="0"></label>
+          <label>B <input id="b" type="range" min="0" max="255" value="0"><input id="b-num" type="number" min="0" max="255" value="0"></label>
+        </div>
+        <div class="preview" id="add-preview"></div>
+        <div class="info" id="add-info"></div>
+      </div>
+
+      <!-- 減法モード -->
+      <div id="subtractive" class="mode-panel hidden">
+        <h2>減法混色 (CMY)</h2>
+        <div class="controls">
+          <label>C (シアン) <input id="c" type="range" min="0" max="100" value="0"><input id="c-num" type="number" min="0" max="100" value="0">%</label>
+          <label>M (マゼンタ) <input id="m" type="range" min="0" max="100" value="0"><input id="m-num" type="number" min="0" max="100" value="0">%</label>
+          <label>Y (イエロー) <input id="y" type="range" min="0" max="100" value="0"><input id="y-num" type="number" min="0" max="100" value="0">%</label>
+        </div>
+        <div class="preview" id="sub-preview"></div>
+        <div class="info" id="sub-info"></div>
+        <p class="note">※ CMY → RGB の簡易変換: R=255*(1-C), G=255*(1-M), B=255*(1-Y)</p>
+      </div>
+
+      <!-- 比較モード -->
+      <div id="compare" class="mode-panel hidden">
+        <h2>比較モード</h2>
+        <p>左: 加法 (RGB) ／ 右: 減法 (CMY) を操作して結果を比べられます。</p>
+        <div class="compare-row">
+          <div class="compare-col">
+            <h3>加法</h3>
+            <div class="controls small">
+              <label>R <input id="cr" type="range" min="0" max="255" value="255"><input id="cr-num" type="number" min="0" max="255" value="255"></label>
+              <label>G <input id="cg" type="range" min="0" max="255" value="0"><input id="cg-num" type="number" min="0" max="255" value="0"></label>
+              <label>B <input id="cb" type="range" min="0" max="255" value="0"><input id="cb-num" type="number" min="0" max="255" value="0"></label>
+            </div>
+            <div class="preview" id="cmp-add-preview"></div>
+            <div class="info" id="cmp-add-info"></div>
+          </div>
+
+          <div class="compare-col">
+            <h3>減法</h3>
+            <div class="controls small">
+              <label>C <input id="cc" type="range" min="0" max="100" value="0"><input id="cc-num" type="number" min="0" max="100" value="0">%</label>
+              <label>M <input id="cm" type="range" min="0" max="100" value="0"><input id="cm-num" type="number" min="0" max="100" value="0">%</label>
+              <label>Y <input id="cy" type="range" min="0" max="100" value="0"><input id="cy-num" type="number" min="0" max="100" value="0">%</label>
+            </div>
+            <div class="preview" id="cmp-sub-preview"></div>
+            <div class="info" id="cmp-sub-info"></div>
+          </div>
+        </div>
+
+        <div class="compare-result">
+          <h4>差の指標</h4>
+          <p id="cmp-diff">RGB 差分: -</p>
+        </div>
+      </div>
+
+    </section>
+
+    <footer>
+      <p>作成: 学習用アプリ — 情報Ⅰ 授業で使えます。</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
