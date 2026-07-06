@@ -10,6 +10,7 @@
   .row { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
   .panel { border:1px solid #ddd; padding:12px; border-radius:8px; background:#fff; min-width:280px; }
   #hueWrap { position:relative; width:420px; height:420px; }
+  #hueCanvas { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
   #hueWheel {
     width:100%; height:100%;
     border-radius:50%;
@@ -49,6 +50,8 @@
   canvas#venn { width:320px; height:200px; border:1px solid #eee; border-radius:6px; background:#fafafa; }
   .swatches { display:flex; gap:8px; align-items:center; margin-top:8px; }
   .val { font-family:monospace; font-size:13px; background:#f7f7f7; padding:6px 8px; border-radius:6px; border:1px solid #eee; }
+  .light { position:absolute; left:-20px; top:-20px; font-size:20px; }
+  .eye { position:absolute; right:-36px; top:50%; transform:translateY(-50%); font-size:26px; }
   footer { margin-top:18px; font-size:12px; color:#666; }
 </style>
 </head>
@@ -56,7 +59,7 @@
 <h1>Genpo Color 2 — 色相環・吸収・減法混色シミュレータ</h1>
 
 <div class="row">
-  <div class="panel" style="flex:0 0 460px;">
+  <div class="panel" style="flex:0 0 460px; position:relative;">
     <div class="controls">
       <label class="mode"><input type="radio" name="mode" value="view" checked> 見える色を設定</label>
       <label class="mode"><input type="radio" name="mode" value="absorb"> 吸収色を設定</label>
@@ -65,6 +68,7 @@
       <label style="margin-left:8px;"><input type="checkbox" id="mixMode"> 減法混色モード表示</label>
     </div>
     <div id="hueWrap">
+      <canvas id="hueCanvas"></canvas>
       <div id="hueWheel" title="色相環をクリックして色を選択"></div>
       <!-- RGB/CMY markers -->
       <div class="marker" id="mR" style="background:#ff0000;">R</div>
@@ -74,6 +78,9 @@
       <div class="marker" id="mY" style="background:#ffff00; left:0;">Y</div>
       <div class="marker" id="mC" style="background:#00ffff; left:0;">C</div>
       <div class="marker" id="mM" style="background:#ff00ff; left:0;color:#fff;">M</div>
+
+      <div class="light">🔦</div>
+      <div class="eye">👁️</div>
     </div>
 
     <div class="legend">
@@ -180,6 +187,8 @@ let state = {
 
 /* DOM */
 const hueWheel = document.getElementById('hueWheel');
+const hueCanvas = document.getElementById('hueCanvas');
+const hCtx = hueCanvas.getContext('2d');
 const viewSw = document.getElementById('viewSw');
 const viewVal = document.getElementById('viewVal');
 const absSw = document.getElementById('absSw');
@@ -254,69 +263,141 @@ function updatePreviews(){
     mixref.style.background = '#ffffff';
   }
 
+  drawHueRays();
   drawVenn();
+}
+
+/* Hue canvas & rays */
+function resizeHueCanvas(){
+  let rect = document.getElementById('hueWrap').getBoundingClientRect();
+  hueCanvas.width = rect.width * devicePixelRatio;
+  hueCanvas.height = rect.height * devicePixelRatio;
+  hueCanvas.style.width = rect.width + 'px';
+  hueCanvas.style.height = rect.height + 'px';
+  hCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+
+function drawHueRays(hitPoint){
+  // draw three parallel incoming rays from top-left light to hitPoint, then outgoing rays to eye
+  let rect = document.getElementById('hueWrap').getBoundingClientRect();
+  let cx = rect.width/2, cy = rect.height/2;
+  resizeHueCanvas();
+  hCtx.clearRect(0,0,rect.width,rect.height);
+  // light source
+  let L = {x:20, y:20};
+  // eye position (to the right center)
+  let eyeEl = document.querySelector('.eye');
+  let eyeRect = eyeEl.getBoundingClientRect();
+  let eye = { x: rect.width + (eyeRect.width/2) + 6, y: rect.height/2 };
+
+  // default hit point: center of rim
+  if(!hitPoint){
+    hitPoint = { x: cx + (rect.width/2 - 10 - 100) , y: cy }; // somewhere on right edge
+  }
+
+  // draw incoming parallel rays (offsets)
+  let offsets = [-10, 0, 10];
+  let colors = ['#ff0000','#00ff00','#0000ff'];
+
+  for(let i=0;i<3;i++){
+    hCtx.beginPath();
+    hCtx.lineWidth = 3;
+    hCtx.strokeStyle = colors[i];
+    hCtx.moveTo(L.x + offsets[i], L.y);
+    // bend towards hitPoint
+    hCtx.lineTo(hitPoint.x, hitPoint.y - 6 + offsets[i]);
+    hCtx.stroke();
+    // compute absorption (use state.absorbColor when in single absorb mode, or pig settings)
+    // For single hueWheel display, use state.absorbColor; for pig modes it's handled in venn
+    let absorb = state.absorbColor ? state.absorbColor.map(v=>v/255) : [0,0,0];
+    let reflectFrac = 1 - absorb[i];
+    // outgoing ray to eye scaled by reflectFrac
+    hCtx.beginPath();
+    hCtx.lineWidth = 3;
+    hCtx.globalAlpha = reflectFrac;
+    hCtx.strokeStyle = colors[i];
+    hCtx.moveTo(hitPoint.x, hitPoint.y - 6 + offsets[i]);
+    hCtx.lineTo(eye.x - rect.left, eye.y - rect.top + offsets[i]);
+    hCtx.stroke();
+    hCtx.globalAlpha = 1;
+  }
 }
 
 /* Venn の描画 */
 function drawVenn(){
   ctxVenn.clearRect(0,0,venn.width,venn.height);
-  // 2 つの円（半透明）と重なりの色を描く
   let W = venn.width, H = venn.height;
   let cx1 = W*0.35, cy = H*0.5, r = Math.min(W,H)*0.22;
   let cx2 = W*0.65;
-  // compute ref colors
+
+  // draw pigment circles (filled by their reflection color)
   let ref1 = state.pig1_absorb ? state.pig1_absorb.map(v=> Math.round(255*(1 - v/255)) ) : [255,255,255];
   let ref2 = state.pig2_absorb ? state.pig2_absorb.map(v=> Math.round(255*(1 - v/255)) ) : [255,255,255];
-  // overlap color = reflectance1 * reflectance2 (componentwise normalized)
   let mix = [255,255,255];
   if(state.pig1_absorb && state.pig2_absorb){
     for(let i=0;i<3;i++) mix[i] = Math.round(255 * ( (1 - state.pig1_absorb[i]/255) * (1 - state.pig2_absorb[i]/255) ));
   }
 
-  // draw left circle
-  ctxVenn.globalCompositeOperation = 'source-over';
-  ctxVenn.fillStyle = hexFromArr(ref1) + 'AA';
-  ctxVenn.beginPath();
-  ctxVenn.arc(cx1, cy, r, 0, Math.PI*2);
-  ctxVenn.fill();
-  // draw right
-  ctxVenn.fillStyle = hexFromArr(ref2) + 'AA';
-  ctxVenn.beginPath();
-  ctxVenn.arc(cx2, cy, r, 0, Math.PI*2);
-  ctxVenn.fill();
+  // fill left and right
+  ctxVenn.fillStyle = hexFromArr(ref1);
+  ctxVenn.beginPath(); ctxVenn.arc(cx1, cy, r, 0, Math.PI*2); ctxVenn.fill();
+  ctxVenn.fillStyle = hexFromArr(ref2);
+  ctxVenn.beginPath(); ctxVenn.arc(cx2, cy, r, 0, Math.PI*2); ctxVenn.fill();
 
-  // draw overlap explicit: compute overlapping region by clipping
+  // overlap mask fill with mix color if both pigments set
   if(state.pig1_absorb && state.pig2_absorb){
-    // draw overlap area in solid mix color
-    ctxVenn.globalCompositeOperation = 'source-over';
-    ctxVenn.fillStyle = hexFromArr(mix);
-    ctxVenn.beginPath();
-    // draw by path intersection approximate: draw right circle then use globalCompositeOperation 'source-in' trick
-    // Simpler: draw to offscreen and compute intersection is overkill; instead draw overlap by masking:
-    // strategy: draw left to tmp canvas, clip with right, fill it with mix color using 'source-over' and 'destination-in' compositing
-    // We'll do: draw left to tmp canvas, set composite 'destination-in' with right shape, then fill with mix.
-    let tmp = document.createElement('canvas');
-    tmp.width = W; tmp.height = H;
-    let tctx = tmp.getContext('2d');
-    tctx.fillStyle = '#000';
+    // draw overlap using compositing
+    let tmp = document.createElement('canvas'); tmp.width=W; tmp.height=H; let tctx = tmp.getContext('2d');
     tctx.beginPath(); tctx.arc(cx1,cy,r,0,Math.PI*2); tctx.fill();
     tctx.globalCompositeOperation = 'destination-in';
     tctx.beginPath(); tctx.arc(cx2,cy,r,0,Math.PI*2); tctx.fill();
-    // now tctx contains intersection mask; fill it with mix color
+    // apply mix color
     ctxVenn.drawImage(tmp,0,0);
     ctxVenn.globalCompositeOperation = 'source-in';
     ctxVenn.fillStyle = hexFromArr(mix);
     ctxVenn.fillRect(0,0,W,H);
-    // restore
     ctxVenn.globalCompositeOperation = 'source-over';
   }
 
   // outlines
-  ctxVenn.strokeStyle = '#aaa';
-  ctxVenn.lineWidth = 1;
-  ctxVenn.beginPath(); ctxVenn.arc(cx1, cy, r, 0, Math.PI*2); ctxVenn.stroke();
-  ctxVenn.beginPath(); ctxVenn.arc(cx2, cy, r, 0, Math.PI*2); ctxVenn.stroke();
+  ctxVenn.strokeStyle = '#444'; ctxVenn.lineWidth = 1; ctxVenn.beginPath(); ctxVenn.arc(cx1, cy, r, 0, Math.PI*2); ctxVenn.stroke(); ctxVenn.beginPath(); ctxVenn.arc(cx2, cy, r, 0, Math.PI*2); ctxVenn.stroke();
+
+  // draw rays from top-left light to each pigment and to overlap
+  let L = {x: 40, y: 20}; // in canvas coords
+  let eye = { x: W + 30, y: H/2 };
+  let offsets = [-8,0,8];
+  let colors = ['#ff0000','#00ff00','#0000ff'];
+
+  function drawRay(targetX, targetY, absorbVec){
+    for(let i=0;i<3;i++){
+      // incoming
+      ctxVenn.beginPath(); ctxVenn.lineWidth = 2; ctxVenn.strokeStyle = colors[i]; ctxVenn.globalAlpha = 0.9; ctxVenn.moveTo(L.x, L.y + offsets[i]); ctxVenn.lineTo(targetX, targetY + offsets[i]); ctxVenn.stroke();
+      // reflection fraction depends on absorbVec
+      let reflect = 1 - (absorbVec ? absorbVec[i] : 0);
+      ctxVenn.beginPath(); ctxVenn.lineWidth = 3; ctxVenn.strokeStyle = colors[i]; ctxVenn.globalAlpha = clamp01(reflect);
+      ctxVenn.moveTo(targetX, targetY + offsets[i]); ctxVenn.lineTo(eye.x, eye.y + offsets[i]); ctxVenn.stroke();
+      ctxVenn.globalAlpha = 1;
+    }
+  }
+
+  // left pigment target
+  let leftAbs = state.pig1_absorb ? state.pig1_absorb.map(v=>v/255) : null;
+  drawRay(cx1, cy, leftAbs);
+  // right
+  let rightAbs = state.pig2_absorb ? state.pig2_absorb.map(v=>v/255) : null;
+  drawRay(cx2, cy, rightAbs);
+  // overlap
+  if(state.pig1_absorb && state.pig2_absorb){
+    // overlap center
+    let ox = (cx1+cx2)/2; let oy = cy;
+    // combined absorb = 1 - (1-a1)*(1-a2) ==> or reflectance = (1-a1)*(1-a2) so absorb combined = 1 - reflect
+    let a1 = state.pig1_absorb.map(v=>v/255); let a2 = state.pig2_absorb.map(v=>v/255);
+    let combined = [0,0,0];
+    for(let i=0;i<3;i++) combined[i] = 1 - (1 - a1[i])*(1 - a2[i]);
+    drawRay(ox, oy, combined);
+  }
 }
+
 /* helper */
 function hexFromArr(arr){ return '#'+arr.map(v=>v.toString(16).padStart(2,'0')).join(''); }
 
@@ -324,8 +405,6 @@ function hexFromArr(arr){ return '#'+arr.map(v=>v.toString(16).padStart(2,'0')).
 function placeMarkers(){
   let wrap = document.getElementById('hueWrap');
   let rect = wrap.getBoundingClientRect();
-  let cx = rect.left + rect.width/2;
-  let cy = rect.top + rect.height/2;
   function pos(angleDeg){
     let rad = angleDeg/180*Math.PI;
     let R = rect.width*0.42/2;
@@ -333,7 +412,6 @@ function placeMarkers(){
     let y = rect.height/2 + Math.sin(rad) * R;
     return [x, y];
   }
-  // map to relative positions within hueWrap
   const markers = [
     ['mR',0], ['mY',60], ['mG',120], ['mC',180], ['mB',240], ['mM',300]
   ];
@@ -344,7 +422,7 @@ function placeMarkers(){
     el.style.top = y + 'px';
   }
 }
-window.addEventListener('resize', ()=>{ placeMarkers(); drawVenn(); });
+window.addEventListener('resize', ()=>{ placeMarkers(); resizeHueCanvas(); updatePreviews(); });
 
 /* クリック処理 */
 hueWheel.addEventListener('click', (ev)=>{
@@ -380,12 +458,15 @@ hueWheel.addEventListener('click', (ev)=>{
 
 /* モード切り替えで表示制御 */
 document.getElementById('mixMode').addEventListener('change', (e)=>{
+  // show/hide venn canvas visually; we keep it always but can highlight
   let on = e.target.checked;
-  document.querySelector('#venn').style.display = on ? 'block' : 'block';
+  venn.style.opacity = on ? '1' : '0.35';
+  updatePreviews();
 });
 
 /* マーカーの初期配置 & 初期表示 */
 placeMarkers();
+resizeHueCanvas();
 updatePreviews();
 
 /* 初期ダミー色（視認しやすく） */
