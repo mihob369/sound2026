@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Genpo Color 2 — 色相環・吸収・減法混色シミュレータ</title>
+<style>
+  body { font-family: system-ui, "Hiragino Kaku Gothic ProN", "メイリオ", Meiryo, sans-serif; padding:20px; line-height:1.6; }
+  h1 { margin:0 0 8px 0; }
+  .row { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  .panel { border:1px solid #ddd; padding:12px; border-radius:8px; background:#fff; min-width:280px; }
+  #hueWrap { position:relative; width:420px; height:420px; }
+  #hueWheel {
+    width:100%; height:100%;
+    border-radius:50%;
+    background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    position:relative;
+    cursor:crosshair;
+  }
+  /* 中心をマスクして環にする */
+  #hueWheel::after {
+    content:"";
+    position:absolute;
+    left:50%; top:50%;
+    width:200px; height:200px;
+    margin-left:-100px; margin-top:-100px;
+    background: white;
+    border-radius:50%;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02);
+  }
+  .marker {
+    position:absolute;
+    width:12px; height:12px;
+    border-radius:50%;
+    border:2px solid #fff;
+    box-shadow:0 1px 3px rgba(0,0,0,0.25);
+    transform:translate(-50%,-50%);
+    font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .legend { margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .swatch { width:36px; height:36px; border-radius:6px; border:1px solid #ccc; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+  button, input[type="radio"] { margin-right:8px; }
+  label.mode { margin-right:12px; }
+  .info { font-size:13px; color:#444; }
+  .controls { margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .small { font-size:13px; color:#555; }
+  canvas#venn { width:320px; height:200px; border:1px solid #eee; border-radius:6px; background:#fafafa; }
+  .swatches { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .val { font-family:monospace; font-size:13px; background:#f7f7f7; padding:6px 8px; border-radius:6px; border:1px solid #eee; }
+  footer { margin-top:18px; font-size:12px; color:#666; }
+</style>
+</head>
+<body>
+<h1>Genpo Color 2 — 色相環・吸収・減法混色シミュレータ</h1>
+
+<div class="row">
+  <div class="panel" style="flex:0 0 460px;">
+    <div class="controls">
+      <label class="mode"><input type="radio" name="mode" value="view" checked> 見える色を設定</label>
+      <label class="mode"><input type="radio" name="mode" value="absorb"> 吸収色を設定</label>
+      <label class="mode"><input type="radio" name="mode" value="pig1"> 減法: 色材1を設定</label>
+      <label class="mode"><input type="radio" name="mode" value="pig2"> 減法: 色材2を設定</label>
+      <label style="margin-left:8px;"><input type="checkbox" id="mixMode"> 減法混色モード表示</label>
+    </div>
+    <div id="hueWrap">
+      <div id="hueWheel" title="色相環をクリックして色を選択"></div>
+      <!-- RGB/CMY markers -->
+      <div class="marker" id="mR" style="background:#ff0000;">R</div>
+      <div class="marker" id="mG" style="background:#00ff00;">G</div>
+      <div class="marker" id="mB" style="background:#0000ff;color:#fff;">B</div>
+
+      <div class="marker" id="mY" style="background:#ffff00; left:0;">Y</div>
+      <div class="marker" id="mC" style="background:#00ffff; left:0;">C</div>
+      <div class="marker" id="mM" style="background:#ff00ff; left:0;color:#fff;">M</div>
+    </div>
+
+    <div class="legend">
+      <div>
+        <div class="small">現在の「見える色」</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="viewSw" class="swatch"></div>
+          <div id="viewVal" class="val">#ffffff</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="small">現在の「吸収色」</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="absSw" class="swatch"></div>
+          <div id="absVal" class="val">なし</div>
+        </div>
+      </div>
+
+      <div id="filteredBlock" style="display:block;">
+        <div class="small">吸収を適用した見え方</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="filteredSw" class="swatch"></div>
+          <div id="filteredVal" class="val">#ffffff</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;" class="info">
+      操作手順：
+      <ol>
+        <li>モードを選択（「見える色」「吸収色」「減法: 色材1/2」）</li>
+        <li>色相環をクリックして色を選ぶ（環の内側は無効）</li>
+        <li>「減法混色モード」をONにすると、画面下のベン図で混合結果が確認できます。</li>
+      </ol>
+      モデル補足：物理を簡略化して、色は RGB チャンネルで扱い、吸収はチャンネルごとに反射を減らす形で計算しています（教育目的の概念モデル）。
+    </div>
+  </div>
+
+  <div class="panel" style="flex:1 1 360px;">
+    <h3>減法混色ビュー（ベン図）</h3>
+    <div>
+      <label class="small">色材1（クリックで設定）</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <div id="pig1Sw" class="swatch"></div>
+        <div id="pig1Val" class="val">吸収: なし</div>
+      </div>
+
+      <label class="small">色材2（クリックで設定）</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <div id="pig2Sw" class="swatch"></div>
+        <div id="pig2Val" class="val">吸収: なし</div>
+      </div>
+
+      <canvas id="venn" width="640" height="400"></canvas>
+
+      <div class="swatches">
+        <div>
+          <div class="small">色材1の反射（見える色）</div>
+          <div id="p1ref" class="swatch"></div>
+        </div>
+        <div>
+          <div class="small">色材2の反射（見える色）</div>
+          <div id="p2ref" class="swatch"></div>
+        </div>
+        <div>
+          <div class="small">混合（重なり）の反射</div>
+          <div id="mixref" class="swatch"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>作成: Genpo Color 2（簡易モデル）。必要なら挙動の物理モデルを詳細化できます。</footer>
+
+<script>
+/* ユーティリティ: HSV -> RGB (0..1) */
+function hsv2rgb(h,s,v){
+  let C = v*s;
+  let X = C*(1 - Math.abs((h/60)%2 -1));
+  let m = v - C;
+  let r=0,g=0,b=0;
+  if(h<60){ r=C; g=X; b=0; }
+  else if(h<120){ r=X; g=C; b=0; }
+  else if(h<180){ r=0; g=C; b=X; }
+  else if(h<240){ r=0; g=X; b=C; }
+  else if(h<300){ r=X; g=0; b=C; }
+  else { r=C; g=0; b=X; }
+  return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255)];
+}
+function rgbToHex(rgb){
+  return '#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function clamp01(x){ return Math.max(0, Math.min(1,x)); }
+
+/* 初期状態 */
+let state = {
+  viewColor: [255,255,255],
+  absorbColor: null, // [r,g,b] (0..255) or null
+  pig1_absorb: null,
+  pig2_absorb: null
+};
+
+/* DOM */
+const hueWheel = document.getElementById('hueWheel');
+const viewSw = document.getElementById('viewSw');
+const viewVal = document.getElementById('viewVal');
+const absSw = document.getElementById('absSw');
+const absVal = document.getElementById('absVal');
+const filteredSw = document.getElementById('filteredSw');
+const filteredVal = document.getElementById('filteredVal');
+const pig1Sw = document.getElementById('pig1Sw');
+const pig2Sw = document.getElementById('pig2Sw');
+const pig1Val = document.getElementById('pig1Val');
+const pig2Val = document.getElementById('pig2Val');
+const p1ref = document.getElementById('p1ref');
+const p2ref = document.getElementById('p2ref');
+const mixref = document.getElementById('mixref');
+const venn = document.getElementById('venn');
+const ctxVenn = venn.getContext('2d');
+
+function updatePreviews(){
+  viewSw.style.background = rgbToHex(state.viewColor);
+  viewVal.textContent = rgbToHex(state.viewColor);
+  if(state.absorbColor){
+    absSw.style.background = rgbToHex(state.absorbColor);
+    absVal.textContent = rgbToHex(state.absorbColor);
+  } else {
+    absSw.style.background = '#fff';
+    absVal.textContent = 'なし';
+  }
+  // filtered: base * (1 - absorber) componentwise
+  if(state.absorbColor){
+    let base = state.viewColor.map(v=>v/255);
+    let a = state.absorbColor.map(v=>v/255);
+    let filtered = base.map((c,i)=> Math.round(255 * (c * (1 - a[i])) ));
+    filteredSw.style.background = rgbToHex(filtered);
+    filteredVal.textContent = rgbToHex(filtered);
+  } else {
+    filteredSw.style.background = rgbToHex(state.viewColor);
+    filteredVal.textContent = rgbToHex(state.viewColor);
+  }
+
+  // pig previews
+  if(state.pig1_absorb){
+    pig1Sw.style.background = rgbToHex(state.pig1_absorb);
+    pig1Val.textContent = '吸収: ' + rgbToHex(state.pig1_absorb);
+    // visible = 1 - absorb
+    let ref = state.pig1_absorb.map(v=> Math.round(255*(1 - v/255)));
+    p1ref.style.background = rgbToHex(ref);
+  } else {
+    pig1Sw.style.background = '#fff';
+    pig1Val.textContent = '吸収: なし';
+    p1ref.style.background = '#ffffff';
+  }
+  if(state.pig2_absorb){
+    pig2Sw.style.background = rgbToHex(state.pig2_absorb);
+    pig2Val.textContent = '吸収: ' + rgbToHex(state.pig2_absorb);
+    let ref = state.pig2_absorb.map(v=> Math.round(255*(1 - v/255)));
+    p2ref.style.background = rgbToHex(ref);
+  } else {
+    pig2Sw.style.background = '#fff';
+    pig2Val.textContent = '吸収: なし';
+    p2ref.style.background = '#ffffff';
+  }
+  // mix
+  if(state.pig1_absorb && state.pig2_absorb){
+    let a1 = state.pig1_absorb.map(v=>v/255);
+    let a2 = state.pig2_absorb.map(v=>v/255);
+    // reflectances r1 = (1-a1), r2 = (1-a2), mix reflectance = r1 * r2
+    let r = [0,0,0];
+    for(let i=0;i<3;i++){
+      r[i] = Math.round(255 * (1 - a1[i]) * (1 - a2[i]));
+    }
+    mixref.style.background = rgbToHex(r);
+  } else {
+    mixref.style.background = '#ffffff';
+  }
+
+  drawVenn();
+}
+
+/* Venn の描画 */
+function drawVenn(){
+  ctxVenn.clearRect(0,0,venn.width,venn.height);
+  // 2 つの円（半透明）と重なりの色を描く
+  let W = venn.width, H = venn.height;
+  let cx1 = W*0.35, cy = H*0.5, r = Math.min(W,H)*0.22;
+  let cx2 = W*0.65;
+  // compute ref colors
+  let ref1 = state.pig1_absorb ? state.pig1_absorb.map(v=> Math.round(255*(1 - v/255)) ) : [255,255,255];
+  let ref2 = state.pig2_absorb ? state.pig2_absorb.map(v=> Math.round(255*(1 - v/255)) ) : [255,255,255];
+  // overlap color = reflectance1 * reflectance2 (componentwise normalized)
+  let mix = [255,255,255];
+  if(state.pig1_absorb && state.pig2_absorb){
+    for(let i=0;i<3;i++) mix[i] = Math.round(255 * ( (1 - state.pig1_absorb[i]/255) * (1 - state.pig2_absorb[i]/255) ));
+  }
+
+  // draw left circle
+  ctxVenn.globalCompositeOperation = 'source-over';
+  ctxVenn.fillStyle = hexFromArr(ref1) + 'AA';
+  ctxVenn.beginPath();
+  ctxVenn.arc(cx1, cy, r, 0, Math.PI*2);
+  ctxVenn.fill();
+  // draw right
+  ctxVenn.fillStyle = hexFromArr(ref2) + 'AA';
+  ctxVenn.beginPath();
+  ctxVenn.arc(cx2, cy, r, 0, Math.PI*2);
+  ctxVenn.fill();
+
+  // draw overlap explicit: compute overlapping region by clipping
+  if(state.pig1_absorb && state.pig2_absorb){
+    // draw overlap area in solid mix color
+    ctxVenn.globalCompositeOperation = 'source-over';
+    ctxVenn.fillStyle = hexFromArr(mix);
+    ctxVenn.beginPath();
+    // draw by path intersection approximate: draw right circle then use globalCompositeOperation 'source-in' trick
+    // Simpler: draw to offscreen and compute intersection is overkill; instead draw overlap by masking:
+    // strategy: draw left to tmp canvas, clip with right, fill it with mix color using 'source-over' and 'destination-in' compositing
+    // We'll do: draw left to tmp canvas, set composite 'destination-in' with right shape, then fill with mix.
+    let tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H;
+    let tctx = tmp.getContext('2d');
+    tctx.fillStyle = '#000';
+    tctx.beginPath(); tctx.arc(cx1,cy,r,0,Math.PI*2); tctx.fill();
+    tctx.globalCompositeOperation = 'destination-in';
+    tctx.beginPath(); tctx.arc(cx2,cy,r,0,Math.PI*2); tctx.fill();
+    // now tctx contains intersection mask; fill it with mix color
+    ctxVenn.drawImage(tmp,0,0);
+    ctxVenn.globalCompositeOperation = 'source-in';
+    ctxVenn.fillStyle = hexFromArr(mix);
+    ctxVenn.fillRect(0,0,W,H);
+    // restore
+    ctxVenn.globalCompositeOperation = 'source-over';
+  }
+
+  // outlines
+  ctxVenn.strokeStyle = '#aaa';
+  ctxVenn.lineWidth = 1;
+  ctxVenn.beginPath(); ctxVenn.arc(cx1, cy, r, 0, Math.PI*2); ctxVenn.stroke();
+  ctxVenn.beginPath(); ctxVenn.arc(cx2, cy, r, 0, Math.PI*2); ctxVenn.stroke();
+}
+/* helper */
+function hexFromArr(arr){ return '#'+arr.map(v=>v.toString(16).padStart(2,'0')).join(''); }
+
+/* 色相環マーカー位置 */
+function placeMarkers(){
+  let wrap = document.getElementById('hueWrap');
+  let rect = wrap.getBoundingClientRect();
+  let cx = rect.left + rect.width/2;
+  let cy = rect.top + rect.height/2;
+  function pos(angleDeg){
+    let rad = angleDeg/180*Math.PI;
+    let R = rect.width*0.42/2;
+    let x = rect.width/2 + Math.cos(rad) * R;
+    let y = rect.height/2 + Math.sin(rad) * R;
+    return [x, y];
+  }
+  // map to relative positions within hueWrap
+  const markers = [
+    ['mR',0], ['mY',60], ['mG',120], ['mC',180], ['mB',240], ['mM',300]
+  ];
+  for(let [id,deg] of markers){
+    let el = document.getElementById(id);
+    let [x,y] = pos(deg);
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+}
+window.addEventListener('resize', ()=>{ placeMarkers(); drawVenn(); });
+
+/* クリック処理 */
+hueWheel.addEventListener('click', (ev)=>{
+  let rect = hueWheel.getBoundingClientRect();
+  let x = ev.clientX - rect.left;
+  let y = ev.clientY - rect.top;
+  let cx = rect.width/2, cy = rect.height/2;
+  let dx = x - cx, dy = y - cy;
+  let dist = Math.sqrt(dx*dx + dy*dy);
+  // ring boundaries (match CSS mask)
+  let outer = rect.width/2;
+  let inner = 100; // matches ::after size 200
+  if(dist < inner || dist > outer) return; // 無効な領域なら無視
+  let angle = Math.atan2(dy,dx) * 180/Math.PI;
+  if(angle < 0) angle += 360;
+  let hue = angle; // 0..360
+  // get rgb for hue
+  let rgb = hsv2rgb(hue,1,1);
+  // determine selected mode
+  let mode = document.querySelector('input[name="mode"]:checked').value;
+  if(mode === 'view'){
+    state.viewColor = rgb;
+  } else if(mode === 'absorb'){
+    // set absorb color as clicked hue
+    state.absorbColor = rgb;
+  } else if(mode === 'pig1'){
+    state.pig1_absorb = rgb;
+  } else if(mode === 'pig2'){
+    state.pig2_absorb = rgb;
+  }
+  updatePreviews();
+});
+
+/* モード切り替えで表示制御 */
+document.getElementById('mixMode').addEventListener('change', (e)=>{
+  let on = e.target.checked;
+  document.querySelector('#venn').style.display = on ? 'block' : 'block';
+});
+
+/* マーカーの初期配置 & 初期表示 */
+placeMarkers();
+updatePreviews();
+
+/* 初期ダミー色（視認しやすく） */
+state.viewColor = [255,255,255];
+state.absorbColor = null;
+state.pig1_absorb = [255,0,0]; // pigment1 absorbs red => appears cyan
+state.pig2_absorb = [0,255,0]; // pigment2 absorbs green => appears magenta
+updatePreviews();
+
+</script>
+</body>
+</html>
