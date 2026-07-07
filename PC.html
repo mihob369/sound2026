@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT・PC・ネットワーク学習シミュレーター v3</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #0f172a, #2563eb);
+            color: #fff;
+            padding: 25px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* タブシステム */
+        .tabs {
+            display: flex;
+            background: #e2e8f0;
+            border-bottom: 2px solid #cbd5e1;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            font-size: 15px;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            outline: none;
+        }
+
+        .tab-btn:hover {
+            background: #cbd5e1;
+            color: #1e3a8a;
+        }
+
+        .tab-btn.active {
+            background: #ffffff;
+            color: #1e3a8a;
+            border-top: 4px solid #2563eb;
+            margin-top: -4px;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 共通コンポーネント */
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
+
+        /* --- モード1: 思考型PC組み立て & 端子接続 --- */
+        .pc-sim-layout {
+            display: flex;
+            gap: 20px;
+        }
+
+        .column {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .pool-column {
+            width: 30%;
+        }
+
+        .center-column {
+            width: 40%;
+        }
+
+        .ports-column {
+            width: 30%;
+        }
+
+        .column h3 {
+            font-size: 15px;
+            color: #1e293b;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #cbd5e1;
+            text-align: center;
+        }
+
+        /* アイテムプール */
+        .pool-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 550px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .pool-item {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+        }
+
+        .pool-item:hover {
+            border-color: #2563eb;
+            background: #f0f4ff;
+        }
+
+        .pool-item.selected {
+            border-color: #2563eb;
+            background: #3b82f6;
+            color: white;
+        }
+
+        .pool-item.selected .part-desc {
+            color: #e0f2fe;
+        }
+
+        .pool-item.placed {
+            opacity: 0.5;
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .part-icon {
+            font-size: 22px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .part-info {
+            flex: 1;
+        }
+
+        .part-name {
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .part-desc {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
+        /* 中央: モニター */
+        .monitor-wrapper {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .monitor-frame {
+            width: 100%;
+            height: 180px;
+            background: #1e293b;
+            border: 10px solid #0f172a;
+            border-radius: 10px 10px 0 0;
+            padding: 8px;
+            position: relative;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+        }
+
+        .monitor-stand {
+            width: 60px;
+            height: 25px;
+            background: #0f172a;
+        }
+
+        .monitor-base {
+            width: 140px;
+            height: 8px;
+            background: #0f172a;
+            border-radius: 4px;
+        }
+
+        .monitor-screen {
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            border-radius: 4px;
+            padding: 12px;
+            color: #a7f3d0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .monitor-screen.power-on-error {
+            background: #7f1d1d;
+            color: #fca5a5;
+            font-family: inherit;
+        }
+
+        .monitor-screen.power-on-success {
+            background: #1e3a8a;
+            color: #ffffff;
+            font-family: inherit;
+        }
+
+        .screen-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        /* PC本体（内部五大装置スロット） */
+        .pc-case {
+            background: #f1f5f9;
+            border: 3px solid #475569;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .pc-case-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #334155;
+            margin-bottom: 10px;
+            text-align: center;
+            background: #cbd5e1;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .internal-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .thought-slot {
+            background: #ffffff;
+            border: 2px dashed #64748b;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .thought-slot:hover {
+            border-color: #2563eb;
+            background: #f8fafc;
+        }
+
+        .thought-slot.filled {
+            border-style: solid;
+            border-color: #2563eb;
+            background: #e0f2fe;
+        }
+
+        .slot-label-zone {
+            width: 90px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #1e293b;
+            border-right: 1px solid #e2e8f0;
+            padding-right: 5px;
+        }
+
+        .slot-content-zone {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .slot-content-zone.has-item {
+            color: #0369a1;
+            font-weight: bold;
+        }
+
+        /* 右カラム: 外部端子 */
+        .ports-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .port-box {
+            background: #334155;
+            border-radius: 6px;
+            padding: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .port-box:hover {
+            border-color: #3b82f6;
+            background: #1e293b;
+        }
+
+        .port-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #94a3b8;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #475569;
+            padding-bottom: 4px;
+        }
+
+        .port-badge {
+            background: #475569;
+            color: #cbd5e1;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .port-box.connected .port-badge {
+            background: #10b981;
+            color: white;
+        }
+
+        .port-connection-status {
+            font-size: 12px;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 24px;
+        }
+
+        .port-box.connected .port-connection-status {
+            color: #a7f3d0;
+            font-weight: bold;
+        }
+
+        /* 印刷ギミック */
+        .printer-gimmick-zone {
+            margin-top: 10px;
+            padding: 8px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            text-align: center;
+            display: none;
+        }
+
+        .paper-animation {
+            width: 80px;
+            height: 0px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            margin: 5px auto 0;
+            transition: height 1s ease;
+            overflow: hidden;
+            font-size: 9px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .paper-animation.printing {
+            height: 40px;
+            border-bottom: 2px dashed #94a3b8;
+        }
+
+        /* --- モード2: ネットワーク構築 --- */
+        .net-sim-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .net-pool {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .net-pool-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+
+        .net-items-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .net-item {
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .net-item:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .net-item.selected {
+            border-color: #2563eb;
+            background: #2563eb;
+            color: white;
+        }
+
+        .net-canvas {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 25px;
+            min-height: 400px;
+            position: relative;
+        }
+
+        .net-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 40px;
+            position: relative;
+        }
+
+        .net-slot-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .net-slot-label {
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .net-slot {
+            width: 100px;
+            height: 90px;
+            border: 2px dashed #94a3b8;
+            border-radius: 8px;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+            padding: 5px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .net-slot:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .net-slot.filled {
+            border-style: solid;
+            border-color: #2563eb;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .net-slot.filled.error {
+            border-color: #ef4444;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .net-slot-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .line-horizontal {
+            height: 4px;
+            background: #cbd5e1;
+            flex: 1;
+            max-width: 60px;
+            margin-top: 20px;
+        }
+        .line-horizontal.active { background: #2563eb; }
+
+        .network-areas {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            border-top: 2px dashed #e2e8f0;
+            padding-top: 20px;
+        }
+
+        .net-area-box {
+            flex: 1;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .net-area-box h4 {
+            font-size: 12px;
+            text-align: center;
+            color: #475569;
+            margin-bottom: 15px;
+        }
+
+        .slots-flex {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .net-feedback {
+            padding: 15px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            border-left: 4px solid #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .net-feedback.success {
+            background: #f0fdf4;
+            border-left-color: #10b981;
+            color: #14532d;
+        }
+        .net-feedback.error {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+            color: #7f1d1d;
+        }
+
+        /* --- モード3: ITクイズ機能 --- */
+        .quiz-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .quiz-progress {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 10px;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .quiz-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .quiz-question {
+            font-size: 17px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 14px;
+            text-align: left;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .option-btn:hover {
+            border-color: #2563eb;
+            background: #f0fdf4;
+        }
+
+        .option-btn.correct {
+            background: #10b981 !important;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .option-btn.wrong {
+            background: #ef4444 !important;
+            color: white;
+            border-color: #ef4444;
+        }
+
+        .quiz-explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            border-radius: 0 6px 6px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .quiz-explanation h4 {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #1e40af;
+        }
+
+        .quiz-results {
+            text-align: center;
+            padding: 30px 10px;
+        }
+
+        .score-big {
+            font-size: 44px;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>IT・PC・ネットワーク構築 学習シミュレーター</h1>
+        <p>五大装置（演算・主記憶・補助記憶・入力・出力）の役割とインターフェースを考えて組み立てよう！</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('pc-mode')">① 【クイズ型】PC組み立て・端子接続</button>
+        <button class="tab-btn" onclick="switchTab('network-mode')">② ネットワーク構築</button>
+        <button class="tab-btn" onclick="switchTab('quiz-mode'); startQuiz();">③ IT・接続確認クイズ</button>
+    </div>
+
+    <!-- モード1: クイズ型PC組み立て・周辺機器接続 -->
+    <div id="pc-mode" class="tab-content active">
+        <div style="margin-bottom: 15px; padding: 10px; background: #eff6ff; border-left: 4px solid #2563eb; font-size: 13px; font-weight: bold; color: #1e40af;">
+            💡 遊び方：左の「パーツ・周辺機器倉庫」からアイテムを1つ選んで選択状態にし、中央の「内部スロット」または右の「外部端子」をクリックして配置・接続してください。配置済みの場所をクリックすると取り外せます。
+        </div>
+
+        <div class="pc-sim-layout">
+            <!-- 左カラム: パーツ＆周辺機器倉庫 -->
+            <div class="column pool-column">
+                <h3>【パーツ・周辺機器倉庫】<br><small style="font-weight:normal; font-size:11px; color:#64748b;">どれがどの装置に該当するか考えよう</small></h3>
+                <div class="pool-grid" id="hardware-pool">
+                    <!-- JSで動的に生成 -->
+                </div>
+                <div style="margin-top: 12px; font-size:12px; color:#2563eb; font-weight:bold; text-align:center;" id="selected-hardware-txt">
+                    選択中: なし
+                </div>
+            </div>
+
+            <!-- 中央カラム: モニター & PC本体内部スロット -->
+            <div class="column center-column">
+                <!-- 液晶モニターUI -->
+                <div class="monitor-wrapper">
+                    <div class="monitor-frame">
+                        <div class="monitor-screen" id="monitor-screen">
+                            【主電源 OFF】<br>PCのパーツを正しく配置・接続し、<br>下の電源ボタンを押してください。
+                        </div>
+                    </div>
+                    <div class="monitor-stand"></div>
+                    <div class="monitor-base"></div>
+                </div>
+
+                <!-- PC本体内部（五大装置対応スロット） -->
+                <div class="pc-case">
+                    <div class="pc-case-title">PC本体 内部スロット（ハードウェア配置）</div>
+                    <div class="internal-slots">
+                        <div class="thought-slot" id="slot-cpu" onclick="placeHardwareToSlot('cpu')">
+                            <div class="slot-label-zone">⚙️ 演算装置<br>エリア</div>
+                            <div class="slot-content-zone" id="slot-content-cpu">❓ クリックして設置</div>
+                        </div>
+                        <div class="thought-slot" id="slot-memory" onclick="placeHardwareToSlot('memory')">
+                            <div class="slot-label-zone">💾 主記憶装置<br>エリア</div>
+                            <div class="slot-content-zone" id="slot-content-memory">❓ クリックして設置</div>
+                        </div>
+                        <div class="thought-slot" id="slot-storage" onclick="placeHardwareToSlot('storage')">
+                            <div class="slot-label-zone">🗄️ 補助記憶装置<br>エリア</div>
+                            <div class="slot-content-zone" id="slot-content-storage">❓ クリックして設置</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- コントロールボタン -->
+                <div class="col-controls" style="margin-top: 15px; display: flex; justify-content: space-between; gap: 10px;">
+                    <button class="btn" id="power-btn" onclick="pressPowerButton()" style="flex: 1;">🔌 電源ボタンを押す</button>
+                    <button class="btn btn-danger" onclick="resetPCSimulator()">全て外す</button>
+                </div>
+            </div>
+
+            <!-- 右カラム: 外部インターフェース端子 -->
+            <div class="column ports-column">
+                <h3>【PC外部接続端子】<br><small style="font-weight:normal; font-size:11px; color:#64748b;">対応する適切なケーブルを接続しよう</small></h3>
+                <div class="ports-list">
+                    <div class="port-box" id="port-hdmi" onclick="connectHardwareToPort('hdmi')">
+                        <div class="port-header">
+                            <span>📺 HDMIポート (映像出力規格)</span>
+                            <span class="port-badge" id="pbadge-hdmi">未接続</span>
+                        </div>
+                        <div class="port-connection-status" id="pstatus-hdmi">🔌 空き</div>
+                    </div>
+                    
+                    <div class="port-box" id="port-usb1" onclick="connectHardwareToPort('usb1')">
+                        <div class="port-header">
+                            <span>⚡ USBポート 1 (汎用インターフェース)</span>
+                            <span class="port-badge" id="pbadge-usb1">未接続</span>
+                        </div>
+                        <div class="port-connection-status" id="pstatus-usb1">🔌 空き</div>
+                    </div>
+
+                    <div class="port-box" id="port-usb2" onclick="connectHardwareToPort('usb2')">
+                        <div class="port-header">
+                            <span>⚡ USBポート 2 (汎用インターフェース)</span>
+                            <span class="port-badge" id="pbadge-usb2">未接続</span>
+                        </div>
+                        <div class="port-connection-status" id="pstatus-usb2">🔌 空き</div>
+                    </div>
+
+                    <div class="port-box" id="port-usb3" onclick="connectHardwareToPort('usb3')">
+                        <div class="port-header">
+                            <span>⚡ USBポート 3 (汎用インターフェース)</span>
+                            <span class="port-badge" id="pbadge-usb3">未接続</span>
+                        </div>
+                        <div class="port-connection-status" id="pstatus-usb3">🔌 空き</div>
+                    </div>
+
+                    <div class="port-box" id="port-printer" onclick="connectHardwareToPort('printer')">
+                        <div class="port-header">
+                            <span>🖨️ 周辺出力ポート (印刷専用接続口)</span>
+                            <span class="port-badge" id="pbadge-printer">未接続</span>
+                        </div>
+                        <div class="port-connection-status" id="pstatus-printer">🔌 空き</div>
+                    </div>
+                </div>
+
+                <!-- プリンター連動ギミック -->
+                <div class="printer-gimmick-zone" id="printer-gimmick">
+                    <button class="btn btn-success" style="font-size:11px; padding:6px 10px; width:100%;" onclick="triggerPrint()">📄 連動テスト印刷を実行</button>
+                    <div class="paper-animation" id="printed-paper">五大装置のまとめ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- モード2: ネットワーク構築 -->
+    <div id="network-mode" class="tab-content">
+        <div class="net-sim-container">
+            <div class="net-pool">
+                <div class="net-pool-title">1. 配置したい機器を1つ選んでください：</div>
+                <div class="net-items-grid">
+                    <div class="net-item" id="netopt-onu" onclick="selectNetDevice('onu', '🔌 ONU(回線終端装置)')">🔌 ONU (回線終端装置)</div>
+                    <div class="net-item" id="netopt-router" onclick="selectNetDevice('router', '📟 ルーター(有線)')">📟 ルーター (有線専用)</div>
+                    <div class="net-item" id="netopt-wifi" onclick="selectNetDevice('wifi', '📶 Wi-Fiルーター')">📶 Wi-Fiルーター</div>
+                    <div class="net-item" id="netopt-pca" onclick="selectNetDevice('pca', '🖥️ パソコン A')">🖥️ パソコン A</div>
+                    <div class="net-item" id="netopt-pcb" onclick="selectNetDevice('pcb', '🖥️ パソコン B')">🖥️ パソコン B</div>
+                    <div class="net-item" id="netopt-printer" onclick="selectNetDevice('printer', '🖨️ ネットワークプリンター')">🖨️ プリンター</div>
+                    <div class="net-item" id="netopt-smartphone" onclick="selectNetDevice('smartphone', '📱 スマートフォン')">📱 スマートフォン</div>
+                    <div class="net-item" id="netopt-tablet" onclick="selectNetDevice('tablet', '📟 タブレット')">📟 タブレット</div>
+                </div>
+                <div style="margin-top:10px; font-size:13px; color:#2563eb; font-weight:bold;" id="selected-device-txt">選択中: なし</div>
+            </div>
+
+            <div class="net-canvas">
+                <div class="net-row">
+                    <div class="net-slot-wrapper">
+                        <div class="net-slot-label">外部インターネット線</div>
+                        <div style="font-size:32px;">🌐</div>
+                    </div>
+                    
+                    <div class="line-horizontal active"></div>
+
+                    <div class="net-slot-wrapper">
+                        <div class="net-slot-label">【第1の関門】信号変換</div>
+                        <div class="net-slot" id="netslot-onu" onclick="placeDevice('onu')">
+                            <span class="net-slot-icon">❓</span>空きスロット
+                        </div>
+                    </div>
+
+                    <div class="line-horizontal" id="line-to-router"></div>
+
+                    <div class="net-slot-wrapper">
+                        <div class="net-slot-label">【第2の関門】交通整理</div>
+                        <div class="net-slot" id="netslot-mainrouter" onclick="placeDevice('mainrouter')">
+                            <span class="net-slot-icon">❓</span>空きスロット
+                        </div>
+                    </div>
+                </div>
+
+                <div class="network-areas">
+                    <div class="net-area-box">
+                        <h4>【有線LAN接続エリア】(PC A・B・プリンター用、位置は自由)</h4>
+                        <div class="slots-flex">
+                            <div class="net-slot-wrapper">
+                                <div class="net-slot" id="netslot-wired1" onclick="placeDevice('wired1')">
+                                    <span class="net-slot-icon">❓</span>空き
+                                </div>
+                            </div>
+                            <div class="net-slot-wrapper">
+                                <div class="net-slot" id="netslot-wired2" onclick="placeDevice('wired2')">
+                                    <span class="net-slot-icon">❓</span>空き
+                                </div>
+                            </div>
+                            <div class="net-slot-wrapper">
+                                <div class="net-slot" id="netslot-wired3" onclick="placeDevice('wired3')">
+                                    <span class="net-slot-icon">❓</span>空き
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="net-area-box">
+                        <h4>【無線Wi-Fiエリア】(スマホ・タブレット用、位置は自由)</h4>
+                        <div class="slots-flex">
+                            <div class="net-slot-wrapper">
+                                <div class="net-slot" id="netslot-wireless1" onclick="placeDevice('wireless1')">
+                                    <span class="net-slot-icon">❓</span>空き
+                                </div>
+                            </div>
+                            <div class="net-slot-wrapper">
+                                <div class="net-slot" id="netslot-wireless2" onclick="placeDevice('wireless2')">
+                                    <span class="net-slot-icon">❓</span>空き
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-row" style="margin-top:25px;">
+                    <button class="btn btn-success" onclick="checkNetworkConfiguration()">🔌 ネットワーク開通テストを実行</button>
+                    <button class="btn btn-danger" onclick="resetNetworkSimulator()">全てクリア</button>
+                </div>
+            </div>
+
+            <div class="net-feedback" id="net-feedback-box">
+                機器を配置して「ネットワーク開通テスト」を押してください。
+            </div>
+        </div>
+    </div>
+
+    <!-- モード3: ITクイズ機能 -->
+    <div id="quiz-mode" class="tab-content">
+        <div class="quiz-container">
+            <div class="quiz-progress" id="quiz-progress">第 1 問 / 全 20 問</div>
+            
+            <div id="quiz-game-zone">
+                <div class="quiz-card">
+                    <div class="quiz-question" id="quiz-question">問題文がここに読み込まれます。</div>
+                    <div class="quiz-options" id="quiz-options"></div>
+                </div>
+
+                <div class="quiz-explanation" id="quiz-explanation">
+                    <h4>💡 解説：</h4>
+                    <p id="quiz-explanation-text">解説テキスト</p>
+                </div>
+
+                <div style="text-align:right; margin-top:15px; display:none;" id="next-btn-zone">
+                    <button class="btn" onclick="nextQuizQuestion()">次の問題へ ➔</button>
+                </div>
+            </div>
+
+            <div id="quiz-result-zone" class="quiz-results" style="display:none;">
+                <h2>クイズ終了！お疲れ様でした。</h2>
+                <div class="score-big" id="quiz-score-txt">15 / 20 問正解</div>
+                <p id="quiz-rank-txt" style="font-weight:bold; font-size:16px; margin-bottom:20px; color:#1e3a8a;"></p>
+                <button class="btn" onclick="startQuiz()">もう一度挑戦する(ランダムに出題)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- タブ切り替え制御 ---
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // --- モード1: クイズ思考型PC組み立てデータ ＆ ロジック ---
+    const hardwarePoolData = {
+        cpu: { name: "中央処理装置 (CPU)", icon: "🧠", desc: "データの演算や各装置の制御を高速に行う、コンピュータの頭脳。", type: "internal" },
+        memory: { name: "メインメモリ (RAM)", icon: "🧩", desc: "CPUが直接読み書きする、実行中のデータを一時的に置く作業机。", type: "internal" },
+        ssd: { name: "SSDストレージ", icon: "💾", desc: "OSやファイルを長期間、電源を切っても消さずに高速保存する書庫。", type: "internal" },
+        hdd: { name: "HDDストレージ", icon: "💿", desc: "磁気ディスクを回転させ、大容量のデータを長期間保存する書庫。", type: "internal" },
+        keyboard: { name: "キーボード", icon: "⌨️", desc: "文字やコマンドを電気信号にして内部に送り込む装置。", type: "peripheral" },
+        mouse: { name: "光学式マウス", icon: "🖱️", desc: "画面上のカーソル位置を指定してクリック命令を伝える装置。", type: "peripheral" },
+        monitor: { name: "液晶ディスプレイ", icon: "🖥️", desc: "ビデオカードの映像データを、人間が見える画面として表示する装置。", type: "peripheral" },
+        printer: { name: "インクジェットプリンタ", icon: "🖨️", desc: "作成されたドキュメントデータを、物理的な紙に印刷して出力する装置。", type: "peripheral" },
+        mic: { name: "音声マイク", icon: "🎤", desc: "人間の声（音波）を、デジタル波形データに変換して取り込む装置。", type: "peripheral" },
+        projector: { name: "プロジェクター", icon: "📹", desc: "大画面の映像光を壁や外部スクリーンに向けて照射する装置。", type: "peripheral" }
+    };
+
+    let currentSelectedHardware = null;
+
+    // ユーザーの配置状態
+    const userPCConfig = {
+        slots: { cpu: null, memory: null, storage: null },
+        ports: { hdmi: null, usb1: null, usb2: null, usb3: null, printer: null },
+        isPowerOn: false
+    };
+
+    // 倉庫のHTML生成
+    function renderHardwarePool() {
+        const poolContainer = document.getElementById('hardware-pool');
+        poolContainer.innerHTML = '';
+        
+        for (let key in hardwarePoolData) {
+            const data = hardwarePoolData[key];
+            
+            let isPlaced = false;
+            for (let s in userPCConfig.slots) { if (userPCConfig.slots[s] === key) isPlaced = true; }
+            for (let p in userPCConfig.ports) { if (userPCConfig.ports[p] === key) isPlaced = true; }
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `pool-item ${key === currentSelectedHardware ? 'selected' : ''} ${isPlaced ? 'placed' : ''}`;
+            itemDiv.id = `hpool-${key}`;
+            
+            if (!isPlaced) {
+                itemDiv.onclick = () => selectHardwareFromPool(key);
+            }
+            
+            itemDiv.innerHTML = `
+                <span class="part-icon">${data.icon}</span>
+                <div class="part-info">
+                    <div class="part-name">${data.name}</div>
+                    <div class="part-desc">${data.desc}</div>
+                </div>
+            `;
+            poolContainer.appendChild(itemDiv);
+        }
+    }
+
+    function selectHardwareFromPool(key) {
+        if (currentSelectedHardware === key) {
+            currentSelectedHardware = null;
+        } else {
+            currentSelectedHardware = key;
+        }
+        
+        const txtEl = document.getElementById('selected-hardware-txt');
+        if (currentSelectedHardware) {
+            txtEl.innerText = `選択中: ${hardwarePoolData[currentSelectedHardware].name}`;
+        } else {
+            txtEl.innerText = "選択中: なし";
+        }
+        
+        renderHardwarePool();
+    }
+
+    // 内部スロットへの設置処理
+    function placeHardwareToSlot(slotType) {
+        if (userPCConfig.slots[slotType]) {
+            userPCConfig.slots[slotType] = null;
+            if (userPCConfig.isPowerOn) turnOffPowerEffects();
+            updateSlotsAndPortsUI();
+            currentSelectedHardware = null;
+            document.getElementById('selected-hardware-txt').innerText = "選択中: なし";
+            renderHardwarePool();
+            return;
+        }
+
+        if (!currentSelectedHardware) return;
+
+        userPCConfig.slots[slotType] = currentSelectedHardware;
+        currentSelectedHardware = null;
+        document.getElementById('selected-hardware-txt').innerText = "選択中: なし";
+        
+        if (userPCConfig.isPowerOn) turnOffPowerEffects();
+        updateSlotsAndPortsUI();
+        renderHardwarePool();
+    }
+
+    // 外部端子への接続処理
+    function connectHardwareToPort(portType) {
+        if (userPCConfig.ports[portType]) {
+            userPCConfig.ports[portType] = null;
+            if (userPCConfig.isPowerOn) turnOffPowerEffects();
+            updateSlotsAndPortsUI();
+            currentSelectedHardware = null;
+            document.getElementById('selected-hardware-txt').innerText = "選択中: なし";
+            renderHardwarePool();
+            return;
+        }
+
+        if (!currentSelectedHardware) return;
+
+        userPCConfig.ports[portType] = currentSelectedHardware;
+        currentSelectedHardware = null;
+        document.getElementById('selected-hardware-txt').innerText = "選択中: なし";
+
+        if (userPCConfig.isPowerOn) turnOffPowerEffects();
+        updateSlotsAndPortsUI();
+        renderHardwarePool();
+    }
+
+    // 表示を更新
+    function updateSlotsAndPortsUI() {
+        const slotKeys = ['cpu', 'memory', 'storage'];
+        slotKeys.forEach(s => {
+            const el = document.getElementById(`slot-content-${s}`);
+            const parentEl = document.getElementById(`slot-${s}`);
+            const itemKey = userPCConfig.slots[s];
+            
+            if (itemKey) {
+                parentEl.classList.add('filled');
+                el.className = "slot-content-zone has-item";
+                el.innerHTML = `<span>${hardwarePoolData[itemKey].icon}</span> ${hardwarePoolData[itemKey].name} <small style="color:#ef4444; margin-left:auto; font-size:10px;">[外す]</small>`;
+            } else {
+                parentEl.classList.remove('filled');
+                el.className = "slot-content-zone";
+                el.innerHTML = "❓ クリックして設置";
+            }
+        });
+
+        const portKeys = ['hdmi', 'usb1', 'usb2', 'usb3', 'printer'];
+        portKeys.forEach(p => {
+            const box = document.getElementById(`port-${p}`);
+            const badge = document.getElementById(`pbadge-${p}`);
+            const status = document.getElementById(`pstatus-${p}`);
+            const itemKey = userPCConfig.ports[p];
+            
+            if (itemKey) {
+                box.classList.add('connected');
+                badge.innerText = "接続中";
+                status.innerHTML = `<span>${hardwarePoolData[itemKey].icon}</span> ${hardwarePoolData[itemKey].name} <small style="color:#fca5a5; margin-left:auto; font-size:10px;">[抜く]</small>`;
+            } else {
+                box.classList.remove('connected');
+                badge.innerText = "未接続";
+                status.innerHTML = "🔌 空き";
+            }
+        });
+
+        const hasPrinterConnected = Object.values(userPCConfig.ports).includes('printer');
+        const gimmickZone = document.getElementById('printer-gimmick');
+        if (hasPrinterConnected) {
+            gimmickZone.style.display = 'block';
+        } else {
+            gimmickZone.style.display = 'none';
+            document.getElementById('printed-paper').classList.remove('printing');
+        }
+    }
+
+    function turnOffPowerEffects() {
+        userPCConfig.isPowerOn = false;
+        const btn = document.getElementById('power-btn');
+        btn.innerText = '🔌 電源ボタンを押す';
+        btn.className = 'btn';
+        
+        const screen = document.getElementById('monitor-screen');
+        screen.className = 'monitor-screen';
+        screen.innerHTML = '【主電源 OFF】<br>PCのパーツを正しく配置・接続し、<br>下の電源ボタンを押してください。';
+    }
+
+    function pressPowerButton() {
+        userPCConfig.isPowerOn = !userPCConfig.isPowerOn;
+        const btn = document.getElementById('power-btn');
+        const screen = document.getElementById('monitor-screen');
+
+        if (!userPCConfig.isPowerOn) {
+            turnOffPowerEffects();
+            return;
+        }
+
+        btn.innerText = '🛑 電源を落とす';
+        btn.className = 'btn btn-danger';
+
+        const currentCPU = userPCConfig.slots.cpu;
+        const currentMemory = userPCConfig.slots.memory;
+        const currentStorage = userPCConfig.slots.storage;
+
+        if (!currentCPU && !currentMemory && !currentStorage) {
+            screen.className = 'monitor-screen power-on-error';
+            screen.innerHTML = `<div class='screen-title'>⚠️ 起動不能 (通電なし)</div>PCケースの内部にパーツが全くありません！`;
+            return;
+        }
+
+        if (currentCPU !== 'cpu') {
+            screen.className = 'monitor-screen power-on-error';
+            if (!currentCPU) {
+                screen.innerHTML = `<div class='screen-title'>⚠️ 起動エラー (CPU_MISSING)</div>【演算装置エリア】に何も設置されていません！`;
+            } else {
+                screen.innerHTML = `<div class='screen-title'>⚠️ 構成エラー</div>【演算装置エリア】に「${hardwarePoolData[currentCPU].name}」が設置されています！`;
+            }
+            return;
+        }
+
+        if (currentMemory !== 'memory') {
+            screen.className = 'monitor-screen power-on-error';
+            if (!currentMemory) {
+                screen.innerHTML = `<div class='screen-title'>⚠️ 起動エラー (RAM_MISSING)</div>【主記憶装置エリア】に何も配置されていません！`;
+            } else {
+                screen.innerHTML = `<div class='screen-title'>⚠️ 物理エラー</div>【主記憶装置エリア】に「${hardwarePoolData[currentMemory].name}」が誤って設置されています！`;
+            }
+            return;
+        }
+
+        // ★修正点: 補助記憶装置は 'ssd' でも 'hdd' でもどちらでも正解とする
+        if (currentStorage !== 'ssd' && currentStorage !== 'hdd') {
+            screen.className = 'monitor-screen power-on-error';
+            if (!currentStorage) {
+                screen.innerHTML = `<div class='screen-title'>⚠️ 起動エラー (STORAGE_MISSING)</div>【補助記憶装置エリア】が空っぽです！`;
+            } else {
+                screen.innerHTML = `<div class='screen-title'>⚠️ 起動失敗 (BOOT_DEVICE_ERROR)</div>【補助記憶装置エリア】に「${hardwarePoolData[currentStorage].name}」が設置されています！<br>ここには電源を切ってもデータが消えない大容量記憶装置（SSDまたはHDD）が必要です。`;
+            }
+            return;
+        }
+
+        const hdmiConnectedItem = userPCConfig.ports.hdmi;
+        if (hdmiConnectedItem !== 'monitor' && hdmiConnectedItem !== 'projector') {
+            screen.className = 'monitor-screen';
+            if (!hdmiConnectedItem) {
+                screen.innerHTML = `【信号なし (NO SIGNAL)】<br>本体は起動しましたが、画面が映りません。映像出力装置を【HDMIポート】に接続してください。`;
+            } else {
+                screen.innerHTML = `【未対応の入力信号】<br>映像用の【HDMIポート】に「${hardwarePoolData[hdmiConnectedItem].name}」が接続されています！`;
+            }
+            return;
+        }
+
+        const usbConnectedItems = [userPCConfig.ports.usb1, userPCConfig.ports.usb2, userPCConfig.ports.usb3];
+        const hasKeyboardInUSB = usbConnectedItems.includes('keyboard');
+        const hasMouseInUSB = usbConnectedItems.includes('mouse');
+
+        if (userPCConfig.ports.printer === 'keyboard' || userPCConfig.ports.printer === 'mouse') {
+            screen.className = 'monitor-screen power-on-error';
+            screen.innerHTML = `<div class='screen-title'>⚠️ インターフェース規格エラー</div>出力用のポートに「入力装置」が接続されています！`;
+            return;
+        }
+
+        if (!hasKeyboardInUSB || !hasMouseInUSB) {
+            screen.className = 'monitor-screen power-on-error';
+            let missingMsg = [];
+            if (!hasKeyboardInUSB) missingMsg.push("キーボード⌨️");
+            if (!hasMouseInUSB) missingMsg.push("マウス🖱️");
+            screen.innerHTML = `<div class='screen-title'>⚠️ デバイスエラー</div>画面は映りましたが、操作するための【${missingMsg.join('や')}】がUSB端子にありません。`;
+            return;
+        }
+
+        screen.className = 'monitor-screen power-on-success';
+        
+        let bonusSystemMsg = "";
+        if (usbConnectedItems.includes('mic')) bonusSystemMsg += "<br>🎤 【入力装置マイク検知】: 音声入力正常稼働。";
+        if (usbConnectedItems.includes('printer') || userPCConfig.ports.printer === 'printer') {
+            bonusSystemMsg += "<br>🖨️ 【出力装置プリンタ検知】: 印刷ポート連携完了。";
+        }
+        if (userPCConfig.ports.hdmi === 'projector') bonusSystemMsg += "<br>📹 【出力装置プロジェクター検知】: 大画面出力中。";
+
+        screen.innerHTML = `
+            <div class='screen-title'>✨ Windows / OS 正常起動完了 ✨</div>
+            <strong>おめでとうございます！完璧な構成です！</strong><br>
+            補助記憶装置には、長期間データを保存できる「${hardwarePoolData[currentStorage].name}」が正しく見極められています！
+            ${bonusSystemMsg}
+        `;
+    }
+
+    function triggerPrint() {
+        if (!userPCConfig.isPowerOn) {
+            alert("PCの電源が入っていません！");
+            return;
+        }
+        const screen = document.getElementById('monitor-screen');
+        if (!screen.classList.contains('power-on-success')) {
+            alert("システム起動エラー中は印刷できません！");
+            return;
+        }
+
+        const paper = document.getElementById('printed-paper');
+        paper.classList.add('printing');
+        paper.innerText = "🖨️ 印刷中...";
+        setTimeout(() => {
+            paper.innerText = "✨ [五大装置 合格証] 🖨️";
+            alert("【連動成功】プリンターから正常に印刷されました！");
+        }, 1000);
+    }
+
+    function resetPCSimulator() {
+        userPCConfig.slots.cpu = null;
+        userPCConfig.slots.memory = null;
+        userPCConfig.slots.storage = null;
+        userPCConfig.ports.hdmi = null;
+        userPCConfig.ports.usb1 = null;
+        userPCConfig.ports.usb2 = null;
+        userPCConfig.ports.usb3 = null;
+        userPCConfig.ports.printer = null;
+        currentSelectedHardware = null;
+        document.getElementById('selected-hardware-txt').innerText = "選択中: なし";
+        turnOffPowerEffects();
+        updateSlotsAndPortsUI();
+        renderHardwarePool();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        renderHardwarePool();
+        updateSlotsAndPortsUI();
+    });
+
+    // --- モード2: ネットワーク構築 ---
+    let currentSelectedDevice = null;
+    let currentSelectedDeviceName = "";
+    const netSlots = { onu: null, mainrouter: null, wired1: null, wired2: null, wired3: null, wireless1: null, wireless2: null };
+    const deviceIcons = { onu: "🔌", router: "📟", wifi: "📶", pca: "🖥️", pcb: "🖥️", printer: "🖨️", smartphone: "📱", tablet: "📟" };
+
+    function selectNetDevice(devKey, devName) {
+        document.querySelectorAll('.net-item').forEach(el => el.classList.remove('selected'));
+        currentSelectedDevice = devKey;
+        currentSelectedDeviceName = devName;
+        document.getElementById(`netopt-${devKey}`).classList.add('selected');
+        document.getElementById('selected-device-txt').innerText = `選択中: ${devName}`;
+    }
+
+    function placeDevice(slotId) {
+        if (!currentSelectedDevice) return;
+        netSlots[slotId] = currentSelectedDevice;
+        const slotEl = document.getElementById(`netslot-${slotId}`);
+        slotEl.classList.add('filled');
+        slotEl.classList.remove('error');
+        const icon = deviceIcons[currentSelectedDevice];
+        slotEl.innerHTML = `<span class="net-slot-icon">${icon}</span>${currentSelectedDeviceName.split(' ')[1] || currentSelectedDeviceName}`;
+        if(slotId === 'onu' && currentSelectedDevice === 'onu') {
+            document.getElementById('line-to-router').classList.add('active');
+        }
+        currentSelectedDevice = null;
+        document.querySelectorAll('.net-item').forEach(el => el.classList.remove('selected'));
+        document.getElementById('selected-device-txt').innerText = "選択中: なし";
+    }
+
+    function checkNetworkConfiguration() {
+        const feedback = document.getElementById('net-feedback-box');
+        if (netSlots.onu !== 'onu') {
+            feedback.className = "net-feedback error";
+            feedback.innerHTML = "❌ 【開通失敗】インターネット回線の最初には「ONU (回線終端装置)」が必要です。";
+            return;
+        }
+        if (netSlots.mainrouter !== 'router' && netSlots.mainrouter !== 'wifi') {
+            feedback.className = "net-feedback error";
+            feedback.innerHTML = "❌ 【開通失敗】ONUの後ろには「ルーター」または「Wi-Fiルーター」が必要です。";
+            return;
+        }
+        const wiredDevices = [netSlots.wired1, netSlots.wired2, netSlots.wired3];
+        if (!wiredDevices.includes('pca') || !wiredDevices.includes('pcb') || !wiredDevices.includes('printer')) {
+            feedback.className = "net-feedback error";
+            feedback.innerHTML = "❌ 【開通失敗】有線エリアに パソコンA、パソコンB、プリンター が揃っていません。";
+            return;
+        }
+        const wirelessDevices = [netSlots.wireless1, netSlots.wireless2];
+        if ((wirelessDevices.includes('smartphone') || wirelessDevices.includes('tablet')) && netSlots.mainrouter === 'router') {
+            feedback.className = "net-feedback error";
+            feedback.innerHTML = "❌ 【開通失敗】無線機器がありますが、親機が「有線ルーター」のため電波が届きません！";
+            return;
+        }
+        feedback.className = "net-feedback success";
+        feedback.innerHTML = "🎉【ネットワーク開通大成功！！】論理的に正しい関係でインターネットに繋がりました！";
+    }
+
+    function resetNetworkSimulator() {
+        for (let key in netSlots) {
+            netSlots[key] = null;
+            const slotEl = document.getElementById(`netslot-${key}`);
+            slotEl.classList.remove('filled', 'error');
+            slotEl.innerHTML = `<span class="net-slot-icon">❓</span>空き`;
+        }
+        document.getElementById('line-to-router').classList.remove('active');
+        document.getElementById('net-feedback-box').className = "net-feedback";
+        document.getElementById('net-feedback-box').innerHTML = "機器を配置して「ネットワーク開通テスト」を押してください。";
+    }
+
+    // --- モード3: クイズ ---
+    const allQuizPool = [
+        { q: "自宅で光回線を利用する際、光信号をデジタル信号に変換する機器は？", o: ["ルーター", "ONU (回線終端装置)", "ハブ", "中継機"], a: 1, c: "ONUは光信号とデジタル信号を相互変換する最重要の機器です。" },
+        { q: "データの演算や各種装置の制御を行うコンピュータの「頭脳」は？", o: ["メモリ", "SSD", "CPU", "グラボ"], a: 2, c: "CPU（中央演算処理装置）がすべての計算の中心を担います。" },
+        { q: "処理中のデータプログラムを一時的に記憶し、「作業机」に例えられる主記憶装置は？", o: ["メモリ (RAM)", "HDD", "BIOS", "SSD"], a: 0, c: "メインメモリはCPUが直接アクセスする一時的な作業スペースです。" },
+        { q: "データを長期間安全に保存するための「補助記憶装置」で半導体メモリを使うものは？", o: ["HDD", "SSD", "RAM", "CD-ROM"], a: 1, c: "SSDは物理的な可動部がなく、高速に読み書きできる大容量の補助記憶装置です。" }
+    ];
+    let activeQuizList = []; let currentQuizIndex = 0; let score = 0;
+    function startQuiz() {
+        activeQuizList = [...allQuizPool]; currentQuizIndex = 0; score = 0;
+        document.getElementById('quiz-game-zone').style.display = 'block';
+        document.getElementById('quiz-result-zone').style.display = 'none';
+        loadQuizQuestion();
+    }
+    function loadQuizQuestion() {
+        document.getElementById('next-btn-zone').style.display = 'none';
+        document.getElementById('quiz-explanation').style.display = 'none';
+        document.getElementById('quiz-progress').innerText = `第 ${currentQuizIndex + 1} 問 / 全 ${activeQuizList.length} 問`;
+        const currentData = activeQuizList[currentQuizIndex];
+        document.getElementById('quiz-question').innerText = currentData.q;
+        const optionsContainer = document.getElementById('quiz-options'); optionsContainer.innerHTML = '';
+        currentData.o.forEach((optionTxt, idx) => {
+            const btn = document.createElement('button'); btn.className = 'option-btn';
+            btn.innerText = `${String.fromCharCode(65 + idx)}. ${optionTxt}`;
+            btn.onclick = () => selectQuizOption(idx, btn); optionsContainer.appendChild(btn);
+        });
+    }
+    function selectQuizOption(selectedIdx, clickedButton) {
+        const currentData = activeQuizList[currentQuizIndex];
+        const optionsButtons = document.querySelectorAll('.quiz-options .option-btn');
+        optionsButtons.forEach(btn => btn.disabled = true);
+        if (selectedIdx === currentData.a) { clickedButton.classList.add('correct'); score++; }
+        else { clickedButton.classList.add('wrong'); optionsButtons[currentData.a].classList.add('correct'); }
+        document.getElementById('quiz-explanation-text').innerText = currentData.c;
+        document.getElementById('quiz-explanation').style.display = 'block';
+        document.getElementById('next-btn-zone').style.display = 'block';
+    }
+    function nextQuizQuestion() {
+        currentQuizIndex++;
+        if (currentQuizIndex < activeQuizList.length) { loadQuizQuestion(); }
+        else {
+            document.getElementById('quiz-game-zone').style.display = 'none';
+            document.getElementById('quiz-result-zone').style.display = 'block';
+            document.getElementById('quiz-score-txt').innerText = `${activeQuizList.length}問中 ${score} 問正解！`;
+        }
+    }
+</script>
+</body>
+</html>
