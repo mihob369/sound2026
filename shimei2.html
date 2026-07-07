@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>ゲーム式ランダム指名</title>
+<title>ゲーム式ランダム指名 - 究極エンタメ音付き版（的あて自由度UP版）</title>
 
 <style>
 
@@ -23,6 +23,10 @@ h1{
 
 .topButtons{
     margin:10px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
 }
 
 button{
@@ -48,12 +52,13 @@ button{
     font-weight:bold;
     min-height:60px;
     margin:15px;
+    color: #ffeb3b;
+    text-shadow: 0 0 10px rgba(255,235,59,0.5);
 }
 
 /* ======================
-   モード
+   モード共通設定
 ====================== */
-
 .gameArea{
     display:none;
 }
@@ -65,7 +70,6 @@ button{
 /* ======================
    除外番号
 ====================== */
-
 .excludePanel{
     width:95%;
     margin:auto;
@@ -90,9 +94,32 @@ button{
 }
 
 /* ======================
-   カードゲーム
+   ボタン
 ====================== */
+.gameButton{
+    width:140px;
+    padding:10px;
+    font-size:15px;
+    background:#2196f3;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+}
 
+.gameButton:hover{
+    opacity:0.85;
+}
+
+.resetButton{
+    background:#f44336;
+    color:white;
+    margin-bottom:20px;
+}
+
+/* ======================
+   1. カードゲーム
+====================== */
 .cardContainer{
     width:95%;
     margin:auto;
@@ -139,20 +166,12 @@ button{
     backface-visibility:hidden;
 }
 
-.cardFront{
-    background:linear-gradient(135deg,#1565c0,#42a5f5);
-}
-
-.cardBack{
-    background:#ffeb3b;
-    color:black;
-    transform:rotateY(180deg);
-}
+.cardFront{ background:linear-gradient(135deg,#1565c0,#42a5f5); }
+.cardBack{ background:#ffeb3b; color:black; transform:rotateY(180deg); }
 
 /* ======================
-   的あて
+   2. 的あて
 ====================== */
-
 .targetGameWrap{
     width:1100px;
     margin:0 auto;
@@ -182,25 +201,10 @@ button{
     font-size:26px;
     font-weight:bold;
     color:black;
-    background:
-    radial-gradient(circle,
-    white 0%,
-    white 15%,
-    red 15%,
-    red 30%,
-    white 30%,
-    white 45%,
-    red 45%,
-    red 60%);
+    background: radial-gradient(circle, white 0%, white 15%, red 15%, red 30%, white 30%, white 45%, red 45%, red 60%);
 }
 
-.target.disabled{
-    opacity:0.2;
-}
-
-/* ======================
-   左右照準
-====================== */
+.target.disabled{ opacity:0.2; }
 
 #movingAim{
     width:22px;
@@ -212,10 +216,6 @@ button{
     left:0;
 }
 
-/* ======================
-   右コントロール
-====================== */
-
 .controlPanel{
     width:140px;
     display:flex;
@@ -224,14 +224,7 @@ button{
     gap:15px;
 }
 
-.controlPanel h3{
-    margin:0;
-    font-size:18px;
-}
-
-/* ======================
-   上下バー
-====================== */
+.controlPanel h3{ margin:0; font-size:18px; }
 
 .angleWrapper{
     width:50px;
@@ -252,59 +245,130 @@ button{
     border-radius:10px;
 }
 
-/* ======================
-   ボタン
-====================== */
-
-.gameButton{
-    width:120px;
-    padding:10px;
-    font-size:15px;
-    background:#2196f3;
-    color:white;
-    border:none;
-    border-radius:10px;
-    cursor:pointer;
-}
-
-.gameButton:hover{
-    opacity:0.85;
-}
+.arrow{ position:absolute; font-size:60px; pointer-events:none; }
+.hit{ animation:hitAnim 0.5s; }
+@keyframes hitAnim{ 0%, 100% { transform:scale(1); } 50% { transform:scale(1.3); } }
 
 /* ======================
-   矢
+   3. ガチャ
 ====================== */
+.gachaContainer { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.gachaMachine { width: 200px; height: 260px; background: #e91e63; border-radius: 40px 40px 20px 20px; position: relative; border: 4px solid #fff; box-shadow: 0 8px 0 #c2185b; }
+.gachaGlass { width: 160px; height: 120px; background: rgba(255, 255, 255, 0.2); border-radius: 30px 30px 10px 10px; margin: 15px auto 0; position: relative; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); }
+.gachaBalls { font-size: 24px; position: absolute; width: 100%; bottom: 5px; left: 0; letter-spacing: -2px; user-select: none; }
+.gachaHandle { width: 60px; height: 60px; background: #fff; border-radius: 50%; margin: 15px auto 0; position: relative; border: 4px solid #888; cursor: pointer; transition: transform 0.5s ease; }
+.gachaHandle::before { content: ""; position: absolute; width: 50px; height: 12px; background: #888; top: 20px; left: 1px; border-radius: 6px; }
+.gachaPocket { width: 50px; height: 40px; background: #333; border-radius: 10px 10px 0 0; position: absolute; bottom: 0; left: 75px; }
+#gachaOutput { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(to bottom, #ff5722 50%, #fff 50%); border: 3px solid #333; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; color: #333; opacity: 0; transform: translateY(-50px) scale(0.5); }
+.shake { animation: shakeAnim 0.5s ease-in-out; }
+@keyframes shakeAnim { 0%, 100% { transform: translate(0, 0); } 20%, 60% { transform: translate(-5px, 5px); } 40%, 80% { transform: translate(5px, -5px); } }
+.popCapsule { animation: popAnim 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes popAnim { 0% { opacity: 0; transform: translateY(-50px) scale(0.5) rotate(0deg); } 100% { opacity: 1; transform: translateY(0) scale(1) rotate(360deg); } }
 
-.arrow{
-    position:absolute;
-    font-size:60px;
-    pointer-events:none;
+/* ======================
+   4. 鬼ごっこ
+====================== */
+.tagArea { width: 900px; height: 400px; position: relative; background: #2e7d32; border: 4px solid #fff; margin: 10px auto; overflow: hidden; border-radius: 15px; }
+.runner { position: absolute; width: 45px; height: 45px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: white; border: 2px solid white; transition: transform 0.2s; }
+.runner.captured { background: #ffeb3b; color: black; transform: scale(1.4); border-color: #f44336; z-index: 10; }
+#oni { position: absolute; width: 55px; height: 55px; background: #f44336; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 28px; border: 3px solid white; z-index: 5; left: 422px; top: 172px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+
+/* ======================
+   5. 猫のフェイント
+===================== */
+.catArea {
+    width: 900px;
+    height: 420px;
+    position: relative;
+    background: #5d4037;
+    border: 4px solid #fff;
+    margin: 10px auto;
+    overflow: hidden;
+    border-radius: 15px;
+}
+.fishSnack {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: #ffb74d;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #5d4037;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+.fishSnack.targeted {
+    background: #ff5722 !important;
+    color: white;
+    animation: pulseAnim 0.4s infinite alternate;
+}
+@keyframes pulseAnim { 0% { transform: scale(1); } 100% { transform: scale(1.15); } }
+#cat {
+    position: absolute;
+    font-size: 55px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    left: 420px;
+    top: 180px;
+    transition: left 0.1s ease-out, top 0.1s ease-out;
 }
 
-.hit{
-    animation:hitAnim 0.5s;
+/* ======================
+   6. スロット
+====================== */
+.slotMachine {
+    width: 320px;
+    background: #333;
+    border: 6px solid #ffd700;
+    border-radius: 20px;
+    margin: 20px auto;
+    padding: 20px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.7);
 }
-
-@keyframes hitAnim{
-
-    0%{
-        transform:scale(1);
-    }
-
-    50%{
-        transform:scale(1.3);
-    }
-
-    100%{
-        transform:scale(1);
-    }
-
+.slotReels {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    background: #111;
+    padding: 15px;
+    border-radius: 10px;
+    border: 3px solid #555;
+    height: 90px;
+    overflow: hidden;
 }
-
-.resetButton{
-    background:#f44336;
-    color:white;
-    margin-bottom:20px;
+.reelWindow {
+    width: 100px;
+    height: 90px;
+    background: #fff;
+    color: #000;
+    font-size: 60px;
+    font-weight: bold;
+    line-height: 90px;
+    text-align: center;
+    border-radius: 5px;
+    position: relative;
+}
+.reelContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+}
+.slotNotice {
+    color: #ff5722;
+    font-weight: bold;
+    font-size: 18px;
+    min-height: 24px;
+    margin-top: 10px;
 }
 
 </style>
@@ -314,552 +378,651 @@ button{
 <h1>🎮 ゲーム式ランダム指名</h1>
 
 <div class="topButtons">
-
-    <button class="modeButton active"
-        onclick="switchMode('card')">
-
-        🃏 カード
-
-    </button>
-
-    <button class="modeButton"
-        onclick="switchMode('target')">
-
-        🎯 的あて
-
-    </button>
-
+    <button class="modeButton active" onclick="switchMode('card')">🃏 カード</button>
+    <button class="modeButton" onclick="switchMode('target')">🎯 的あて</button>
+    <button class="modeButton" onclick="switchMode('gacha')">🧸 ガチャ</button>
+    <button class="modeButton" onclick="switchMode('tag')">👹 鬼ごっこ</button>
+    <button class="modeButton" onclick="switchMode('cat')">🐱 猫まっしぐら</button>
+    <button class="modeButton" onclick="switchMode('slot')">🎰 スロット</button>
 </div>
 
 <h3>除外する番号をクリック</h3>
-
-<div class="excludePanel"
-    id="excludePanel">
-</div>
+<div class="excludePanel" id="excludePanel"></div>
 
 <div id="result"></div>
 
-<!-- ======================
-     カードゲーム
-====================== -->
-
-<div id="cardGame"
-    class="gameArea active">
-
-    <div class="cardContainer"
-        id="cardContainer">
-    </div>
-
+<div id="cardGame" class="gameArea active">
+    <div class="cardContainer" id="cardContainer"></div>
 </div>
 
-<!-- ======================
-     的あてゲーム
-====================== -->
-
-<div id="targetGame"
-    class="gameArea">
-
+<div id="targetGame" class="gameArea">
     <div class="targetGameWrap">
-
-        <!-- 的エリア -->
-
-        <div class="targetArea"
-            id="targetArea">
-
-            <div id="movingAim"></div>
-
-        </div>
-
-        <!-- コントロール -->
-
+        <div class="targetArea" id="targetArea"><div id="movingAim"></div></div>
         <div class="controlPanel">
-
-            <button class="gameButton"
-                onclick="lockHorizontal()">
-
-                左右決定
-
-            </button>
-
+            <button class="gameButton" onclick="lockHorizontal()">左右決定</button>
             <h3>上下角度</h3>
-
-            <div class="angleWrapper">
-
-                <div id="angleCursor"></div>
-
-            </div>
-
-            <button class="gameButton"
-                onclick="lockAngle()">
-
-                発射
-
-            </button>
-
+            <div class="angleWrapper"><div id="angleCursor"></div></div>
+            <button class="gameButton" style="background:#ff5722;" onclick="lockAngle()">発射</button>
         </div>
-
     </div>
-
 </div>
 
-<button class="resetButton"
-    onclick="resetGame()">
+<div id="gachaGame" class="gameArea">
+    <div class="gachaContainer">
+        <div class="gachaMachine" id="gachaMachine">
+            <div class="gachaGlass"><div class="gachaBalls">🔴🔵🟡🟢🟣🟠🔴🔵🟡🟢</div></div>
+            <div class="gachaHandle" id="gachaHandle" onclick="playGacha()"></div>
+            <div class="gachaPocket"></div>
+        </div>
+        <div id="gachaOutput">?</div>
+        <button class="gameButton" style="background:#e91e63;" onclick="playGacha()">ガチャを回す</button>
+    </div>
+</div>
 
-    リセット
+<div id="tagGame" class="gameArea">
+    <div class="tagArea" id="tagArea"><div id="oni" style="display:none;">👹</div></div>
+    <button class="gameButton" style="background:#2e7d32; width:160px;" onclick="startTagGame()">鬼ごっこスタート</button>
+</div>
 
-</button>
+<div id="catGame" class="gameArea">
+    <div class="catArea" id="catArea"><div id="cat" style="display:none;">🐱</div></div>
+    <button class="gameButton" style="background:#8d6e63; width:160px;" onclick="startCatGame()">おやつをあげる</button>
+</div>
+
+<div id="slotGame" class="gameArea">
+    <div class="slotMachine">
+        <div class="slotReels">
+            <div class="reelWindow"><div id="reel1" class="reelContainer">-</div></div>
+            <div class="reelWindow"><div id="reel2" class="reelContainer">-</div></div>
+        </div>
+        <div class="slotNotice" id="slotNotice"></div>
+    </div>
+    <button class="gameButton" style="background:#ffd700; color:black; font-weight:bold;" onclick="startSlotGame()">REEL START</button>
+</div>
+
+<hr style="border:1px solid #333; margin:20px 0;">
+<button class="resetButton" onclick="resetGame()">リセット</button>
 
 <script>
 
 const maxNumber = 24;
-
 let excluded = [];
+const resultDiv = document.getElementById("result");
+const excludePanel = document.getElementById("excludePanel");
+const cardContainer = document.getElementById("cardContainer");
+const targetArea = document.getElementById("targetArea");
 
-const resultDiv =
-    document.getElementById("result");
+/* ======================
+   🔊 WEBオーディオ効果音
+====================== */
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
 
-const excludePanel =
-    document.getElementById("excludePanel");
+function playSound(type) {
+    initAudio();
+    if (!audioCtx) return;
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    const now = audioCtx.currentTime;
 
-const cardContainer =
-    document.getElementById("cardContainer");
-
-const targetArea =
-    document.getElementById("targetArea");
+    if (type === 'flip') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now); osc.stop(now + 0.15);
+    } 
+    else if (type === 'hit') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.setValueAtTime(900, now + 0.08);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now); osc.stop(now + 0.2);
+    }
+    else if (type === 'gacha_roll') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+        osc.start(now); osc.stop(now + 0.5);
+    }
+    else if (type === 'gacha_pop') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.start(now); osc.stop(now + 0.12);
+    }
+    else if (type === 'slot_roll') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.start(now); osc.stop(now + 0.05);
+    }
+    else if (type === 'slot_stop') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    }
+    else if (type === 'slot_feint') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    }
+    else if (type === 'meow') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(850, now);
+        osc.frequency.exponentialRampToValueAtTime(1100, now + 0.15);
+        osc.frequency.exponentialRampToValueAtTime(750, now + 0.4);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now); osc.stop(now + 0.4);
+    }
+    else if (type === 'crunch') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1);
+    }
+}
 
 /* ======================
    モード切替
 ====================== */
-
 function switchMode(mode){
+    initAudio();
+    document.querySelectorAll(".gameArea").forEach(g=>g.classList.remove("active"));
+    document.querySelectorAll(".modeButton").forEach(b=>b.classList.remove("active"));
 
-    document.querySelectorAll(".gameArea")
-        .forEach(g=>g.classList.remove("active"));
+    const modes = ['card', 'target', 'gacha', 'tag', 'cat', 'slot'];
+    const idx = modes.indexOf(mode);
+    
+    document.getElementById(mode + "Game").classList.add("active");
+    if(idx !== -1) document.querySelectorAll(".modeButton")[idx].classList.add("active");
 
-    document.querySelectorAll(".modeButton")
-        .forEach(b=>b.classList.remove("active"));
-
-    if(mode==="card"){
-
-        document.getElementById("cardGame")
-            .classList.add("active");
-
-        document.querySelectorAll(".modeButton")[0]
-            .classList.add("active");
-
-    }else{
-
-        document.getElementById("targetGame")
-            .classList.add("active");
-
-        document.querySelectorAll(".modeButton")[1]
-            .classList.add("active");
-    }
-
+    if(mode === "tag") initTagGame();
+    if(mode === "cat") initCatGame();
+    if(mode === "slot") initSlotGame();
 }
 
 /* ======================
-   除外番号
+   除外パネル & 共通処理
 ====================== */
-
 function createExcludePanel(){
-
     excludePanel.innerHTML = "";
-
     for(let i=1;i<=maxNumber;i++){
-
-        const div =
-            document.createElement("div");
-
+        const div = document.createElement("div");
         div.className = "excludeNum";
-
-        if(excluded.includes(i)){
-            div.classList.add("off");
-        }
-
+        if(excluded.includes(i)) div.classList.add("off");
         div.textContent = i;
-
         div.onclick = ()=>toggleExclude(i);
-
         excludePanel.appendChild(div);
-
     }
-
 }
-
 function toggleExclude(num){
-
-    if(excluded.includes(num)){
-
-        excluded =
-            excluded.filter(n=>n!==num);
-
-    }else{
-
-        excluded.push(num);
-
-    }
-
+    if(excluded.includes(num)) excluded = excluded.filter(n=>n!==num);
+    else excluded.push(num);
     refreshDisabled();
-
 }
 
 /* ======================
-   カード
+   1. カードゲーム
 ====================== */
-
 let cardNumbers = [];
-
 function createCards(){
-
     if(cardNumbers.length===0){
-
-        for(let i=1;i<=maxNumber;i++){
-            cardNumbers.push(i);
-        }
-
+        for(let i=1; i<=maxNumber; i++) cardNumbers.push(i);
         cardNumbers.sort(()=>Math.random()-0.5);
-
     }
-
     cardContainer.innerHTML = "";
-
     cardNumbers.forEach(num=>{
-
-        const card =
-            document.createElement("div");
-
+        const card = document.createElement("div");
         card.className = "card";
-
         card.dataset.number = num;
-
-        if(excluded.includes(num)){
-            card.classList.add("disabled");
-        }
-
-        card.innerHTML = `
-        <div class="cardInner">
-            <div class="cardFront">？</div>
-            <div class="cardBack">${num}</div>
-        </div>
-        `;
-
-        card.onclick =
-            ()=>selectCard(card,num);
-
+        if(excluded.includes(num)) card.classList.add("disabled");
+        card.innerHTML = `<div class="cardInner"><div class="cardFront">？</div><div class="cardBack">${num}</div></div>`;
+        card.onclick = ()=>selectCard(card,num);
         cardContainer.appendChild(card);
-
     });
-
 }
-
 function selectCard(card,num){
-
     if(excluded.includes(num)) return;
-
+    playSound('flip');
     card.classList.add("flipped");
-
     setTimeout(()=>{
-
-        resultDiv.textContent =
-            `✨ ${num} 番 ✨`;
-
+        resultDiv.textContent = `✨ ${num} 番 ✨`;
         excluded.push(num);
-
         refreshDisabled();
-
     },500);
-
 }
 
 /* ======================
-   的配置
+   2. 的あて (ダイレクト発射対応版)
 ====================== */
-
 const positions = [];
-
-for(let i=1;i<=24;i++){
-
-    positions.push({
-
-        num:i,
-
-        x:100 + (i%6)*120,
-
-        y:40 + Math.floor((i-1)/6)*110
-
-    });
-
-}
+for(let i=1;i<=24;i++) positions.push({ num:i, x:100 + (i%6)*120, y:40 + Math.floor((i-1)/6)*110 });
 
 function createTargets(){
-
-    document
-        .querySelectorAll(".target")
-        .forEach(t=>t.remove());
-
+    document.querySelectorAll(".target").forEach(t=>t.remove());
     positions.forEach(p=>{
-
-        const div =
-            document.createElement("div");
-
+        const div = document.createElement("div");
         div.className = "target";
-
         div.dataset.number = p.num;
-
-        div.style.left = p.x+"px";
-
-        div.style.top = p.y+"px";
-
-        div.textContent = p.num;
-
-        if(excluded.includes(p.num)){
-            div.classList.add("disabled");
-        }
-
+        div.style.left = p.x+"px"; div.style.top = p.y+"px"; div.textContent = p.num;
+        if(excluded.includes(p.num)) div.classList.add("disabled");
         targetArea.appendChild(div);
-
     });
-
 }
-
 createTargets();
 
-/* ======================
-   左右照準
-====================== */
-
-const movingAim =
-    document.getElementById("movingAim");
-
-let aimX = 0;
-
-let direction = 1;
-
-let horizontalLocked = false;
-
+const movingAim = document.getElementById("movingAim");
+let aimX = 0, direction = 1, horizontalLocked = false;
 setInterval(()=>{
-
     if(horizontalLocked) return;
-
     aimX += direction * 5;
-
-    if(aimX > 860){
-        direction = -1;
-    }
-
-    if(aimX < 0){
-        direction = 1;
-    }
-
+    if(aimX > 860) direction = -1;
+    if(aimX < 0) direction = 1;
     movingAim.style.left = aimX+"px";
-
 },20);
 
-/* ======================
-   上下バー
-====================== */
-
-const angleCursor =
-    document.getElementById("angleCursor");
-
-let angleY = 0;
-
-let angleDir = 1;
-
-let angleLocked = false;
-
+const angleCursor = document.getElementById("angleCursor");
+let angleY = 0, angleDir = 1, angleLocked = false;
 setInterval(()=>{
-
     if(angleLocked) return;
-
     angleY += angleDir * 4;
-
-    if(angleY > 240){
-        angleDir = -1;
-    }
-
-    if(angleY < 0){
-        angleDir = 1;
-    }
-
-    angleCursor.style.top =
-        angleY+"px";
-
+    if(angleY > 240) angleDir = -1;
+    if(angleY < 0) angleDir = 1;
+    angleCursor.style.top = angleY+"px";
 },20);
 
-/* ======================
-   左右決定
-====================== */
-
-function lockHorizontal(){
-
-    horizontalLocked = true;
-
+function lockHorizontal(){ 
+    if(horizontalLocked) return;
+    horizontalLocked = true; 
+    playSound('slot_stop'); 
 }
 
-/* ======================
-   発射
-====================== */
-
-function lockAngle(){
-
-    if(!horizontalLocked) return;
-
-    angleLocked = true;
-
-    shootArrow();
-
+function lockAngle(){ 
+    if(angleLocked) return; // 演出中の連続クリックを防止
+    
+    // 左右を確定させずに発射ボタンを押した場合、その瞬間の横位置をここで確定する
+    if(!horizontalLocked) {
+        horizontalLocked = true;
+    }
+    
+    angleLocked = true; 
+    shootArrow(); 
 }
-
-/* ======================
-   矢発射
-====================== */
 
 function shootArrow(){
-
-    let best = null;
-
-    let bestScore = 999999;
-
+    let best = null, bestScore = 999999;
     positions.forEach(p=>{
-
         if(excluded.includes(p.num)) return;
-
-        const dx =
-            Math.abs(p.x - aimX);
-
-        const dy =
-            Math.abs(p.y - angleY);
-
-        const score = dx + dy;
-
-        if(score < bestScore){
-
-            bestScore = score;
-
-            best = p;
-
-        }
-
+        const dx = Math.abs(p.x - aimX), dy = Math.abs(p.y - angleY);
+        if(dx + dy < bestScore) { bestScore = dx + dy; best = p; }
     });
-
     if(!best) return;
 
-    const target =
-        [...document.querySelectorAll(".target")]
-        .find(t=>
-            Number(t.dataset.number)
-            === best.num
-        );
-
+    const target = [...document.querySelectorAll(".target")].find(t=>Number(t.dataset.number) === best.num);
     target.classList.add("hit");
-
-    const arrow =
-        document.createElement("div");
-
-    arrow.className = "arrow";
-
-    arrow.textContent = "🏹";
-
-    arrow.style.left = aimX+"px";
-
-    arrow.style.bottom = "0px";
-
+    const arrow = document.createElement("div");
+    arrow.className = "arrow"; arrow.textContent = "🏹"; arrow.style.left = aimX+"px"; arrow.style.bottom = "0px";
     targetArea.appendChild(arrow);
 
-    arrow.animate([
-        {
-            left:aimX+"px",
-            bottom:"0px"
-        },
-        {
-            left:best.x+"px",
-            bottom:(450-best.y)+"px"
-        }
-    ],{
-        duration:600,
-        easing:"ease-out"
-    });
-
+    arrow.animate([{ left:aimX+"px", bottom:"0px" }, { left:best.x+"px", bottom:(450-best.y)+"px" }],{ duration:600, easing:"ease-out" });
     setTimeout(()=>{
-
-        resultDiv.textContent =
-            `🎯 ${best.num} 番 命中！`;
-
+        playSound('hit');
+        resultDiv.textContent = `🎯 ${best.num} 番 命中！`;
         excluded.push(best.num);
-
         refreshDisabled();
-
-        arrow.remove();
-
-        target.classList.remove("hit");
-
-        horizontalLocked = false;
-
-        angleLocked = false;
-
+        arrow.remove(); target.classList.remove("hit");
+        horizontalLocked = false; angleLocked = false;
     },700);
-
 }
 
 /* ======================
-   更新
+   3. ガチャ
 ====================== */
+let isGachaRunning = false;
+function playGacha() {
+    if(isGachaRunning) return;
+    const available = [];
+    for(let i=1; i<=maxNumber; i++) if(!excluded.includes(i)) available.push(i);
+    if(available.length === 0) { resultDiv.textContent = "全員指名されました！"; return; }
 
-function refreshDisabled(){
+    isGachaRunning = true;
+    const machine = document.getElementById("gachaMachine"), handle = document.getElementById("gachaHandle"), output = document.getElementById("gachaOutput");
+    output.classList.remove("popCapsule"); output.style.opacity = 0;
+    handle.style.transform = "rotate(180deg)"; machine.classList.add("shake");
 
-    createExcludePanel();
+    playSound('gacha_roll');
+    let soundLoop = setInterval(() => { if(isGachaRunning) playSound('gacha_roll'); else clearInterval(soundLoop); }, 400);
 
-    createTargets();
+    const chosen = available[Math.floor(Math.random() * available.length)];
+    setTimeout(() => {
+        clearInterval(soundLoop);
+        machine.classList.remove("shake"); handle.style.transform = "rotate(0deg)";
+        const colors = ["#ff5722", "#4caf50", "#2196f3", "#9c27b0", "#ffeb3b"];
+        output.style.background = `linear-gradient(to bottom, ${colors[Math.floor(Math.random()*colors.length)]} 50%, #fff 50%)`;
+        output.textContent = chosen; 
+        
+        playSound('gacha_pop');
+        output.classList.add("popCapsule");
+        setTimeout(() => {
+            resultDiv.textContent = `🧸 ガチャ：${chosen} 番 ✨`;
+            excluded.push(chosen); refreshDisabled(); isGachaRunning = false;
+        }, 300);
+    }, 1000);
+}
 
-    document
-        .querySelectorAll(".card")
-        .forEach(card=>{
+/* ======================
+   4. 鬼ごっこ
+====================== */
+const tagArea = document.getElementById("tagArea"), oni = document.getElementById("oni");
+let runners = [], tagInterval = null, isTagRunning = false;
 
-        const num =
-            Number(card.dataset.number);
+function initTagGame() {
+    if(isTagRunning) return;
 
-        if(excluded.includes(num)){
+    document.querySelectorAll(".runner").forEach(r => r.remove());
+    oni.style.left = "422px"; oni.style.top = "172px";
+    oni.style.display = "none"; runners = [];
+    
+    for(let i=1; i<=maxNumber; i++) {
+        if(excluded.includes(i)) continue;
+        const rDiv = document.createElement("div");
+        rDiv.className = "runner"; rDiv.textContent = i;
+        const rx = 50 + Math.random() * 750;
+        const ry = 50 + Math.random() * 300;
+        rDiv.style.left = rx + "px"; rDiv.style.top = ry + "px";
+        tagArea.appendChild(rDiv);
+        runners.push({ id: i, element: rDiv, x: rx, y: ry, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10 });
+    }
+    if(runners.length > 0) { oni.style.display = "flex"; }
+}
 
-            card.classList.add("disabled");
+function startTagGame() {
+    if(isTagRunning || runners.length === 0) return;
+    isTagRunning = true; 
+    resultDiv.textContent = "だれを捕まえるかな...？";
 
+    const targetRunner = runners[Math.floor(Math.random() * runners.length)];
+    let oniX = 422, oniY = 172;
+
+    tagInterval = setInterval(() => {
+        runners.forEach(r => {
+            if(r.id === targetRunner.id) {
+                const dx = r.x - oniX, dy = r.y - oniY;
+                const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                r.vx = (dx / dist) * 7.5; r.vy = (dy / dist) * 7.5;
+            } else if(Math.random() < 0.04) {
+                r.vx = (Math.random()-0.5)*12; r.vy = (Math.random()-0.5)*12;
+            }
+            
+            r.x += r.vx; r.y += r.vy;
+
+            if (r.x < 0) { r.x = 0; r.vx *= -1; }
+            if (r.x > 855) { r.x = 855; r.vx *= -1; }
+            if (r.y < 0) { r.y = 0; r.vy *= -1; }
+            if (r.y > 355) { r.y = 355; r.vy *= -1; }
+
+            r.element.style.left = r.x + "px"; r.element.style.top = r.y + "px";
+        });
+
+        const odx = targetRunner.x - oniX, ody = targetRunner.y - oniY;
+        const odist = Math.sqrt(odx*odx + ody*ody) || 1;
+        
+        if(odist > 12) {
+            oniX += (odx / odist) * 8.5; oniY += (ody / odist) * 8.5;
+            oni.style.left = oniX + "px"; oni.style.top = oniY + "px";
+        } else {
+            clearInterval(tagInterval);
+            playSound('hit');
+            
+            targetRunner.element.classList.add("captured"); 
+            targetRunner.element.textContent = "💥";
+            resultDiv.textContent = `👹 鬼ごっこ：${targetRunner.id} 番 捕獲！`;
+            
+            setTimeout(() => {
+                targetRunner.element.remove();
+                isTagRunning = false; 
+                excluded.push(targetRunner.id);
+                refreshDisabled();
+            }, 1000);
         }
-
-    });
-
+    }, 25);
 }
 
 /* ======================
-   リセット
+   5. 猫のフェイント
 ====================== */
+const catArea = document.getElementById("catArea"), cat = document.getElementById("cat");
+let snacks = [], isCatRunning = false;
+
+function initCatGame() {
+    if(isCatRunning) return;
+
+    document.querySelectorAll(".fishSnack").forEach(s => s.remove());
+    cat.style.left = "420px"; cat.style.top = "180px"; cat.style.display = "none"; cat.textContent = "🐱";
+    snacks = [];
+    
+    let count = 0;
+    for(let i=1; i<=maxNumber; i++) {
+        if(excluded.includes(i)) continue; 
+        const div = document.createElement("div");
+        div.className = "fishSnack"; div.innerHTML = `🐟<br>${i}`;
+        
+        const angle = (count * 2 * Math.PI) / (maxNumber - excluded.length);
+        const sx = 420 + Math.cos(angle) * 320 + (Math.random()-0.5)*30;
+        const sy = 180 + Math.sin(angle) * 150 + (Math.random()-0.5)*20;
+        
+        div.style.left = sx + "px"; div.style.top = sy + "px";
+        catArea.appendChild(div);
+        snacks.push({ id: i, element: div, x: sx, y: sy });
+        count++;
+    }
+    if(snacks.length > 0) cat.style.display = "flex";
+}
+
+function startCatGame() {
+    if(isCatRunning || snacks.length === 0) return;
+    isCatRunning = true;
+    resultDiv.textContent = "猫がおやつを選んでいます...";
+    
+    const isFeint = Math.random() < 0.35;
+    
+    const dummyTarget = snacks[Math.floor(Math.random() * snacks.length)];
+    let finalTarget = dummyTarget;
+    
+    if(isFeint && snacks.length > 1) {
+        const remainingSnacks = snacks.filter(s => s.id !== dummyTarget.id);
+        finalTarget = remainingSnacks[Math.floor(Math.random() * remainingSnacks.length)];
+    }
+
+    dummyTarget.element.classList.add("targeted");
+    cat.textContent = "😼"; 
+    playSound('meow');
+
+    let currentX = 420, currentY = 180;
+    let step = 0;
+    
+    let approachInterval = setInterval(() => {
+        step++;
+        currentX += (dummyTarget.x - currentX) * 0.15;
+        currentY += (dummyTarget.y - currentY) * 0.15;
+        cat.style.left = currentX + "px"; cat.style.top = currentY + "px";
+        
+        if(step >= 6) {
+            clearInterval(approachInterval);
+            
+            setTimeout(() => {
+                if(isFeint) {
+                    playSound('meow');
+                    resultDiv.textContent = "あっちと見せかけて……こっちニャーー！🐾";
+                    dummyTarget.element.classList.remove("targeted");
+                    finalTarget.element.classList.add("targeted");
+                    cat.textContent = "😾";
+                } else {
+                    resultDiv.textContent = "まっしぐらニャーーー！🐾";
+                }
+                
+                setTimeout(() => {
+                    cat.style.transition = "left 0.2s ease-in, top 0.2s ease-in";
+                    cat.style.left = finalTarget.x + "px"; cat.style.top = finalTarget.y + "px";
+                    
+                    setTimeout(() => {
+                        playSound('crunch');
+                        cat.textContent = "😸";
+                        finalTarget.element.style.background = "#f44336";
+                        finalTarget.element.innerHTML = "🦴<br>完食";
+                        
+                        resultDiv.textContent = `🐱 猫まっしぐら：${finalTarget.id} 番をガブッ！`;
+                        
+                        setTimeout(() => {
+                            finalTarget.element.remove();
+                            cat.style.transition = "left 0.1s ease-out, top 0.1s ease-out";
+                            isCatRunning = false; 
+                            excluded.push(finalTarget.id);
+                            refreshDisabled();
+                        }, 1000);
+                    }, 200);
+                }, 200);
+            }, 400);
+        }
+    }, 100);
+}
+
+/* ======================
+   6. スロット
+====================== */
+const reel1 = document.getElementById("reel1"), reel2 = document.getElementById("reel2"), slotNotice = document.getElementById("slotNotice");
+let isSlotRunning = false;
+
+function initSlotGame() {
+    reel1.textContent = "-"; reel2.textContent = "-"; slotNotice.textContent = "";
+}
+
+function startSlotGame() {
+    if(isSlotRunning) return;
+    const available = [];
+    for(let i=1; i<=maxNumber; i++) if(!excluded.includes(i)) available.push(i);
+    if(available.length === 0) { resultDiv.textContent = "全員指名されました！"; return; }
+
+    isSlotRunning = true;
+    resultDiv.textContent = "スロット回転中...";
+    slotNotice.textContent = "";
+
+    const finalNum = available[Math.floor(Math.random() * available.length)];
+    const final10 = Math.floor(finalNum / 10);
+    const final1 = finalNum % 10;
+    const isUr切り = Math.random() < 0.35;
+
+    let count = 0;
+    let shuffleInterval = setInterval(() => {
+        playSound('slot_roll');
+        reel1.textContent = Math.floor(Math.random() * 3);
+        reel2.textContent = Math.floor(Math.random() * 10);
+        count++;
+        if(count > 15) {
+            clearInterval(shuffleInterval);
+            stopReels(finalNum, final10, final1, isUr切り);
+        }
+    }, 80);
+}
+
+function stopReels(finalNum, final10, final1, isUr切り) {
+    playSound('slot_stop');
+    reel1.textContent = final10 === 0 ? " " : final10;
+    
+    let firstStop1 = final1;
+    if(isUr切り) {
+        firstStop1 = (final1 + 3) % 10;
+    }
+
+    setTimeout(() => {
+        playSound('slot_stop');
+        reel2.textContent = firstStop1;
+        const currentDisplayed = Number((reel1.textContent.trim() || "0") + firstStop1);
+
+        if(isUr切り) {
+            playSound('slot_feint');
+            slotNotice.textContent = `おっと ${currentDisplayed} 番で確定か…！？`;
+            
+            setTimeout(() => {
+                if(Math.random() < 0.5) {
+                    slotNotice.textContent = "⚡ ぬるっとスライド演出！！";
+                    reel2.animate([{ transform: 'translateY(-20px)' }, { transform: 'translateY(0px)' }], { duration: 200 });
+                } else {
+                    slotNotice.textContent = "🔥 ガタガタ…再始動フリーズ！！";
+                    reel2.textContent = "⏳";
+                }
+                
+                setTimeout(() => {
+                    playSound('hit');
+                    reel2.textContent = final1;
+                    showSlotResult(finalNum);
+                }, 1000);
+            }, 1000);
+        } else {
+            showSlotResult(finalNum);
+        }
+    }, 400);
+}
+
+function showSlotResult(finalNum) {
+    slotNotice.textContent = "✨ 確定 ✨";
+    resultDiv.textContent = `🎰 スロット：${finalNum} 番当選！`;
+    excluded.push(finalNum);
+    refreshDisabled();
+    isSlotRunning = false;
+}
+
+/* ======================
+   全体更新 & リセット
+====================== */
+function refreshDisabled(){
+    createExcludePanel();
+    createTargets();
+    
+    if(document.getElementById("tagGame").classList.contains("active") && !isTagRunning) initTagGame();
+    if(document.getElementById("catGame").classList.contains("active") && !isCatRunning) initCatGame();
+
+    document.querySelectorAll(".card").forEach(card=>{
+        const num = Number(card.dataset.number);
+        if(excluded.includes(num)) card.classList.add("disabled");
+    });
+}
 
 function resetGame(){
+    excluded = []; resultDiv.textContent = "";
+    horizontalLocked = false; angleLocked = false; cardNumbers = [];
+    isGachaRunning = false; isTagRunning = false; isCatRunning = false; isSlotRunning = false;
+    clearInterval(tagInterval);
 
-    excluded = [];
-
-    resultDiv.textContent = "";
-
-    horizontalLocked = false;
-
-    angleLocked = false;
-
-    cardNumbers = [];
-
-    createExcludePanel();
-
-    createCards();
-
-    createTargets();
-
+    createExcludePanel(); createCards(); createTargets();
+    initTagGame(); initCatGame(); initSlotGame();
+    
+    const output = document.getElementById("gachaOutput");
+    output.style.opacity = 0; output.classList.remove("popCapsule");
 }
 
-/* ======================
-   初期化
-====================== */
-
 createExcludePanel();
-
 createCards();
 
 </script>
