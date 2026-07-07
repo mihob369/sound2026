@@ -1,481 +1,509 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Genpo Color 2 — 色相環・吸収・減法混色シミュレータ</title>
-<style>
-  body { font-family: system-ui, "Hiragino Kaku Gothic ProN", "メイリオ", Meiryo, sans-serif; padding:20px; line-height:1.6; }
-  h1 { margin:0 0 8px 0; }
-  .row { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
-  .panel { border:1px solid #ddd; padding:12px; border-radius:8px; background:#fff; min-width:280px; }
-  #hueWrap { position:relative; width:420px; height:420px; }
-  #hueCanvas { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
-  #hueWheel {
-    width:100%; height:100%;
-    border-radius:50%;
-    background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    position:relative;
-    cursor:crosshair;
-  }
-  /* 中心をマスクして環にする */
-  #hueWheel::after {
-    content:"";
-    position:absolute;
-    left:50%; top:50%;
-    width:200px; height:200px;
-    margin-left:-100px; margin-top:-100px;
-    background: white;
-    border-radius:50%;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02);
-  }
-  .marker {
-    position:absolute;
-    width:12px; height:12px;
-    border-radius:50%;
-    border:2px solid #fff;
-    box-shadow:0 1px 3px rgba(0,0,0,0.25);
-    transform:translate(-50%,-50%);
-    font-size:12px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .legend { margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .swatch { width:36px; height:36px; border-radius:6px; border:1px solid #ccc; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
-  button, input[type="radio"] { margin-right:8px; }
-  label.mode { margin-right:12px; }
-  .info { font-size:13px; color:#444; }
-  .controls { margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .small { font-size:13px; color:#555; }
-  canvas#venn { width:320px; height:200px; border:1px solid #eee; border-radius:6px; background:#fafafa; }
-  .swatches { display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .val { font-family:monospace; font-size:13px; background:#f7f7f7; padding:6px 8px; border-radius:6px; border:1px solid #eee; }
-  .light { position:absolute; left:-20px; top:-20px; font-size:20px; }
-  .eye { position:absolute; right:-36px; top:50%; transform:translateY(-50%); font-size:26px; }
-  footer { margin-top:18px; font-size:12px; color:#666; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>リアル色材反射・混色シミュレータ</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --muted: #5c6370;
+      --accent: #4f46e5;
+      --panel-border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: #111;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 10px auto;
+      padding: 24px;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; text-align: center; color: #1f2937; }
+    .subtitle { text-align: center; color: var(--muted); margin-bottom: 20px; font-size: 0.9rem; }
+    
+    /* 色相環・共通セクション */
+    .wheel-section {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border: 1px solid var(--panel-border);
+    }
+    .wheel-container { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
+    #color-wheel { width: 110px; height: 110px; border-radius: 50%; }
+    .wheel-pointer {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #000;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    }
+    .wheel-desc { font-size: 0.85rem; line-height: 1.5; color: #334155; }
+    
+    /* モード切り替えボタン */
+    .modes { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+    .mode-btn {
+      padding: 10px 20px;
+      border-radius: 24px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      color: #475569;
+      transition: all 0.2s;
+    }
+    .mode-btn:hover { background: #f1f5f9; }
+    .mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* コントロールエリア */
+    .control-box {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      margin-bottom: 16px;
+    }
+    .grid-ctrl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    label { font-size: 0.9rem; font-weight: 600; color: #334155; display: block; margin-bottom: 6px; }
+    select {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      font-weight: bold;
+      color: #1e293b;
+      background-color: #fff;
+    }
+
+    /* シミュレータ外枠 */
+    .simulator-card {
+      background: #fff;
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .scene-wrap { background: #fafafa; border-radius: 10px; border: 1px solid #e2e8f0; padding: 5px; overflow-x: auto; }
+    #ray-scene { display: block; max-width: 100%; height: auto; }
+
+    /* 結果表示エリア */
+    .result-section {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .result-color {
+      flex-shrink: 0;
+      width: 140px;
+      height: 90px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05), inset 0 2px 4px rgba(255,255,255,0.3);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .result-label { font-size: 1.1rem; font-weight: bold; }
+    .result-rgb { font-size: 0.75rem; opacity: 0.8; margin-top: 4px; }
+    .explain { font-size: 0.9rem; line-height: 1.6; color: #334155; flex: 1; }
+    
+    .absorb-box {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #cbd5e1;
+      font-weight: bold;
+    }
+
+    @media(max-width: 720px) {
+      .wheel-section { flex-direction: column; text-align: center; }
+      .grid-ctrl { grid-template-columns: 1fr; }
+      .result-section { flex-direction: column; align-items: stretch; text-align: center; }
+      .result-color { margin: 0 auto; width: 100%; }
+    }
+  </style>
 </head>
 <body>
-<h1>Genpo Color 2 — 色相環・吸収・減法混色シミュレータ</h1>
+  <main class="container">
+    <h1>リアル色材反射・混色可視光シミュレータ</h1>
+    <p class="subtitle">情報Ⅰ発展：光の「透過・反射率のグラデーション」による、ピンクや水色（パステルカラー）の理屈を学びます。</p>
+    
+    <section class="wheel-section">
+      <div class="wheel-container">
+        <canvas id="color-wheel" width="110" height="110"></canvas>
+        <div id="wheel-pointer" class="wheel-pointer"></div>
+      </div>
+      <div class="wheel-desc">
+        <strong>【光の吸収特性とグラデーション】</strong><br>
+        白を混ぜると色材が希釈され、本来100%吸収されるはずの光（例：赤に対する緑・青）が<strong>半分だけ生き残って反射</strong>します。<br>
+        ※現在、最終的に反射して<strong>目に見えている色</strong>の波長成分の位置をリアルタイムに追跡します。
+      </div>
+    </section>
 
-<div class="row">
-  <div class="panel" style="flex:0 0 460px; position:relative;">
-    <div class="controls">
-      <label class="mode"><input type="radio" name="mode" value="view" checked> 見える色を設定</label>
-      <label class="mode"><input type="radio" name="mode" value="absorb"> 吸収色を設定</label>
-      <label class="mode"><input type="radio" name="mode" value="pig1"> 減法: 色材1を設定</label>
-      <label class="mode"><input type="radio" name="mode" value="pig2"> 減法: 色材2を設定</label>
-      <label style="margin-left:8px;"><input type="checkbox" id="mixMode"> 減法混色モード表示</label>
-    </div>
-    <div id="hueWrap">
-      <canvas id="hueCanvas"></canvas>
-      <div id="hueWheel" title="色相環をクリックして色を選択"></div>
-      <!-- RGB/CMY markers -->
-      <div class="marker" id="mR" style="background:#ff0000;">R</div>
-      <div class="marker" id="mG" style="background:#00ff00;">G</div>
-      <div class="marker" id="mB" style="background:#0000ff;color:#fff;">B</div>
+    <nav class="modes">
+      <button onclick="setMode('single')" class="mode-btn" id="btn-single">単色モード（1つの色材の見え方）</button>
+      <button onclick="setMode('mix')" class="mode-btn" id="btn-mix">混色モード（2つの絵の具を混ぜる）</button>
+    </nav>
 
-      <div class="marker" id="mY" style="background:#ffff00; left:0;">Y</div>
-      <div class="marker" id="mC" style="background:#00ffff; left:0;">C</div>
-      <div class="marker" id="mM" style="background:#ff00ff; left:0;color:#fff;">M</div>
-
-      <div class="light">🔦</div>
-      <div class="eye">👁️</div>
-    </div>
-
-    <div class="legend">
-      <div>
-        <div class="small">現在の「見える色」</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div id="viewSw" class="swatch"></div>
-          <div id="viewVal" class="val">#ffffff</div>
+    <section class="simulator-card">
+      
+      <div id="panel-single" class="panel">
+        <div class="control-box">
+          <label for="single-ink">色材（絵の具）を選択：</label>
+          <select id="single-ink" onchange="update()"></select>
         </div>
       </div>
 
-      <div>
-        <div class="small">現在の「吸収色」</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div id="absSw" class="swatch"></div>
-          <div id="absVal" class="val">なし</div>
+      <div id="panel-mix" class="panel">
+        <div class="control-box grid-ctrl">
+          <div>
+            <label for="mix-ink1">絵の具 1：</label>
+            <select id="mix-ink1" onchange="update()"></select>
+          </div>
+          <div>
+            <label for="mix-ink2">絵の具 2：</label>
+            <select id="mix-ink2" onchange="update()"></select>
+          </div>
         </div>
       </div>
 
-      <div id="filteredBlock" style="display:block;">
-        <div class="small">吸収を適用した見え方</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div id="filteredSw" class="swatch"></div>
-          <div id="filteredVal" class="val">#ffffff</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="margin-top:12px;" class="info">
-      操作手順：
-      <ol>
-        <li>モードを選択（「見える色」「吸収色」「減法: 色材1/2」）</li>
-        <li>色相環をクリックして色を選ぶ（環の内側は無効）</li>
-        <li>「減法混色モード」をONにすると、画面下のベン図で混合結果が確認できます。</li>
-      </ol>
-      モデル補足：物理を簡略化して、色は RGB チャンネルで扱い、吸収はチャンネルごとに反射を減らす形で計算しています（教育目的の概念モデル）。
-    </div>
-  </div>
-
-  <div class="panel" style="flex:1 1 360px;">
-    <h3>減法混色ビュー（ベン図）</h3>
-    <div>
-      <label class="small">色材1（クリックで設定）</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-        <div id="pig1Sw" class="swatch"></div>
-        <div id="pig1Val" class="val">吸収: なし</div>
+      <div class="scene-wrap">
+        <canvas id="ray-scene" width="840" height="360"></canvas>
       </div>
 
-      <label class="small">色材2（クリックで設定）</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-        <div id="pig2Sw" class="swatch"></div>
-        <div id="pig2Val" class="val">吸収: なし</div>
-      </div>
-
-      <canvas id="venn" width="640" height="400"></canvas>
-
-      <div class="swatches">
-        <div>
-          <div class="small">色材1の反射（見える色）</div>
-          <div id="p1ref" class="swatch"></div>
+      <section class="result-section">
+        <div class="result-color" id="result-patch">
+          <div class="result-label" id="result-name"></div>
+          <div class="result-rgb" id="result-rgb-val"></div>
         </div>
-        <div>
-          <div class="small">色材2の反射（見える色）</div>
-          <div id="p2ref" class="swatch"></div>
+        <div class="explain">
+          <div id="explain-text"></div>
+          <div id="absorb-text" class="absorb-box"></div>
         </div>
-        <div>
-          <div class="small">混合（重なり）の反射</div>
-          <div id="mixref" class="swatch"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+      </section>
 
-<footer>作成: Genpo Color 2（簡易モデル）。必要なら挙動の物理モデルを詳細化できます。</footer>
+    </section>
+  </main>
 
-<script>
-/* ユーティリティ: HSV -> RGB (0..1) */
-function hsv2rgb(h,s,v){
-  let C = v*s;
-  let X = C*(1 - Math.abs((h/60)%2 -1));
-  let m = v - C;
-  let r=0,g=0,b=0;
-  if(h<60){ r=C; g=X; b=0; }
-  else if(h<120){ r=X; g=C; b=0; }
-  else if(h<180){ r=0; g=C; b=X; }
-  else if(h<240){ r=0; g=X; b=C; }
-  else if(h<300){ r=X; g=0; b=C; }
-  else { r=C; g=0; b=X; }
-  return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255)];
-}
-function rgbToHex(rgb){
-  return '#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
-}
-function clamp01(x){ return Math.max(0, Math.min(1,x)); }
+  <script>
+    // --- 色材（絵の具）のリアル物理データ定義 ---
+    // 反射・透過率を 0.0（全吸収） 〜 1.0（全透過・反射）の数値で管理
+    const inkData = {
+      "シアン (C)":     { hex: "#00ffff", r: 0.0, g: 1.0, b: 1.0, absorbText: "Rを吸収" },
+      "マゼンタ (M)":   { hex: "#ff00ff", r: 1.0, g: 0.0, b: 1.0, absorbText: "Gを吸収" },
+      "イエロー (Y)":   { hex: "#ffff00", r: 1.0, g: 1.0, b: 0.0, absorbText: "Bを吸収" },
+      "赤 (R)":         { hex: "#ff0000", r: 1.0, g: 0.0, b: 0.0, absorbText: "GとBを吸収" },
+      "緑 (G)":         { hex: "#00ff00", r: 0.0, g: 1.0, b: 0.0, absorbText: "RとBを吸収" },
+      "青 (B)":         { hex: "#0000ff", r: 0.0, g: 0.0, b: 1.0, absorbText: "RとGを吸収" },
+      "白 (W)":         { hex: "#ffffff", r: 1.0, g: 1.0, b: 1.0, absorbText: "吸収なし" },
+      "黒 (K)":         { hex: "#1e293b", r: 0.0, g: 0.0, b: 0.0, absorbText: "R・G・Bを全吸収" }
+    };
+    const inkNames = Object.keys(inkData);
 
-/* 初期状態 */
-let state = {
-  viewColor: [255,255,255],
-  absorbColor: null, // [r,g,b] (0..255) or null
-  pig1_absorb: null,
-  pig2_absorb: null
-};
+    let currentMode = 'single';
 
-/* DOM */
-const hueWheel = document.getElementById('hueWheel');
-const hueCanvas = document.getElementById('hueCanvas');
-const hCtx = hueCanvas.getContext('2d');
-const viewSw = document.getElementById('viewSw');
-const viewVal = document.getElementById('viewVal');
-const absSw = document.getElementById('absSw');
-const absVal = document.getElementById('absVal');
-const filteredSw = document.getElementById('filteredSw');
-const filteredVal = document.getElementById('filteredVal');
-const pig1Sw = document.getElementById('pig1Sw');
-const pig2Sw = document.getElementById('pig2Sw');
-const pig1Val = document.getElementById('pig1Val');
-const pig2Val = document.getElementById('pig2Val');
-const p1ref = document.getElementById('p1ref');
-const p2ref = document.getElementById('p2ref');
-const mixref = document.getElementById('mixref');
-const venn = document.getElementById('venn');
-const ctxVenn = venn.getContext('2d');
-
-function updatePreviews(){
-  viewSw.style.background = rgbToHex(state.viewColor);
-  viewVal.textContent = rgbToHex(state.viewColor);
-  if(state.absorbColor){
-    absSw.style.background = rgbToHex(state.absorbColor);
-    absVal.textContent = rgbToHex(state.absorbColor);
-  } else {
-    absSw.style.background = '#fff';
-    absVal.textContent = 'なし';
-  }
-  // filtered: base * (1 - absorber) componentwise
-  if(state.absorbColor){
-    let base = state.viewColor.map(v=>v/255);
-    let a = state.absorbColor.map(v=>v/255);
-    let filtered = base.map((c,i)=> Math.round(255 * (c * (1 - a[i])) ));
-    filteredSw.style.background = rgbToHex(filtered);
-    filteredVal.textContent = rgbToHex(filtered);
-  } else {
-    filteredSw.style.background = rgbToHex(state.viewColor);
-    filteredVal.textContent = rgbToHex(state.viewColor);
-  }
-
-  // pig previews
-  if(state.pig1_absorb){
-    pig1Sw.style.background = rgbToHex(state.pig1_absorb);
-    pig1Val.textContent = '吸収: ' + rgbToHex(state.pig1_absorb);
-    // visible = 1 - absorb
-    let ref = state.pig1_absorb.map(v=> Math.round(255*(1 - v/255)));
-    p1ref.style.background = rgbToHex(ref);
-  } else {
-    pig1Sw.style.background = '#fff';
-    pig1Val.textContent = '吸収: なし';
-    p1ref.style.background = '#ffffff';
-  }
-  if(state.pig2_absorb){
-    pig2Sw.style.background = rgbToHex(state.pig2_absorb);
-    pig2Val.textContent = '吸収: ' + rgbToHex(state.pig2_absorb);
-    let ref = state.pig2_absorb.map(v=> Math.round(255*(1 - v/255)));
-    p2ref.style.background = rgbToHex(ref);
-  } else {
-    pig2Sw.style.background = '#fff';
-    pig2Val.textContent = '吸収: なし';
-    p2ref.style.background = '#ffffff';
-  }
-  // mix
-  if(state.pig1_absorb && state.pig2_absorb){
-    let a1 = state.pig1_absorb.map(v=>v/255);
-    let a2 = state.pig2_absorb.map(v=>v/255);
-    // reflectances r1 = (1-a1), r2 = (1-a2), mix reflectance = r1 * r2
-    let r = [0,0,0];
-    for(let i=0;i<3;i++){
-      r[i] = Math.round(255 * (1 - a1[i]) * (1 - a2[i]));
+    // --- アプリ初期化 ---
+    function init() {
+      const s1 = document.getElementById('single-ink');
+      const m1 = document.getElementById('mix-ink1');
+      const m2 = document.getElementById('mix-ink2');
+      
+      // セレクトボックスに選択肢を動的生成
+      inkNames.forEach(name => {
+        const displayText = `${name} ※${inkData[name].absorbText}`;
+        s1.add(new Option(displayText, name));
+        m1.add(new Option(displayText, name));
+        m2.add(new Option(displayText, name));
+      });
+      
+      // 初期値：混色モード側を「赤(R)」と「白(W)」にしてピンクの実験をしやすく配置
+      s1.value = "赤 (R)";
+      m1.value = "赤 (R)";
+      m2.value = "白 (W)";
+      
+      drawColorWheel();
+      setMode('mix'); // 最初から混色モードを開く
     }
-    mixref.style.background = rgbToHex(r);
-  } else {
-    mixref.style.background = '#ffffff';
-  }
 
-  drawHueRays();
-  drawVenn();
-}
-
-/* Hue canvas & rays */
-function resizeHueCanvas(){
-  let rect = document.getElementById('hueWrap').getBoundingClientRect();
-  hueCanvas.width = rect.width * devicePixelRatio;
-  hueCanvas.height = rect.height * devicePixelRatio;
-  hueCanvas.style.width = rect.width + 'px';
-  hueCanvas.style.height = rect.height + 'px';
-  hCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-}
-
-function drawHueRays(hitPoint){
-  // draw three parallel incoming rays from top-left light to hitPoint, then outgoing rays to eye
-  let rect = document.getElementById('hueWrap').getBoundingClientRect();
-  let cx = rect.width/2, cy = rect.height/2;
-  resizeHueCanvas();
-  hCtx.clearRect(0,0,rect.width,rect.height);
-  // light source
-  let L = {x:20, y:20};
-  // eye position (to the right center)
-  let eyeEl = document.querySelector('.eye');
-  let eyeRect = eyeEl.getBoundingClientRect();
-  let eye = { x: rect.width + (eyeRect.width/2) + 6, y: rect.height/2 };
-
-  // default hit point: center of rim
-  if(!hitPoint){
-    hitPoint = { x: cx + (rect.width/2 - 10 - 100) , y: cy }; // somewhere on right edge
-  }
-
-  // draw incoming parallel rays (offsets)
-  let offsets = [-10, 0, 10];
-  let colors = ['#ff0000','#00ff00','#0000ff'];
-
-  for(let i=0;i<3;i++){
-    hCtx.beginPath();
-    hCtx.lineWidth = 3;
-    hCtx.strokeStyle = colors[i];
-    hCtx.moveTo(L.x + offsets[i], L.y);
-    // bend towards hitPoint
-    hCtx.lineTo(hitPoint.x, hitPoint.y - 6 + offsets[i]);
-    hCtx.stroke();
-    // compute absorption (use state.absorbColor when in single absorb mode, or pig settings)
-    // For single hueWheel display, use state.absorbColor; for pig modes it's handled in venn
-    let absorb = state.absorbColor ? state.absorbColor.map(v=>v/255) : [0,0,0];
-    let reflectFrac = 1 - absorb[i];
-    // outgoing ray to eye scaled by reflectFrac
-    hCtx.beginPath();
-    hCtx.lineWidth = 3;
-    hCtx.globalAlpha = reflectFrac;
-    hCtx.strokeStyle = colors[i];
-    hCtx.moveTo(hitPoint.x, hitPoint.y - 6 + offsets[i]);
-    hCtx.lineTo(eye.x - rect.left, eye.y - rect.top + offsets[i]);
-    hCtx.stroke();
-    hCtx.globalAlpha = 1;
-  }
-}
-
-/* Venn の描画 */
-function drawVenn(){
-  ctxVenn.clearRect(0,0,venn.width,venn.height);
-  let W = venn.width, H = venn.height;
-  let cx1 = W*0.35, cy = H*0.5, r = Math.min(W,H)*0.22;
-  let cx2 = W*0.65;
-
-  // draw pigment circles (filled by their reflection color)
-  let ref1 = state.pig1_absorb ? state.pig1_absorb.map(v=> Math.round(255*(1 - v/255)) ) : [255,255,255];
-  let ref2 = state.pig2_absorb ? state.pig2_absorb.map(v=> Math.round(255*(1 - v/255)) ) : [255,255,255];
-  let mix = [255,255,255];
-  if(state.pig1_absorb && state.pig2_absorb){
-    for(let i=0;i<3;i++) mix[i] = Math.round(255 * ( (1 - state.pig1_absorb[i]/255) * (1 - state.pig2_absorb[i]/255) ));
-  }
-
-  // fill left and right
-  ctxVenn.fillStyle = hexFromArr(ref1);
-  ctxVenn.beginPath(); ctxVenn.arc(cx1, cy, r, 0, Math.PI*2); ctxVenn.fill();
-  ctxVenn.fillStyle = hexFromArr(ref2);
-  ctxVenn.beginPath(); ctxVenn.arc(cx2, cy, r, 0, Math.PI*2); ctxVenn.fill();
-
-  // overlap mask fill with mix color if both pigments set
-  if(state.pig1_absorb && state.pig2_absorb){
-    // draw overlap using compositing
-    let tmp = document.createElement('canvas'); tmp.width=W; tmp.height=H; let tctx = tmp.getContext('2d');
-    tctx.beginPath(); tctx.arc(cx1,cy,r,0,Math.PI*2); tctx.fill();
-    tctx.globalCompositeOperation = 'destination-in';
-    tctx.beginPath(); tctx.arc(cx2,cy,r,0,Math.PI*2); tctx.fill();
-    // apply mix color
-    ctxVenn.drawImage(tmp,0,0);
-    ctxVenn.globalCompositeOperation = 'source-in';
-    ctxVenn.fillStyle = hexFromArr(mix);
-    ctxVenn.fillRect(0,0,W,H);
-    ctxVenn.globalCompositeOperation = 'source-over';
-  }
-
-  // outlines
-  ctxVenn.strokeStyle = '#444'; ctxVenn.lineWidth = 1; ctxVenn.beginPath(); ctxVenn.arc(cx1, cy, r, 0, Math.PI*2); ctxVenn.stroke(); ctxVenn.beginPath(); ctxVenn.arc(cx2, cy, r, 0, Math.PI*2); ctxVenn.stroke();
-
-  // draw rays from top-left light to each pigment and to overlap
-  let L = {x: 40, y: 20}; // in canvas coords
-  let eye = { x: W + 30, y: H/2 };
-  let offsets = [-8,0,8];
-  let colors = ['#ff0000','#00ff00','#0000ff'];
-
-  function drawRay(targetX, targetY, absorbVec){
-    for(let i=0;i<3;i++){
-      // incoming
-      ctxVenn.beginPath(); ctxVenn.lineWidth = 2; ctxVenn.strokeStyle = colors[i]; ctxVenn.globalAlpha = 0.9; ctxVenn.moveTo(L.x, L.y + offsets[i]); ctxVenn.lineTo(targetX, targetY + offsets[i]); ctxVenn.stroke();
-      // reflection fraction depends on absorbVec
-      let reflect = 1 - (absorbVec ? absorbVec[i] : 0);
-      ctxVenn.beginPath(); ctxVenn.lineWidth = 3; ctxVenn.strokeStyle = colors[i]; ctxVenn.globalAlpha = clamp01(reflect);
-      ctxVenn.moveTo(targetX, targetY + offsets[i]); ctxVenn.lineTo(eye.x, eye.y + offsets[i]); ctxVenn.stroke();
-      ctxVenn.globalAlpha = 1;
+    // --- モードの切り替え ---
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('btn-single').className = 'mode-btn' + (mode === 'single' ? ' active' : '');
+      document.getElementById('btn-mix').className = 'mode-btn' + (mode === 'mix' ? ' active' : '');
+      document.getElementById('panel-single').className = 'panel' + (mode === 'single' ? ' active' : '');
+      document.getElementById('panel-mix').className = 'panel' + (mode === 'mix' ? ' active' : '');
+      update();
     }
-  }
 
-  // left pigment target
-  let leftAbs = state.pig1_absorb ? state.pig1_absorb.map(v=>v/255) : null;
-  drawRay(cx1, cy, leftAbs);
-  // right
-  let rightAbs = state.pig2_absorb ? state.pig2_absorb.map(v=>v/255) : null;
-  drawRay(cx2, cy, rightAbs);
-  // overlap
-  if(state.pig1_absorb && state.pig2_absorb){
-    // overlap center
-    let ox = (cx1+cx2)/2; let oy = cy;
-    // combined absorb = 1 - (1-a1)*(1-a2) ==> or reflectance = (1-a1)*(1-a2) so absorb combined = 1 - reflect
-    let a1 = state.pig1_absorb.map(v=>v/255); let a2 = state.pig2_absorb.map(v=>v/255);
-    let combined = [0,0,0];
-    for(let i=0;i<3;i++) combined[i] = 1 - (1 - a1[i])*(1 - a2[i]);
-    drawRay(ox, oy, combined);
-  }
-}
+    // --- 輝度から一般的な日本語色名を推測する簡易判定関数 ---
+    function getColorName(r, g, b) {
+      if (r > 200 && g > 200 && b > 200) return "白";
+      if (r < 40 && g < 40 && b < 40) return "黒";
+      
+      // 赤が極端に強く、GとBが中間層にある場合 ＝ ピンク
+      if (r > 200 && g >= 100 && g <= 180 && b >= 100 && b <= 180) return "ピンク";
+      // 青が極端に強く、RとGが中間層にある場合 ＝ 水色（薄い青）
+      if (b > 200 && r >= 100 && r <= 180 && g >= 100 && g <= 180) return "水色 (薄い青)";
+      // 緑が極端に強く、RとBが中間層にある場合 ＝ 薄い緑
+      if (g > 200 && r >= 100 && r <= 180 && b >= 100 && b <= 180) return "薄い緑";
 
-/* helper */
-function hexFromArr(arr){ return '#'+arr.map(v=>v.toString(16).padStart(2,'0')).join(''); }
+      if (r > 200 && g > 200 && b < 50) return "イエロー";
+      if (r > 200 && g < 50 && b > 200) return "マゼンタ";
+      if (r < 50 && g > 200 && b > 200) return "シアン";
+      
+      if (r > 180 && g < 60 && b < 60) return "赤";
+      if (r < 60 && g > 180 && b < 60) return "緑";
+      if (r < 60 && g < 60 && b > 180) return "青";
+      
+      if (r > 100 && g > 100 && b < 40) return "黄緑・オリーブ";
+      
+      return "中間色（混色）";
+    }
 
-/* 色相環マーカー位置 */
-function placeMarkers(){
-  let wrap = document.getElementById('hueWrap');
-  let rect = wrap.getBoundingClientRect();
-  function pos(angleDeg){
-    let rad = angleDeg/180*Math.PI;
-    let R = rect.width*0.42/2;
-    let x = rect.width/2 + Math.cos(rad) * R;
-    let y = rect.height/2 + Math.sin(rad) * R;
-    return [x, y];
-  }
-  const markers = [
-    ['mR',0], ['mY',60], ['mG',120], ['mC',180], ['mB',240], ['mM',300]
-  ];
-  for(let [id,deg] of markers){
-    let el = document.getElementById(id);
-    let [x,y] = pos(deg);
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-  }
-}
-window.addEventListener('resize', ()=>{ placeMarkers(); resizeHueCanvas(); updatePreviews(); });
+    // --- 描画および光線判定のコア処理 ---
+    function update() {
+      const canvas = document.getElementById('ray-scene');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-/* クリック処理 */
-hueWheel.addEventListener('click', (ev)=>{
-  let rect = hueWheel.getBoundingClientRect();
-  let x = ev.clientX - rect.left;
-  let y = ev.clientY - rect.top;
-  let cx = rect.width/2, cy = rect.height/2;
-  let dx = x - cx, dy = y - cy;
-  let dist = Math.sqrt(dx*dx + dy*dy);
-  // ring boundaries (match CSS mask)
-  let outer = rect.width/2;
-  let inner = 100; // matches ::after size 200
-  if(dist < inner || dist > outer) return; // 無効な領域なら無視
-  let angle = Math.atan2(dy,dx) * 180/Math.PI;
-  if(angle < 0) angle += 360;
-  let hue = angle; // 0..360
-  // get rgb for hue
-  let rgb = hsv2rgb(hue,1,1);
-  // determine selected mode
-  let mode = document.querySelector('input[name="mode"]:checked').value;
-  if(mode === 'view'){
-    state.viewColor = rgb;
-  } else if(mode === 'absorb'){
-    // set absorb color as clicked hue
-    state.absorbColor = rgb;
-  } else if(mode === 'pig1'){
-    state.pig1_absorb = rgb;
-  } else if(mode === 'pig2'){
-    state.pig2_absorb = rgb;
-  }
-  updatePreviews();
-});
+      const layout = {
+        light: { x: 80, y: 80 },
+        eye: { x: 760, y: 80 },
+        paperY: 300,
+        inkWidth: 460
+      };
 
-/* モード切り替えで表示制御 */
-document.getElementById('mixMode').addEventListener('change', (e)=>{
-  // show/hide venn canvas visually; we keep it always but can highlight
-  let on = e.target.checked;
-  venn.style.opacity = on ? '1' : '0.35';
-  updatePreviews();
-});
+      // 1. 現在選択されている色材（絵の具）のブレンド比率計算（1:1の平均化モデル）
+      let finalRates = { r: 0, g: 0, b: 0 };
+      let activeInks = [];
 
-/* マーカーの初期配置 & 初期表示 */
-placeMarkers();
-resizeHueCanvas();
-updatePreviews();
+      if (currentMode === 'single') {
+        const name = document.getElementById('single-ink').value;
+        const ink = inkData[name];
+        activeInks.push({ name: name, data: ink });
+        finalRates.r = ink.r;
+        finalRates.g = ink.g;
+        finalRates.b = ink.b;
+      } else {
+        const n1 = document.getElementById('mix-ink1').value;
+        const n2 = document.getElementById('mix-ink2').value;
+        const ink1 = inkData[n1];
+        const ink2 = inkData[n2];
+        activeInks.push({ name: n1, data: ink1 });
+        activeInks.push({ name: n2, data: ink2 });
+        
+        // 物理的な1:1均等混色（密度の平均化による反射率計算）
+        finalRates.r = (ink1.r + ink2.r) / 2;
+        finalRates.g = (ink1.g + ink2.g) / 2;
+        finalRates.b = (ink1.b + ink2.b) / 2;
+      }
 
-/* 初期ダミー色（視認しやすく） */
-state.viewColor = [255,255,255];
-state.absorbColor = null;
-state.pig1_absorb = [255,0,0]; // pigment1 absorbs red => appears cyan
-state.pig2_absorb = [0,255,0]; // pigment2 absorbs green => appears magenta
-updatePreviews();
+      // ベースとなる白い紙（反射面）の描画
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(120, layout.paperY, 600, 15);
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(120, layout.paperY, 600, 15);
+      ctx.fillStyle = "#64748b";
+      ctx.font = "12px sans-serif";
+      ctx.fillText("白い紙（光を100%反射するベース面）", 130, layout.paperY + 12);
 
-</script>
+      // 色材層（絵の具の膜）を視覚的に描画
+      activeInks.forEach((ink, idx) => {
+        const layerY = layout.paperY - 12 - (idx * 8);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2 - layout.inkWidth / 2, layerY);
+        ctx.lineTo(canvas.width / 2 + layout.inkWidth / 2, layerY);
+        ctx.strokeStyle = ink.data.hex;
+        ctx.lineWidth = 6; 
+        ctx.lineCap = "round";
+        ctx.globalAlpha = 0.8;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        
+        // 絵の具ラベルテキスト
+        ctx.fillStyle = "#334155";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText(ink.name, canvas.width / 2 + layout.inkWidth / 2 + 12, layerY + 4);
+      });
+
+      // 🔦 👁 イラスト配置
+      ctx.font = "36px sans-serif";
+      ctx.fillText("🔦", layout.light.x - 20, layout.light.y + 12);
+      ctx.fillText("👁", layout.eye.x - 20, layout.eye.y + 12);
+
+      // 3本の光線（R・G・B）の定義と描画演算
+      const rays = [
+        { key: "r", name: "R光 (赤)", color: "#ff3333", offset: -18, rate: finalRates.r },
+        { key: "g", name: "G光 (緑)", color: "#22cc44", offset: 0,   rate: finalRates.g },
+        { key: "b", name: "B光 (青)", color: "#3366ff", offset: 18,  rate: finalRates.b }
+      ];
+
+      const baseReflectX = canvas.width / 2;
+
+      rays.forEach(ray => {
+        const rayStart = { x: layout.light.x + ray.offset, y: layout.light.y };
+        const rayRefPoint = { x: baseReflectX + ray.offset, y: layout.paperY };
+        const rayEnd = { x: layout.eye.x + ray.offset, y: layout.eye.y };
+
+        // 1. 入射光（100%の強さで共通して紙へ向かう）
+        ctx.beginPath();
+        ctx.moveTo(rayStart.x, rayStart.y);
+        ctx.lineTo(rayRefPoint.x, rayRefPoint.y);
+        ctx.strokeStyle = ray.color;
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.25; // 入射は薄く背景表示
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+
+        // 2. 反射光（絵の具のブレンド率[ray.rate]に応じて太さと透明度が変わる！）
+        if (ray.rate > 0.05) {
+          ctx.beginPath();
+          ctx.moveTo(rayRefPoint.x, rayRefPoint.y);
+          ctx.lineTo(rayEnd.x, rayEnd.y);
+          ctx.strokeStyle = ray.color;
+          // 残存率（率が高いほど太く鮮明に、低いほど細くシースルーになる）
+          ctx.lineWidth = 1 + (ray.rate * 5); 
+          ctx.globalAlpha = 0.15 + (ray.rate * 0.85);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        } else {
+          // ほぼ完全に吸収された場合のみ、吸い込まれたバツ印を表示
+          ctx.fillStyle = "#ef4444";
+          ctx.font = "bold 16px sans-serif";
+          ctx.fillText("✕", rayRefPoint.x - 6, layout.paperY - 24);
+        }
+      });
+
+      // --- 結果表示のレンダリング ---
+      const rOut = Math.round(finalRates.r * 255);
+      const gOut = Math.round(finalRates.g * 255);
+      const bOut = Math.round(finalRates.b * 255);
+      const rgbCss = `rgb(${rOut}, ${gOut}, ${bOut})`;
+      
+      const patch = document.getElementById('result-patch');
+      patch.style.background = rgbCss;
+      
+      // 文字反転の輝度計算
+      const brightness = (rOut * 299 + gOut * 587 + bOut * 114) / 1000;
+      patch.style.color = brightness < 135 ? "#ffffff" : "#0f172a";
+
+      const finalColorName = getColorName(rOut, gOut, bOut);
+      document.getElementById('result-name').textContent = finalColorName;
+      document.getElementById('result-rgb-val').textContent = `RGB(${rOut}, ${gOut}, ${bOut})`;
+
+      // --- 動的解説テキストの組み立て ---
+      let explainHtml = `<strong>光の残存率とパステルの理屈：</strong><br>`;
+      if (currentMode === 'single') {
+        explainHtml += `🔦白光のRGB成分が、層を通過する際に絵の具固有の特性でフィルタリングされました。<br>`;
+      } else {
+        explainHtml += `🔦<strong>${activeInks[0].name}</strong> と <strong>${activeInks[1].name}</strong> が混ざることで、光を吸い取る強さが半分に薄まりました（中和・希釈）。<br>`;
+      }
+      
+      explainHtml += `その結果、紙に反射して目に届いた比率は、<br>` +
+                     `🔴赤光：<strong>${Math.round(finalRates.r * 100)}%</strong> ／ ` +
+                     `🟢緑光：<strong>${Math.round(finalRates.g * 100)}%</strong> ／ ` +
+                     `🔵青光：<strong>${Math.round(finalRates.b * 100)}%</strong> です。<br>`;
+                     
+      if (finalColorName === "ピンク") {
+        explainHtml += `💡赤が100%届いている中に、白絵の具によって薄まった<strong>緑と青が半分ずつ（50%）混ざって漏れてきた</strong>ため、人間の目はこれを<strong>「ピンク」</strong>として認識します！`;
+      } else if (finalColorName === "水色 (薄い青)") {
+        explainHtml += `💡青が100%届いている中に、白絵の具によって薄まった<strong>赤と緑が半分ずつ（50%）混ざって漏れてきた</strong>ため、人間の目はこれを<strong>「水色」</strong>として認識します！`;
+      } else if (finalColorName === "薄い緑") {
+        explainHtml += `💡緑が100%届いている中に、白絵の具によって薄まった<strong>赤と青が半分ずつ（50%）混ざって漏れてきた</strong>ため、人間の目はこれを<strong>「薄い緑」</strong>として認識します！`;
+      } else {
+        explainHtml += `このように、すべての光が消えるか残るかだけでなく、中間の「〇〇%だけ通す」というグラデーションがあるため、現実の絵の具は豊かな中間色を生み出せます。`;
+      }
+      
+      document.getElementById('explain-text').innerHTML = explainHtml;
+
+      // 吸収状況のメーター風テキスト
+      const absR = Math.round((1 - finalRates.r) * 100);
+      const absG = Math.round((1 - finalRates.g) * 100);
+      const absB = Math.round((1 - finalRates.b) * 100);
+      
+      const absorbTextElem = document.getElementById('absorb-text');
+      absorbTextElem.style.color = "#475569";
+      absorbTextElem.innerHTML = `📊 絵の具の層が吸収（カット）した光の割合： 赤光を ${absR}% カット ／ 緑光を ${absG}% カット ／ 青光を ${absB}% カット`;
+
+      updateWheelPointer(rOut, gOut, bOut);
+    }
+
+    // --- 色相環の描画処理 ---
+    function drawColorWheel() {
+      const canvas = document.getElementById('color-wheel');
+      const ctx = canvas.getContext('2d');
+      const cx = canvas.width / 2, cy = canvas.height / 2;
+      const radius = canvas.width / 2 - 2;
+      
+      for (let angle = 0; angle < 360; angle++) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        const startRad = (angle - 90) * Math.PI / 180;
+        const endRad = (angle - 89) * Math.PI / 180;
+        ctx.arc(cx, cy, radius, startRad, endRad);
+        ctx.closePath();
+        ctx.fillStyle = `hsl(${angle}, 100%, 50%)`;
+        ctx.fill();
+      }
+    }
+
+    // 色相環上のポインタを更新
+    function updateWheelPointer(r, g, b) {
+      let rN = r / 255, gN = g / 255, bN = b / 255;
+      let max = Math.max(rN, gN, bN), min = Math.min(rN, gN, bN);
+      let h = 0;
+      if (max !== min) {
+        if (max === rN) h = (gN - bN) / (max - min) + (gN < bN ? 6 : 0);
+        else if (max === gN) h = (bN - rN) / (max - min) + 2; 
+        else h = (rN - gN) / (max - min) + 4;
+        h = Math.round(h * 60);
+      }
+      
+      if (r === 255 && g === 0 && b === 0) h = 0;
+      if (r === 255 && g === 255 && b === 0) h = 60;
+      if (r === 0 && g === 255 && b === 0) h = 120;
+      if (r === 0 && g === 255 && b === 255) h = 180;
+      if (r === 0 && g === 0 && b === 255) h = 240;
+      if (r === 255 && g === 0 && b === 255) h = 300;
+
+      const pointer = document.getElementById('wheel-pointer');
+      const rad = (h - 90) * Math.PI / 180;
+      
+      // 中央（白や黒）に近づくほど彩度が下がるためポインタを内側に寄せる
+      const distance = (max - min) * 40; 
+      
+      const px = 55 + distance * Math.cos(rad);
+      const py = 55 + distance * Math.sin(rad);
+      pointer.style.left = `${px}px`;
+      pointer.style.top = `${py}px`;
+    }
+
+    window.onload = init;
+  </script>
 </body>
 </html>
