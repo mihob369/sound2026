@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>リアル色材反射・混色シミュレータ</title>
+  <style>
+    :root {
+      --bg: #f4f6f9; --card: #ffffff; --muted: #5c6370;
+      --accent: #4f46e5; --panel-border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: #111; padding: 20px; }
+    .container { max-width: 900px; margin: 10px auto; padding: 24px; background: var(--card); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; text-align: center; }
+    .subtitle { text-align: center; color: var(--muted); margin-bottom: 20px; font-size: 0.9rem; }
+    
+    .modes { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap; }
+    .mode-btn { padding: 10px 20px; border-radius: 24px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; font-weight: 600; color: #475569; }
+    .mode-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 基礎理論モード */
+    .basic-layout { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+    .wheel-picker { display: flex; flex-direction: column; align-items: center; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--panel-border); }
+    #interactive-wheel { cursor: pointer; border-radius: 50%; }
+    .wheel-hint { font-size: 0.85rem; color: var(--muted); margin-top: 12px; text-align: center; line-height: 1.4; }
+    
+    .basic-controls { flex: 1; min-width: 380px; }
+    .mix-type-toggle { display: flex; gap: 12px; margin-bottom: 16px; background: #f1f5f9; padding: 12px; border-radius: 12px; justify-content: center; }
+    .mix-type-toggle label { cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: bold; color: #334155;}
+    
+    .formula-display { background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; min-height: 220px;}
+    .equation { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;}
+    
+    .swatch-container { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .color-swatch { width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-weight: bold; text-shadow: 0 1px 2px rgba(255,255,255,0.8); font-size: 0.9rem; position: relative;}
+    .result-swatch { width: 70px; height: 70px; border-radius: 16px; font-size: 1rem; text-align: center; line-height: 1.2; position: relative;}
+    .swatch-rgb { font-size: 0.7rem; color: #475569; font-family: monospace; background: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-weight: bold; border: 1px solid #e2e8f0; }
+    .swatch-label { font-size: 0.75rem; font-weight: bold; color: #ef4444; margin-bottom: 2px; height: 1em; }
+    
+    .math-sign { font-size: 1.3rem; font-weight: bold; color: #475569; margin: 16px 4px 0 4px; }
+    .basic-explain { font-size: 0.85rem; line-height: 1.6; color: #334155; text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 16px; }
+
+    /* 物理シミュレータ */
+    .simulator-card { background: #fff; border: 1px solid var(--panel-border); border-radius: 14px; padding: 16px; margin-top: 20px; }
+    .control-box { background: #fff; padding: 16px; border-radius: 12px; border: 1px solid var(--panel-border); margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    label { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; display:block;}
+    select { width: 100%; padding: 8px; border-radius: 8px; font-weight: bold; }
+    .scene-wrap { background: #fafafa; border-radius: 10px; border: 1px solid #e2e8f0; padding: 5px; overflow-x: auto; }
+    .result-section { display: flex; gap: 20px; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
+    .result-color { width: 140px; height: 90px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0;}
+    .result-label { font-size: 1.1rem; font-weight: bold; }
+    .explain { font-size: 0.9rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>光と色材の混色・反射シミュレータ</h1>
+    <p class="subtitle">直感的な色相環ベースで、中間の色が生まれる理屈（ベクトル加算・割合調整）を学びます。</p>
+    
+    <nav class="modes">
+      <button onclick="setMode('basic')" class="mode-btn active" id="btn-basic">1. 基礎理論（色相環で実験）</button>
+      <button onclick="setMode('mix')" class="mode-btn" id="btn-mix">2. 物理シミュレータ（反射のグラデーション）</button>
+    </nav>
+
+    <section id="panel-basic" class="panel active">
+      <div class="basic-layout">
+        <div class="wheel-picker">
+          <canvas id="interactive-wheel" width="280" height="280"></canvas>
+          <div class="wheel-hint">
+            <strong>RGB・CMY（大きな丸）をクリック！</strong><br>
+            ❶と❷を選んで、間の色がどうなるか確認しよう。
+          </div>
+        </div>
+        
+        <div class="basic-controls">
+          <div class="mix-type-toggle">
+            <label><input type="radio" name="mixType" value="additive" checked onchange="updateBasicMode()"> 💡加法混色（光の足し算）</label>
+            <label><input type="radio" name="mixType" value="subtractive" onchange="updateBasicMode()"> 🎨減法混色（光の引き算）</label>
+          </div>
+          
+          <div class="formula-display">
+            <div id="equation-container" class="equation"></div>
+            <div id="basic-explain-text" class="basic-explain"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-mix" class="panel simulator-card">
+      <p style="font-size: 0.9rem; margin-top:0; color:#475569;">光の「透過・反射率のグラデーション」による、パステルカラーなどの中間色ができる理屈を学びます。</p>
+      <div class="control-box">
+        <div><label>絵の具 1（フィルター1）：</label><select id="mix-ink1" onchange="updatePhysics()"></select></div>
+        <div><label>絵の具 2（フィルター2）：</label><select id="mix-ink2" onchange="updatePhysics()"></select></div>
+      </div>
+      <div class="scene-wrap">
+        <canvas id="ray-scene" width="840" height="360"></canvas>
+      </div>
+      <div class="result-section">
+        <div class="result-color" id="result-patch">
+          <div class="result-label" id="result-name"></div>
+          <div class="swatch-rgb" id="result-rgb-val" style="margin-top:4px;"></div>
+        </div>
+        <div class="explain"><div id="explain-text"></div></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const colors = [
+      { id: 'R', name: '赤', hex: '#ff0000', rgb: [1, 0, 0], selectable: true, label: 'R' },
+      { id: 'O', name: '橙', hex: '#ff8000', rgb: [1, 0.5, 0], selectable: false },
+      { id: 'Y', name: '黄', hex: '#ffff00', rgb: [1, 1, 0], selectable: true, label: 'Y' },
+      { id: 'YG', name: '黄緑', hex: '#80ff00', rgb: [0.5, 1, 0], selectable: false },
+      { id: 'G', name: '緑', hex: '#00ff00', rgb: [0, 1, 0], selectable: true, label: 'G' },
+      { id: 'BG', name: '青緑', hex: '#00ff80', rgb: [0, 1, 0.5], selectable: false },
+      { id: 'C', name: 'シアン', hex: '#00ffff', rgb: [0, 1, 1], selectable: true, label: 'C' },
+      { id: 'AZ', name: '空色', hex: '#0080ff', rgb: [0, 0.5, 1], selectable: false },
+      { id: 'B', name: '青', hex: '#0000ff', rgb: [0, 0, 1], selectable: true, label: 'B' },
+      { id: 'V', name: '紫', hex: '#8000ff', rgb: [0.5, 0, 1], selectable: false },
+      { id: 'M', name: 'マゼンタ', hex: '#ff00ff', rgb: [1, 0, 1], selectable: true, label: 'M' },
+      { id: 'P', name: 'ピンク', hex: '#ff0080', rgb: [1, 0, 0.5], selectable: false }
+    ];
+
+    const inkData = {
+      "シアン (C)":  { hex: "#00ffff", r: 0, g: 1, b: 1, absorbText: "赤(R)を吸収" },
+      "マゼンタ (M)":{ hex: "#ff00ff", r: 1, g: 0, b: 1, absorbText: "緑(G)を吸収" },
+      "イエロー (Y)":{ hex: "#ffff00", r: 1, g: 1, b: 0, absorbText: "青(B)を吸収" },
+      "赤 (R)":      { hex: "#ff0000", r: 1, g: 0, b: 0, absorbText: "GとBを吸収" },
+      "緑 (G)":      { hex: "#00ff00", r: 0, g: 1, b: 0, absorbText: "RとBを吸収" },
+      "青 (B)":      { hex: "#0000ff", r: 0, g: 0, b: 1, absorbText: "RとGを吸収" },
+      "白 (W)":      { hex: "#ffffff", r: 1, g: 1, b: 1, absorbText: "吸収なし" },
+      "黒 (K)":      { hex: "#1e293b", r: 0, g: 0, b: 0, absorbText: "全吸収" }
+    };
+
+    let selectedIndices = [6, 10];
+    let resultIndex = -1;
+    let isResultCenter = false;
+
+    function init() {
+      const m1 = document.getElementById('mix-ink1');
+      const m2 = document.getElementById('mix-ink2');
+      Object.keys(inkData).forEach(name => {
+        m1.add(new Option(`${name} ※${inkData[name].absorbText}`, name));
+        m2.add(new Option(`${name} ※${inkData[name].absorbText}`, name));
+      });
+      m1.value = "シアン (C)"; m2.value = "マゼンタ (M)";
+      updateBasicMode();
+      updatePhysics();
+    }
+
+    function setMode(mode) {
+      document.getElementById('btn-basic').className = 'mode-btn' + (mode === 'basic' ? ' active' : '');
+      document.getElementById('btn-mix').className = 'mode-btn' + (mode === 'mix' ? ' active' : '');
+      document.getElementById('panel-basic').className = 'panel' + (mode === 'basic' ? ' active' : '');
+      document.getElementById('panel-mix').className = 'panel' + (mode === 'mix' ? ' active' : '');
+    }
+
+    function setupInteractiveWheel() {
+      const canvas = document.getElementById('interactive-wheel');
+      const ctx = canvas.getContext('2d');
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = 90; // 少し小さくして外側のラベルの余白を作る
+      const sliceAngle = (Math.PI * 2) / 12;
+      const isSubtractive = document.querySelector('input[name="mixType"]:checked').value === 'subtractive';
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 色相環の描画
+      colors.forEach((color, i) => {
+        const startAngle = i * sliceAngle - sliceAngle / 2 - Math.PI / 2;
+        const endAngle = startAngle + sliceAngle;
+        const currentRadius = color.selectable ? radius : radius - 15;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, currentRadius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = color.hex;
+        ctx.fill();
+
+        if (color.selectable) {
+            ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,0.1)"; ctx.stroke();
+            const textAngle = startAngle + sliceAngle / 2;
+            const textRadius = radius * 0.65;
+            const tx = cx + Math.cos(textAngle) * textRadius;
+            const ty = cy + Math.sin(textAngle) * textRadius;
+
+            ctx.fillStyle = (i === 2 || i === 6 || i === 4) ? "#111" : "#fff";
+            ctx.font = "bold 16px sans-serif";
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(color.label, tx, ty);
+        }
+      });
+
+      // マーカーの描画
+      colors.forEach((color, i) => {
+        const startAngle = i * sliceAngle - sliceAngle / 2 - Math.PI / 2;
+        const textAngle = startAngle + sliceAngle / 2;
+        
+        // ❶、❷の丸バッジ
+        if (selectedIndices.includes(i)) {
+          const badgeIndex = selectedIndices.indexOf(i) + 1;
+          const tx = cx + Math.cos(textAngle) * (radius - 12);
+          const ty = cy + Math.sin(textAngle) * (radius - 12);
+          drawBadge(ctx, tx, ty, badgeIndex === 1 ? '❶' : '❷', "#111", "#fff");
+        }
+
+        // 結果の★マーク
+        if (i === resultIndex && !isResultCenter) {
+          const tx = cx + Math.cos(textAngle) * (radius + 10);
+          const ty = cy + Math.sin(textAngle) * (radius + 10);
+          drawBadge(ctx, tx, ty, '★', "#ef4444", "#fff");
+        }
+      });
+
+      // 減法混色時の「吸収ラベル」の描画（色相環の反対側）
+      if (isSubtractive) {
+        selectedIndices.forEach((selIdx, idx) => {
+            const absorbIdx = (selIdx + 6) % 12; // 補色（反対側）のインデックス
+            const startAngle = absorbIdx * sliceAngle - sliceAngle / 2 - Math.PI / 2;
+            const textAngle = startAngle + sliceAngle / 2;
+            // 結果★と被らないよう、さらに外側に配置
+            const txAbs = cx + Math.cos(textAngle) * (radius + 32);
+            const tyAbs = cy + Math.sin(textAngle) * (radius + 32);
+            
+            drawRectBadge(ctx, txAbs, tyAbs, (idx === 0 ? '❶' : '❷') + 'の吸収', "#475569", "#fff");
+        });
+      }
+
+      // 白・黒など、色相環の中心に結果を描画する場合
+      if (isResultCenter) {
+          ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI*2);
+          const isWhite = resultIndex === 999;
+          ctx.fillStyle = isWhite ? "#ffffff" : "#222222"; ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = "#cbd5e1"; ctx.stroke();
+          ctx.fillStyle = isWhite ? "#111" : "#fff";
+          ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText("★", cx, cy);
+      }
+
+      if (!canvas.dataset.initialized) {
+        canvas.addEventListener('click', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left - cx;
+          const y = e.clientY - rect.top - cy;
+          let angle = Math.atan2(y, x) + Math.PI / 2;
+          if (angle < 0) angle += Math.PI * 2;
+          const adjustedAngle = (angle + (sliceAngle / 2)) % (Math.PI * 2);
+          const clickedIndex = Math.floor(adjustedAngle / sliceAngle);
+
+          if (colors[clickedIndex].selectable && !selectedIndices.includes(clickedIndex)) {
+            selectedIndices.shift();
+            selectedIndices.push(clickedIndex);
+            updateBasicMode();
+          }
+        });
+        canvas.dataset.initialized = "true";
+      }
+    }
+
+    function drawBadge(ctx, x, y, text, bg, fg) {
+        ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2);
+        ctx.fillStyle = bg; ctx.fill();
+        ctx.fillStyle = fg; ctx.font = "bold 14px sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(text, x, y);
+    }
+
+    function drawRectBadge(ctx, x, y, text, bg, fg) {
+        ctx.font = "bold 11px sans-serif";
+        const w = ctx.measureText(text).width + 12;
+        const h = 20;
+        const r = 4;
+        const rx = x - w/2, ry = y - h/2;
+        ctx.beginPath();
+        ctx.moveTo(rx + r, ry);
+        ctx.lineTo(rx + w - r, ry); ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
+        ctx.lineTo(rx + w, ry + h - r); ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
+        ctx.lineTo(rx + r, ry + h); ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
+        ctx.lineTo(rx, ry + r); ctx.quadraticCurveTo(rx, ry, rx + r, ry);
+        ctx.closePath();
+        ctx.fillStyle = bg; ctx.fill();
+        ctx.fillStyle = fg;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(text, x, y);
+    }
+
+    function getHueIndex(r, g, b) {
+      if (r === g && g === b) return (r > 0.5) ? 999 : -999;
+      let max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0;
+      if (max === r) h = ((g - b) / (max - min)) + (g < b ? 6 : 0);
+      else if (max === g) h = ((b - r) / (max - min)) + 2;
+      else h = ((r - g) / (max - min)) + 4;
+      h = h * 60;
+      return Math.round(h / 30) % 12;
+    }
+
+    function getResultName(resRGB) {
+        const idx = getHueIndex(resRGB[0], resRGB[1], resRGB[2]);
+        if (idx === 999) return { id: "白", hex: "#ffffff" };
+        if (idx === -999) return { id: "黒", hex: "#222222" };
+        if (colors[idx].selectable) {
+            return { id: colors[idx].name, hex: rgbToHex(resRGB) };
+        } else {
+            return { id: "中間色", hex: rgbToHex(resRGB) };
+        }
+    }
+
+    function updateBasicMode() {
+      const isAdditive = document.querySelector('input[name="mixType"]:checked').value === 'additive';
+      const c1 = colors[selectedIndices[0]];
+      const c2 = colors[selectedIndices[1]];
+      
+      let res_int = [0,0,0];
+      
+      if (isAdditive) {
+        let sumRGB = [c1.rgb[0] + c2.rgb[0], c1.rgb[1] + c2.rgb[1], c1.rgb[2] + c2.rgb[2]];
+        let maxVal = Math.max(...sumRGB);
+        let scale = maxVal > 1 ? 1 / maxVal : 1;
+        
+        // UIに表示するための正確な整数値を計算
+        let add1_int = [Math.round(c1.rgb[0]*scale*255), Math.round(c1.rgb[1]*scale*255), Math.round(c1.rgb[2]*scale*255)];
+        let add2_int = [Math.round(c2.rgb[0]*scale*255), Math.round(c2.rgb[1]*scale*255), Math.round(c2.rgb[2]*scale*255)];
+        res_int = [
+            Math.min(255, add1_int[0] + add2_int[0]),
+            Math.min(255, add1_int[1] + add2_int[1]),
+            Math.min(255, add1_int[2] + add2_int[2])
+        ];
+        
+        let maxRes = Math.max(...res_int);
+        let pureHex = rgbToHex([0,0,0]);
+        if (maxRes > 0) pureHex = rgbToHex([res_int[0]/maxRes, res_int[1]/maxRes, res_int[2]/maxRes]);
+        
+        renderAdditiveUI(c1, c2, res_int, add1_int, add2_int, pureHex);
+
+      } else {
+        let a1 = [1 - c1.rgb[0], 1 - c1.rgb[1], 1 - c1.rgb[2]];
+        let a2 = [1 - c2.rgb[0], 1 - c2.rgb[1], 1 - c2.rgb[2]];
+        let aSum = [a1[0] + a2[0], a1[1] + a2[1], a1[2] + a2[2]];
+        let maxA = Math.max(...aSum);
+        let scale = maxA > 1 ? 1 / maxA : 1;
+        
+        let abs1_int = [Math.round(a1[0]*scale*255), Math.round(a1[1]*scale*255), Math.round(a1[2]*scale*255)];
+        let abs2_int = [Math.round(a2[0]*scale*255), Math.round(a2[1]*scale*255), Math.round(a2[2]*scale*255)];
+        res_int = [
+            Math.max(0, 255 - abs1_int[0] - abs2_int[0]),
+            Math.max(0, 255 - abs1_int[1] - abs2_int[1]),
+            Math.max(0, 255 - abs1_int[2] - abs2_int[2])
+        ];
+        
+        // --- ★ 暗くなった色（吸収色や結果色）を見た目上だけ明るい純色に補正する処理 ---
+        let maxRes = Math.max(...res_int);
+        let pureHex = maxRes > 0 ? rgbToHex([res_int[0]/maxRes, res_int[1]/maxRes, res_int[2]/maxRes]) : '#000000';
+
+        let maxAbs1 = Math.max(...abs1_int);
+        let pureHex1 = maxAbs1 > 0 ? rgbToHex([abs1_int[0]/maxAbs1, abs1_int[1]/maxAbs1, abs1_int[2]/maxAbs1]) : '#000000';
+
+        let maxAbs2 = Math.max(...abs2_int);
+        let pureHex2 = maxAbs2 > 0 ? rgbToHex([abs2_int[0]/maxAbs2, abs2_int[1]/maxAbs2, abs2_int[2]/maxAbs2]) : '#000000';
+        
+        renderSubtractiveUI(c1, c2, res_int, abs1_int, abs2_int, pureHex, pureHex1, pureHex2);
+      }
+
+      resultIndex = getHueIndex(res_int[0]/255, res_int[1]/255, res_int[2]/255);
+      isResultCenter = (resultIndex === 999 || resultIndex === -999);
+      setupInteractiveWheel();
+    }
+
+    function renderAdditiveUI(c1, c2, res_int, add1_int, add2_int, pureHex) {
+        const container = document.getElementById('equation-container');
+        const resFloat = [res_int[0]/255, res_int[1]/255, res_int[2]/255];
+        const resData = getResultName(resFloat);
+        
+        let c1Hex = rgbToHex(c1.rgb);
+        let c2Hex = rgbToHex(c2.rgb);
+
+        container.innerHTML = `
+            ${createSwatchHTML('❶', c1Hex, c1.id, add1_int, false, c1Hex)}
+            <div class="math-sign">＋</div>
+            ${createSwatchHTML('❷', c2Hex, c2.id, add2_int, false, c2Hex)}
+            <div class="math-sign">＝</div>
+            ${createSwatchHTML('結果 (★)', rgbToHex(resFloat), resData.id, res_int, true, pureHex)}
+        `;
+
+        document.getElementById('basic-explain-text').innerHTML = `
+        <strong>【加法混色（バランス調整版）】</strong><br>
+        デジタル上限値（255）で白飛びさせず、光の比率を維持して正規化しています。<br>
+        ※表示されている（）内の数値は、<strong>左辺と右辺の足し算が完全に一致</strong>するように計算されています。`;
+    }
+
+    function renderSubtractiveUI(c1, c2, res_int, abs1_int, abs2_int, pureHex, pureHex1, pureHex2) {
+        const container = document.getElementById('equation-container');
+        const resFloat = [res_int[0]/255, res_int[1]/255, res_int[2]/255];
+        const resData = getResultName(resFloat);
+        
+        let a1Hex = rgbToHex([abs1_int[0]/255, abs1_int[1]/255, abs1_int[2]/255]);
+        let a2Hex = rgbToHex([abs2_int[0]/255, abs2_int[1]/255, abs2_int[2]/255]);
+
+        // 吸収する色の具体的な名前（シアンなど）を取得
+        const abs1Name = getResultName([abs1_int[0]/255, abs1_int[1]/255, abs1_int[2]/255]).id;
+        const abs2Name = getResultName([abs2_int[0]/255, abs2_int[1]/255, abs2_int[2]/255]).id;
+
+        container.innerHTML = `
+            ${createSwatchHTML('光源', '#ffffff', '白', [255,255,255], false)}
+            <div class="math-sign">－</div>
+            ${createSwatchHTML('❶の吸収', a1Hex, abs1Name, abs1_int, false, pureHex1)}
+            <div class="math-sign">－</div>
+            ${createSwatchHTML('❷の吸収', a2Hex, abs2Name, abs2_int, false, pureHex2)}
+            <div class="math-sign">＝</div>
+            ${createSwatchHTML('結果 (★)', rgbToHex(resFloat), resData.id, res_int, true, pureHex)}
+        `;
+
+        document.getElementById('basic-explain-text').innerHTML = `
+        <strong>【減法混色（数式完全一致＆純色補正版）】</strong><br>
+        白い光から❶と❷が<strong>吸収する光（色相環の反対側の色）</strong>を引き算します。（）内の数値は数式が完全に一致するようになっています。<br>
+        <span style="color:#ef4444; font-weight:bold;">※重要※</span> R(赤)やG(緑)の絵の具は光を多く吸収するため、計算上は「128」などの暗い色（濁った中間色）になります。これが物理的に正しい結果ですが、色相環ツールとして色がわかりやすいよう、<strong>吸収分と結果の背景色だけは明るい純色に補正</strong>して表示しています。`;
+    }
+
+    function createSwatchHTML(labelTop, hex, idStr, valArray, isLarge = false, pureHex = null) {
+        const r255 = valArray[0];
+        const g255 = valArray[1];
+        const b255 = valArray[2];
+        
+        // pureHexが指定されていれば、見た目（背景色）はそれを採用
+        const displayHex = pureHex ? pureHex : hex;
+        
+        const r = parseInt(displayHex.substr(1,2), 16);
+        const g = parseInt(displayHex.substr(3,2), 16);
+        const b = parseInt(displayHex.substr(5,2), 16);
+        const brightness = (r*299 + g*587 + b*114) / 1000;
+        const textColor = brightness < 140 ? "#ffffff" : "#111111";
+        const borderStyle = displayHex === '#ffffff' ? 'border: 2px solid #cbd5e1;' : '';
+        const sizeClass = isLarge ? 'result-swatch' : 'color-swatch';
+
+        return `
+            <div class="swatch-container">
+                <div class="swatch-label">${labelTop}</div>
+                <div class="${sizeClass}" style="background-color: ${displayHex}; color: ${textColor}; ${borderStyle}">
+                    ${idStr}
+                </div>
+                <div class="swatch-rgb">(${r255}, ${g255}, ${b255})</div>
+            </div>
+        `;
+    }
+
+    function rgbToHex(rgb) {
+        return `#${Math.round(rgb[0]*255).toString(16).padStart(2,'0')}${Math.round(rgb[1]*255).toString(16).padStart(2,'0')}${Math.round(rgb[2]*255).toString(16).padStart(2,'0')}`;
+    }
+
+    // 物理シミュレータ側は変更なし
+    function updatePhysics() {
+      const canvas = document.getElementById('ray-scene');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const ink1 = inkData[document.getElementById('mix-ink1').value];
+      const ink2 = inkData[document.getElementById('mix-ink2').value];
+      
+      const finalRates = { r: (ink1.r + ink2.r)/2, g: (ink1.g + ink2.g)/2, b: (ink1.b + ink2.b)/2 };
+      const layout = { light: { x: 80, y: 80 }, eye: { x: 760, y: 80 }, paperY: 300, inkWidth: 460 };
+      
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(120, layout.paperY, 600, 15);
+      ctx.strokeStyle = "#cbd5e1"; ctx.strokeRect(120, layout.paperY, 600, 15);
+      ctx.fillStyle = "#64748b"; ctx.font = "12px sans-serif"; ctx.fillText("白い紙（光を100%反射）", 130, layout.paperY + 12);
+      
+      [ink1, ink2].forEach((ink, idx) => {
+        const layerY = layout.paperY - 12 - (idx * 8);
+        ctx.beginPath(); ctx.moveTo(canvas.width/2 - layout.inkWidth/2, layerY); ctx.lineTo(canvas.width/2 + layout.inkWidth/2, layerY);
+        ctx.strokeStyle = ink.hex; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.globalAlpha = 0.8; ctx.stroke(); ctx.globalAlpha = 1.0;
+      });
+      
+      ctx.font = "36px sans-serif"; ctx.fillText("🔦", layout.light.x - 20, layout.light.y + 12); ctx.fillText("👁", layout.eye.x - 20, layout.eye.y + 12);
+      
+      const rays = [
+        { name: "R", color: "#ff3333", offset: -18, rate: finalRates.r },
+        { name: "G", color: "#22cc44", offset: 0,   rate: finalRates.g },
+        { name: "B", color: "#3366ff", offset: 18,  rate: finalRates.b }
+      ];
+      rays.forEach(ray => {
+        const start = { x: layout.light.x + ray.offset, y: layout.light.y };
+        const refPt = { x: canvas.width / 2 + ray.offset, y: layout.paperY };
+        const end = { x: layout.eye.x + ray.offset, y: layout.eye.y };
+        ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(refPt.x, refPt.y);
+        ctx.strokeStyle = ray.color; ctx.lineWidth = 4; ctx.globalAlpha = 0.2; ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        if (ray.rate > 0.05) {
+          ctx.beginPath(); ctx.moveTo(refPt.x, refPt.y); ctx.lineTo(end.x, end.y);
+          ctx.lineWidth = 1 + (ray.rate * 5); ctx.globalAlpha = 0.15 + (ray.rate * 0.85); ctx.stroke();
+        } else {
+          ctx.fillStyle = "#ef4444"; ctx.font = "bold 16px sans-serif"; ctx.fillText("✕", refPt.x - 6, layout.paperY - 24);
+        }
+        ctx.globalAlpha = 1.0;
+      });
+      
+      const rOut = Math.round(finalRates.r * 255), gOut = Math.round(finalRates.g * 255), bOut = Math.round(finalRates.b * 255);
+      const patch = document.getElementById('result-patch');
+      patch.style.background = `rgb(${rOut}, ${gOut}, ${bOut})`;
+      patch.style.color = (rOut*0.299 + gOut*0.587 + bOut*0.114) < 135 ? "#fff" : "#111";
+      
+      const resNameData = getResultName([finalRates.r, finalRates.g, finalRates.b]);
+      
+      document.getElementById('result-name').textContent = resNameData.id;
+      document.getElementById('result-rgb-val').textContent = `RGB(${rOut}, ${gOut}, ${bOut})`;
+      document.getElementById('explain-text').innerHTML = `<strong>💡 光の残存率とパステルの理屈</strong><br>2つの絵の具が混ざることで、光を吸い取る強さが半分に薄まりました。<br>目に届く光は 🔴<strong>${Math.round(finalRates.r*100)}%</strong> / 🟢<strong>${Math.round(finalRates.g*100)}%</strong> / 🔵<strong>${Math.round(finalRates.b*100)}%</strong> です。<br>光の残存率のバランスによって、直感的な中間色が生まれます。`;
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
