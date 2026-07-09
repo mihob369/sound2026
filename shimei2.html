@@ -743,7 +743,7 @@ function selectCard(card,num){
 }
 
 /* ======================
-   2. 的あて (連続停止時間判定を修正)
+   2. 的あて (連続4秒判定に修正)
 ====================== */
 const positions = [];
 const targetArea_ele = document.getElementById("targetArea");
@@ -792,8 +792,8 @@ let gameOverTimeout = null;
 function updateAimPosition() {
     if(horizontalLocked) {
         horizontalStopTime += 20;
-        // 連続2.5秒（2500ms）停止でゲームオーバー
-        if(horizontalStopTime >= 2500) {
+        // 連続4秒（4000ms）停止でゲームオーバー
+        if(horizontalStopTime >= 4000) {
             resultDiv.textContent = "⏰ 時間切れ！ゲームオーバー";
             resetTargetGame();
             if(gameOverTimeout) clearTimeout(gameOverTimeout);
