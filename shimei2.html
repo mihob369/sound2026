@@ -19,6 +19,7 @@ body{
 
 h1{
     margin-top:10px;
+    font-size:clamp(20px, 5vw, 40px);
 }
 
 .topButtons{
@@ -35,7 +36,7 @@ button{
     border-radius:10px;
     margin:5px;
     cursor:pointer;
-    font-size:16px;
+    font-size:clamp(12px, 2vw, 16px);
 }
 
 .modeButton{
@@ -48,7 +49,7 @@ button{
 }
 
 #result{
-    font-size:40px;
+    font-size:clamp(24px, 6vw, 40px);
     font-weight:bold;
     min-height:60px;
     margin:15px;
@@ -74,7 +75,7 @@ button{
     width:95%;
     margin:auto;
     display:grid;
-    grid-template-columns:repeat(12,1fr);
+    grid-template-columns:repeat(auto-fit, minmax(35px, 1fr));
     gap:6px;
     max-width:800px;
     margin-bottom:20px;
@@ -86,6 +87,7 @@ button{
     border-radius:8px;
     cursor:pointer;
     user-select:none;
+    font-size:clamp(12px, 2vw, 14px);
 }
 
 .excludeNum.off{
@@ -124,7 +126,7 @@ button{
     width:95%;
     margin:auto;
     display:grid;
-    grid-template-columns:repeat(6,1fr);
+    grid-template-columns:repeat(auto-fit, minmax(80px, 1fr));
     gap:15px;
     max-width:1000px;
 }
@@ -173,17 +175,19 @@ button{
    2. 的あて
 ====================== */
 .targetGameWrap{
-    width:1100px;
+    width:95%;
+    max-width:1100px;
     margin:0 auto;
     display:flex;
-    justify-content:center;
-    align-items:flex-start;
+    flex-direction:column;
     gap:20px;
+    align-items:center;
 }
 
 .targetArea{
-    width:900px;
-    height:520px;
+    width:100%;
+    max-width:900px;
+    aspect-ratio: 900/520;
     position:relative;
     background:#202020;
     border:3px solid #555;
@@ -254,12 +258,12 @@ button{
 ====================== */
 .gachaContainer { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .gachaMachine { width: 200px; height: 260px; background: #e91e63; border-radius: 40px 40px 20px 20px; position: relative; border: 4px solid #fff; box-shadow: 0 8px 0 #c2185b; }
-.gachaGlass { width: 160px; height: 120px; background: rgba(255, 255, 255, 0.2); border-radius: 30px 30px 10px 10px; margin: 15px auto 0; position: relative; overflow: hidden; border: 2px solid rgba(255,255,255,0.4); }
+.gachaGlass { width: 160px; height: 120px; background: rgba(255, 255, 255, 0.2); border-radius: 30px 30px 10px 10px; margin: 15px auto 0; position: relative; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.5); }
 .gachaBalls { font-size: 24px; position: absolute; width: 100%; bottom: 5px; left: 0; letter-spacing: -2px; user-select: none; }
 .gachaHandle { width: 60px; height: 60px; background: #fff; border-radius: 50%; margin: 15px auto 0; position: relative; border: 4px solid #888; cursor: pointer; transition: transform 0.5s ease; }
 .gachaHandle::before { content: ""; position: absolute; width: 50px; height: 12px; background: #888; top: 20px; left: 1px; border-radius: 6px; }
 .gachaPocket { width: 50px; height: 40px; background: #333; border-radius: 10px 10px 0 0; position: absolute; bottom: 0; left: 75px; }
-#gachaOutput { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(to bottom, #ff5722 50%, #fff 50%); border: 3px solid #333; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; color: #333; opacity: 0; transform: translateY(-50px) scale(0.5); }
+#gachaOutput { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(to bottom, #ff5722 50%, #fff 50%); border: 3px solid #333; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; }
 .shake { animation: shakeAnim 0.5s ease-in-out; }
 @keyframes shakeAnim { 0%, 100% { transform: translate(0, 0); } 20%, 60% { transform: translate(-5px, 5px); } 40%, 80% { transform: translate(5px, -5px); } }
 .popCapsule { animation: popAnim 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -268,17 +272,28 @@ button{
 /* ======================
    4. 鬼ごっこ
 ====================== */
-.tagArea { width: 900px; height: 400px; position: relative; background: #2e7d32; border: 4px solid #fff; margin: 10px auto; overflow: hidden; border-radius: 15px; }
-.runner { position: absolute; width: 45px; height: 45px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: white; border: 2px solid white; transition: transform 0.2s; }
+.tagArea { 
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: 900/400;
+    position: relative; 
+    background: #2e7d32; 
+    border: 4px solid #fff; 
+    margin: 10px auto; 
+    overflow: hidden; 
+    border-radius: 15px; 
+}
+.runner { position: absolute; width: 45px; height: 45px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: white; border: 2px solid #fff; }
 .runner.captured { background: #ffeb3b; color: black; transform: scale(1.4); border-color: #f44336; z-index: 10; }
-#oni { position: absolute; width: 55px; height: 55px; background: #f44336; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 28px; border: 3px solid white; z-index: 5; left: 422px; top: 172px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+#oni { position: absolute; width: 55px; height: 55px; background: #f44336; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 28px; border: 3px solid white; z-index: 20; }
 
 /* ======================
    5. 猫のフェイント
 ===================== */
 .catArea {
-    width: 900px;
-    height: 420px;
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: 900/420;
     position: relative;
     background: #5d4037;
     border: 4px solid #fff;
@@ -317,8 +332,6 @@ button{
     justify-content: center;
     align-items: center;
     z-index: 10;
-    left: 420px;
-    top: 180px;
     transition: left 0.1s ease-out, top 0.1s ease-out;
 }
 
@@ -326,12 +339,14 @@ button{
    6. スロット
 ====================== */
 .slotMachine {
-    width: 320px;
+    width: 100%;
+    max-width: 320px;
     background: #333;
     border: 6px solid #ffd700;
     border-radius: 20px;
     margin: 20px auto;
     padding: 20px;
+    box-sizing: border-box;
     box-shadow: 0 10px 20px rgba(0,0,0,0.7);
 }
 .slotReels {
@@ -369,6 +384,120 @@ button{
     font-size: 18px;
     min-height: 24px;
     margin-top: 10px;
+}
+
+/* ======================
+   レスポンシブ対応
+====================== */
+@media (max-width: 768px) {
+    .cardContainer {
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+        gap: 10px;
+    }
+
+    .targetGameWrap {
+        flex-direction: column;
+    }
+
+    .controlPanel {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-end;
+    }
+
+    .angleWrapper {
+        height: 200px;
+    }
+
+    .gameButton {
+        width: 120px;
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    .slotMachine {
+        max-width: 280px;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 24px;
+    }
+
+    .cardContainer {
+        grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+        gap: 8px;
+    }
+
+    .card {
+        height: 80px;
+    }
+
+    .cardFront, .cardBack {
+        font-size: 28px;
+    }
+
+    .gameButton {
+        width: 100px;
+        font-size: 13px;
+        padding: 6px;
+    }
+
+    .targetArea {
+        aspect-ratio: auto;
+        height: 300px;
+    }
+
+    .target {
+        width: 60px;
+        height: 60px;
+        font-size: 16px;
+    }
+
+    .tagArea {
+        aspect-ratio: auto;
+        height: 250px;
+    }
+
+    .catArea {
+        aspect-ratio: auto;
+        height: 280px;
+    }
+
+    .runner {
+        width: 35px;
+        height: 35px;
+        font-size: 12px;
+    }
+
+    #oni {
+        width: 45px;
+        height: 45px;
+        font-size: 24px;
+    }
+
+    #cat {
+        font-size: 45px;
+        width: 50px;
+        height: 50px;
+    }
+
+    .fishSnack {
+        width: 50px;
+        height: 50px;
+        font-size: 14px;
+    }
+
+    .slotMachine {
+        max-width: 260px;
+        padding: 15px;
+    }
+
+    .slotNotice {
+        font-size: 14px;
+    }
 }
 
 </style>
@@ -614,12 +743,35 @@ function selectCard(card,num){
 }
 
 /* ======================
-   2. 的あて (ダイレクト発射対応版)
+   2. 的あて (連続停止時間判定を修正)
 ====================== */
 const positions = [];
-for(let i=1;i<=24;i++) positions.push({ num:i, x:100 + (i%6)*120, y:40 + Math.floor((i-1)/6)*110 });
+const targetArea_ele = document.getElementById("targetArea");
+let targetAreaWidth = 900;
+let targetAreaHeight = 520;
+
+function updateTargetAreaSize() {
+    if (!targetArea_ele) return;
+    const rect = targetArea_ele.getBoundingClientRect();
+    targetAreaWidth = rect.width || 900;
+    targetAreaHeight = rect.height || 520;
+}
+
+function initPositions(){
+    positions.length = 0;
+    updateTargetAreaSize();
+    for(let i=1;i<=24;i++) {
+        positions.push({ 
+            num:i, 
+            x: 50 + (i%6) * (targetAreaWidth/6), 
+            y: 40 + Math.floor((i-1)/6) * (targetAreaHeight/4)
+        });
+    }
+}
+initPositions();
 
 function createTargets(){
+    updateTargetAreaSize();
     document.querySelectorAll(".target").forEach(t=>t.remove());
     positions.forEach(p=>{
         const div = document.createElement("div");
@@ -634,36 +786,62 @@ createTargets();
 
 const movingAim = document.getElementById("movingAim");
 let aimX = 0, direction = 1, horizontalLocked = false;
-setInterval(()=>{
-    if(horizontalLocked) return;
-    aimX += direction * 5;
-    if(aimX > 860) direction = -1;
-    if(aimX < 0) direction = 1;
+let horizontalStopTime = 0;
+let gameOverTimeout = null;
+
+function updateAimPosition() {
+    if(horizontalLocked) {
+        horizontalStopTime += 20;
+        // 連続2.5秒（2500ms）停止でゲームオーバー
+        if(horizontalStopTime >= 2500) {
+            resultDiv.textContent = "⏰ 時間切れ！ゲームオーバー";
+            resetTargetGame();
+            if(gameOverTimeout) clearTimeout(gameOverTimeout);
+            return;
+        }
+    } else {
+        horizontalStopTime = 0;
+        updateTargetAreaSize();
+        aimX += direction * 5;
+        if(aimX > targetAreaWidth - 22) direction = -1;
+        if(aimX < 0) direction = 1;
+    }
     movingAim.style.left = aimX+"px";
-},20);
+}
+
+let aimInterval = setInterval(updateAimPosition, 20);
 
 const angleCursor = document.getElementById("angleCursor");
 let angleY = 0, angleDir = 1, angleLocked = false;
 setInterval(()=>{
     if(angleLocked) return;
+    updateTargetAreaSize();
     angleY += angleDir * 4;
-    if(angleY > 240) angleDir = -1;
+    const maxAngle = 240;
+    if(angleY > maxAngle) angleDir = -1;
     if(angleY < 0) angleDir = 1;
     angleCursor.style.top = angleY+"px";
 },20);
 
+function resetTargetGame() {
+    horizontalLocked = false;
+    angleLocked = false;
+    horizontalStopTime = 0;
+}
+
 function lockHorizontal(){ 
     if(horizontalLocked) return;
-    horizontalLocked = true; 
+    horizontalLocked = true;
+    horizontalStopTime = 0;
     playSound('slot_stop'); 
 }
 
 function lockAngle(){ 
-    if(angleLocked) return; // 演出中の連続クリックを防止
+    if(angleLocked) return;
     
-    // 左右を確定させずに発射ボタンを押した場合、その瞬間の横位置をここで確定する
     if(!horizontalLocked) {
         horizontalLocked = true;
+        horizontalStopTime = 0;
     }
     
     angleLocked = true; 
@@ -671,13 +849,17 @@ function lockAngle(){
 }
 
 function shootArrow(){
+    updateTargetAreaSize();
     let best = null, bestScore = 999999;
     positions.forEach(p=>{
         if(excluded.includes(p.num)) return;
         const dx = Math.abs(p.x - aimX), dy = Math.abs(p.y - angleY);
         if(dx + dy < bestScore) { bestScore = dx + dy; best = p; }
     });
-    if(!best) return;
+    if(!best) {
+        resetTargetGame();
+        return;
+    }
 
     const target = [...document.querySelectorAll(".target")].find(t=>Number(t.dataset.number) === best.num);
     target.classList.add("hit");
@@ -685,14 +867,14 @@ function shootArrow(){
     arrow.className = "arrow"; arrow.textContent = "🏹"; arrow.style.left = aimX+"px"; arrow.style.bottom = "0px";
     targetArea.appendChild(arrow);
 
-    arrow.animate([{ left:aimX+"px", bottom:"0px" }, { left:best.x+"px", bottom:(450-best.y)+"px" }],{ duration:600, easing:"ease-out" });
+    arrow.animate([{ left:aimX+"px", bottom:"0px" }, { left:best.x+"px", bottom:(targetAreaHeight-best.y)+"px" }],{ duration:600, easing:"ease-out" });
     setTimeout(()=>{
         playSound('hit');
         resultDiv.textContent = `🎯 ${best.num} 番 命中！`;
         excluded.push(best.num);
         refreshDisabled();
         arrow.remove(); target.classList.remove("hit");
-        horizontalLocked = false; angleLocked = false;
+        resetTargetGame();
     },700);
 }
 
@@ -736,20 +918,29 @@ function playGacha() {
 ====================== */
 const tagArea = document.getElementById("tagArea"), oni = document.getElementById("oni");
 let runners = [], tagInterval = null, isTagRunning = false;
+let tagAreaWidth = 900, tagAreaHeight = 400;
+
+function updateTagAreaSize() {
+    if (!tagArea) return;
+    const rect = tagArea.getBoundingClientRect();
+    tagAreaWidth = rect.width || 900;
+    tagAreaHeight = rect.height || 400;
+}
 
 function initTagGame() {
     if(isTagRunning) return;
 
     document.querySelectorAll(".runner").forEach(r => r.remove());
-    oni.style.left = "422px"; oni.style.top = "172px";
+    updateTagAreaSize();
+    oni.style.left = (tagAreaWidth/2 - 27)+"px"; oni.style.top = (tagAreaHeight/2 - 27)+"px";
     oni.style.display = "none"; runners = [];
     
     for(let i=1; i<=maxNumber; i++) {
         if(excluded.includes(i)) continue;
         const rDiv = document.createElement("div");
         rDiv.className = "runner"; rDiv.textContent = i;
-        const rx = 50 + Math.random() * 750;
-        const ry = 50 + Math.random() * 300;
+        const rx = 50 + Math.random() * (tagAreaWidth - 100);
+        const ry = 50 + Math.random() * (tagAreaHeight - 100);
         rDiv.style.left = rx + "px"; rDiv.style.top = ry + "px";
         tagArea.appendChild(rDiv);
         runners.push({ id: i, element: rDiv, x: rx, y: ry, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10 });
@@ -761,9 +952,10 @@ function startTagGame() {
     if(isTagRunning || runners.length === 0) return;
     isTagRunning = true; 
     resultDiv.textContent = "だれを捕まえるかな...？";
+    updateTagAreaSize();
 
     const targetRunner = runners[Math.floor(Math.random() * runners.length)];
-    let oniX = 422, oniY = 172;
+    let oniX = tagAreaWidth/2, oniY = tagAreaHeight/2;
 
     tagInterval = setInterval(() => {
         runners.forEach(r => {
@@ -778,9 +970,9 @@ function startTagGame() {
             r.x += r.vx; r.y += r.vy;
 
             if (r.x < 0) { r.x = 0; r.vx *= -1; }
-            if (r.x > 855) { r.x = 855; r.vx *= -1; }
+            if (r.x > tagAreaWidth - 45) { r.x = tagAreaWidth - 45; r.vx *= -1; }
             if (r.y < 0) { r.y = 0; r.vy *= -1; }
-            if (r.y > 355) { r.y = 355; r.vy *= -1; }
+            if (r.y > tagAreaHeight - 45) { r.y = tagAreaHeight - 45; r.vy *= -1; }
 
             r.element.style.left = r.x + "px"; r.element.style.top = r.y + "px";
         });
@@ -814,12 +1006,21 @@ function startTagGame() {
 ====================== */
 const catArea = document.getElementById("catArea"), cat = document.getElementById("cat");
 let snacks = [], isCatRunning = false;
+let catAreaWidth = 900, catAreaHeight = 420;
+
+function updateCatAreaSize() {
+    if (!catArea) return;
+    const rect = catArea.getBoundingClientRect();
+    catAreaWidth = rect.width || 900;
+    catAreaHeight = rect.height || 420;
+}
 
 function initCatGame() {
     if(isCatRunning) return;
 
     document.querySelectorAll(".fishSnack").forEach(s => s.remove());
-    cat.style.left = "420px"; cat.style.top = "180px"; cat.style.display = "none"; cat.textContent = "🐱";
+    updateCatAreaSize();
+    cat.style.left = (catAreaWidth/2 - 30)+"px"; cat.style.top = (catAreaHeight/2 - 30)+"px"; cat.style.display = "none"; cat.textContent = "🐱";
     snacks = [];
     
     let count = 0;
@@ -829,8 +1030,8 @@ function initCatGame() {
         div.className = "fishSnack"; div.innerHTML = `🐟<br>${i}`;
         
         const angle = (count * 2 * Math.PI) / (maxNumber - excluded.length);
-        const sx = 420 + Math.cos(angle) * 320 + (Math.random()-0.5)*30;
-        const sy = 180 + Math.sin(angle) * 150 + (Math.random()-0.5)*20;
+        const sx = catAreaWidth/2 + Math.cos(angle) * (catAreaWidth/2.8) + (Math.random()-0.5)*30;
+        const sy = catAreaHeight/2 + Math.sin(angle) * (catAreaHeight/2.8) + (Math.random()-0.5)*20;
         
         div.style.left = sx + "px"; div.style.top = sy + "px";
         catArea.appendChild(div);
@@ -859,7 +1060,8 @@ function startCatGame() {
     cat.textContent = "😼"; 
     playSound('meow');
 
-    let currentX = 420, currentY = 180;
+    let currentX = parseFloat(cat.style.left) || catAreaWidth/2;
+    let currentY = parseFloat(cat.style.top) || catAreaHeight/2;
     let step = 0;
     
     let approachInterval = setInterval(() => {
@@ -998,34 +1200,36 @@ function showSlotResult(finalNum) {
 ====================== */
 function refreshDisabled(){
     createExcludePanel();
+    createCards();
     createTargets();
-    
-    if(document.getElementById("tagGame").classList.contains("active") && !isTagRunning) initTagGame();
-    if(document.getElementById("catGame").classList.contains("active") && !isCatRunning) initCatGame();
-
-    document.querySelectorAll(".card").forEach(card=>{
-        const num = Number(card.dataset.number);
-        if(excluded.includes(num)) card.classList.add("disabled");
-    });
 }
 
 function resetGame(){
-    excluded = []; resultDiv.textContent = "";
-    horizontalLocked = false; angleLocked = false; cardNumbers = [];
-    isGachaRunning = false; isTagRunning = false; isCatRunning = false; isSlotRunning = false;
-    clearInterval(tagInterval);
-
-    createExcludePanel(); createCards(); createTargets();
-    initTagGame(); initCatGame(); initSlotGame();
-    
-    const output = document.getElementById("gachaOutput");
-    output.style.opacity = 0; output.classList.remove("popCapsule");
+    excluded = [];
+    cardNumbers = [];
+    resetTargetGame();
+    resultDiv.textContent = "";
+    refreshDisabled();
 }
 
+// 初期化
 createExcludePanel();
 createCards();
 
-</script>
+// ウィンドウリサイズ時の対応
+window.addEventListener('resize', () => {
+    updateTargetAreaSize();
+    updateTagAreaSize();
+    updateCatAreaSize();
+    createTargets();
+    if (document.getElementById('tagGame').classList.contains('active')) {
+        initTagGame();
+    }
+    if (document.getElementById('catGame').classList.contains('active')) {
+        initCatGame();
+    }
+});
 
+</script>
 </body>
 </html>
