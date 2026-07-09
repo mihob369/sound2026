@@ -38,7 +38,7 @@
     .equation { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;}
     
     .swatch-container { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .color-swatch { width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-weight: bold; text-shadow: 0 1px 2px rgba(255,255,255,0.8); font-size: 0.9rem; position: relative;}
+    .color-swatch { width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
     .result-swatch { width: 70px; height: 70px; border-radius: 16px; font-size: 1rem; text-align: center; line-height: 1.2; position: relative;}
     .swatch-rgb { font-size: 0.7rem; color: #475569; font-family: monospace; background: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-weight: bold; border: 1px solid #e2e8f0; }
     .swatch-label { font-size: 0.75rem; font-weight: bold; color: #ef4444; margin-bottom: 2px; height: 1em; }
@@ -53,7 +53,7 @@
     select { width: 100%; padding: 8px; border-radius: 8px; font-weight: bold; }
     .scene-wrap { background: #fafafa; border-radius: 10px; border: 1px solid #e2e8f0; padding: 5px; overflow-x: auto; }
     .result-section { display: flex; gap: 20px; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
-    .result-color { width: 140px; height: 90px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0;}
+    .result-color { width: 140px; height: 90px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0; }
     .result-label { font-size: 1.1rem; font-weight: bold; }
     .explain { font-size: 0.9rem; line-height: 1.6; }
   </style>
@@ -93,7 +93,7 @@
     </section>
 
     <section id="panel-mix" class="panel simulator-card">
-      <p style="font-size: 0.9rem; margin-top:0; color:#475569;">光の「透過・反射率のグラデーション」による、パステルカラーなどの中間色ができる理屈を学びます。</p>
+      <p style="font-size: 0.9rem; margin-top:0; color:#475569;">光の「透過・反射率のグラデーション」による、パステルカラーなどの中間色ができる理屈を学びます。2つの絵の具（フィルター）を選んで、紙の色がどう変わるかを観察してみましょう。</p>
       <div class="control-box">
         <div><label>絵の具 1（フィルター1）：</label><select id="mix-ink1" onchange="updatePhysics()"></select></div>
         <div><label>絵の具 2（フィルター2）：</label><select id="mix-ink2" onchange="updatePhysics()"></select></div>
@@ -356,17 +356,7 @@
             Math.max(0, 255 - abs1_int[2] - abs2_int[2])
         ];
         
-        // --- ★ 暗くなった色（吸収色や結果色）を見た目上だけ明るい純色に補正する処理 ---
-        let maxRes = Math.max(...res_int);
-        let pureHex = maxRes > 0 ? rgbToHex([res_int[0]/maxRes, res_int[1]/maxRes, res_int[2]/maxRes]) : '#000000';
-
-        let maxAbs1 = Math.max(...abs1_int);
-        let pureHex1 = maxAbs1 > 0 ? rgbToHex([abs1_int[0]/maxAbs1, abs1_int[1]/maxAbs1, abs1_int[2]/maxAbs1]) : '#000000';
-
-        let maxAbs2 = Math.max(...abs2_int);
-        let pureHex2 = maxAbs2 > 0 ? rgbToHex([abs2_int[0]/maxAbs2, abs2_int[1]/maxAbs2, abs2_int[2]/maxAbs2]) : '#000000';
-        
-        renderSubtractiveUI(c1, c2, res_int, abs1_int, abs2_int, pureHex, pureHex1, pureHex2);
+        renderSubtractiveUI(c1, c2, res_int, abs1_int, abs2_int);
       }
 
       resultIndex = getHueIndex(res_int[0]/255, res_int[1]/255, res_int[2]/255);
@@ -396,7 +386,7 @@
         ※表示されている（）内の数値は、<strong>左辺と右辺の足し算が完全に一致</strong>するように計算されています。`;
     }
 
-    function renderSubtractiveUI(c1, c2, res_int, abs1_int, abs2_int, pureHex, pureHex1, pureHex2) {
+    function renderSubtractiveUI(c1, c2, res_int, abs1_int, abs2_int) {
         const container = document.getElementById('equation-container');
         const resFloat = [res_int[0]/255, res_int[1]/255, res_int[2]/255];
         const resData = getResultName(resFloat);
@@ -404,24 +394,25 @@
         let a1Hex = rgbToHex([abs1_int[0]/255, abs1_int[1]/255, abs1_int[2]/255]);
         let a2Hex = rgbToHex([abs2_int[0]/255, abs2_int[1]/255, abs2_int[2]/255]);
 
-        // 吸収する色の具体的な名前（シアンなど）を取得
         const abs1Name = getResultName([abs1_int[0]/255, abs1_int[1]/255, abs1_int[2]/255]).id;
         const abs2Name = getResultName([abs2_int[0]/255, abs2_int[1]/255, abs2_int[2]/255]).id;
 
+        // ★ 修正：見た目の純色補正をやめ、計算された色(a1Hex等)をそのまま背景色として渡す
         container.innerHTML = `
             ${createSwatchHTML('光源', '#ffffff', '白', [255,255,255], false)}
             <div class="math-sign">－</div>
-            ${createSwatchHTML('❶の吸収', a1Hex, abs1Name, abs1_int, false, pureHex1)}
+            ${createSwatchHTML('❶の吸収', a1Hex, abs1Name, abs1_int, false, a1Hex)}
             <div class="math-sign">－</div>
-            ${createSwatchHTML('❷の吸収', a2Hex, abs2Name, abs2_int, false, pureHex2)}
+            ${createSwatchHTML('❷の吸収', a2Hex, abs2Name, abs2_int, false, a2Hex)}
             <div class="math-sign">＝</div>
-            ${createSwatchHTML('結果 (★)', rgbToHex(resFloat), resData.id, res_int, true, pureHex)}
+            ${createSwatchHTML('結果 (★)', rgbToHex(resFloat), resData.id, res_int, true, rgbToHex(resFloat))}
         `;
 
+        // ★ 修正：解説テキストを物理現実に即したものに変更
         document.getElementById('basic-explain-text').innerHTML = `
-        <strong>【減法混色（数式完全一致＆純色補正版）】</strong><br>
-        白い光から❶と❷が<strong>吸収する光（色相環の反対側の色）</strong>を引き算します。（）内の数値は数式が完全に一致するようになっています。<br>
-        <span style="color:#ef4444; font-weight:bold;">※重要※</span> R(赤)やG(緑)の絵の具は光を多く吸収するため、計算上は「128」などの暗い色（濁った中間色）になります。これが物理的に正しい結果ですが、色相環ツールとして色がわかりやすいよう、<strong>吸収分と結果の背景色だけは明るい純色に補正</strong>して表示しています。`;
+        <strong>【減法混色（現実の物理モデル版）】</strong><br>
+        白い光から❶と❷が<strong>吸収する光（色相環の反対側の色）</strong>を引き算します。<br>
+        <span style="color:#ef4444; font-weight:bold;">※重要※</span> 色材の三原色はシアン・マゼンタ・イエローです。赤(R)や青(B)の絵の具はすでに多くの光を吸収しているため、これらを混ぜるとほとんどの光が吸収され、<strong>現実の絵の具と同じように黒っぽい色</strong>になります。`;
     }
 
     function createSwatchHTML(labelTop, hex, idStr, valArray, isLarge = false, pureHex = null) {
@@ -508,7 +499,7 @@
       
       document.getElementById('result-name').textContent = resNameData.id;
       document.getElementById('result-rgb-val').textContent = `RGB(${rOut}, ${gOut}, ${bOut})`;
-      document.getElementById('explain-text').innerHTML = `<strong>💡 光の残存率とパステルの理屈</strong><br>2つの絵の具が混ざることで、光を吸い取る強さが半分に薄まりました。<br>目に届く光は 🔴<strong>${Math.round(finalRates.r*100)}%</strong> / 🟢<strong>${Math.round(finalRates.g*100)}%</strong> / 🔵<strong>${Math.round(finalRates.b*100)}%</strong> です。<br>光の残存率のバランスによって、直感的な中間色が生まれます。`;
+      document.getElementById('explain-text').innerHTML = `<strong>💡 光の残存率とパステルの理屈</strong><br>2つの絵の具が混ざることで、光を吸い取る強さが半分になります。平均値が高いほど、より明るい（パステル調）になります。`;
     }
 
     window.onload = init;
