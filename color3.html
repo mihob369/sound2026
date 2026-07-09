@@ -326,7 +326,6 @@
         let maxVal = Math.max(...sumRGB);
         let scale = maxVal > 1 ? 1 / maxVal : 1;
         
-        // UIに表示するための正確な整数値を計算
         let add1_int = [Math.round(c1.rgb[0]*scale*255), Math.round(c1.rgb[1]*scale*255), Math.round(c1.rgb[2]*scale*255)];
         let add2_int = [Math.round(c2.rgb[0]*scale*255), Math.round(c2.rgb[1]*scale*255), Math.round(c2.rgb[2]*scale*255)];
         res_int = [
@@ -342,14 +341,13 @@
         renderAdditiveUI(c1, c2, res_int, add1_int, add2_int, pureHex);
 
       } else {
+        // ★ 修正箇所：割合の分散（scale）を廃止し、それぞれ100%の力で吸収させる
         let a1 = [1 - c1.rgb[0], 1 - c1.rgb[1], 1 - c1.rgb[2]];
         let a2 = [1 - c2.rgb[0], 1 - c2.rgb[1], 1 - c2.rgb[2]];
-        let aSum = [a1[0] + a2[0], a1[1] + a2[1], a1[2] + a2[2]];
-        let maxA = Math.max(...aSum);
-        let scale = maxA > 1 ? 1 / maxA : 1;
         
-        let abs1_int = [Math.round(a1[0]*scale*255), Math.round(a1[1]*scale*255), Math.round(a1[2]*scale*255)];
-        let abs2_int = [Math.round(a2[0]*scale*255), Math.round(a2[1]*scale*255), Math.round(a2[2]*scale*255)];
+        let abs1_int = [Math.round(a1[0]*255), Math.round(a1[1]*255), Math.round(a1[2]*255)];
+        let abs2_int = [Math.round(a2[0]*255), Math.round(a2[1]*255), Math.round(a2[2]*255)];
+        
         res_int = [
             Math.max(0, 255 - abs1_int[0] - abs2_int[0]),
             Math.max(0, 255 - abs1_int[1] - abs2_int[1]),
@@ -390,29 +388,22 @@
         const container = document.getElementById('equation-container');
         const resFloat = [res_int[0]/255, res_int[1]/255, res_int[2]/255];
         const resData = getResultName(resFloat);
-        
-        let a1Hex = rgbToHex([abs1_int[0]/255, abs1_int[1]/255, abs1_int[2]/255]);
-        let a2Hex = rgbToHex([abs2_int[0]/255, abs2_int[1]/255, abs2_int[2]/255]);
 
-        const abs1Name = getResultName([abs1_int[0]/255, abs1_int[1]/255, abs1_int[2]/255]).id;
-        const abs2Name = getResultName([abs2_int[0]/255, abs2_int[1]/255, abs2_int[2]/255]).id;
-
-        // ★ 修正：見た目の純色補正をやめ、計算された色(a1Hex等)をそのまま背景色として渡す
+        // ★ 修正箇所：UIの背景色に、選択したフィルター（c1.hex / c2.hex）を直接適用
         container.innerHTML = `
             ${createSwatchHTML('光源', '#ffffff', '白', [255,255,255], false)}
             <div class="math-sign">－</div>
-            ${createSwatchHTML('❶の吸収', a1Hex, abs1Name, abs1_int, false, a1Hex)}
+            ${createSwatchHTML('❶の吸収', c1.hex, c1.id, abs1_int, false, c1.hex)}
             <div class="math-sign">－</div>
-            ${createSwatchHTML('❷の吸収', a2Hex, abs2Name, abs2_int, false, a2Hex)}
+            ${createSwatchHTML('❷の吸収', c2.hex, c2.id, abs2_int, false, c2.hex)}
             <div class="math-sign">＝</div>
             ${createSwatchHTML('結果 (★)', rgbToHex(resFloat), resData.id, res_int, true, rgbToHex(resFloat))}
         `;
 
-        // ★ 修正：解説テキストを物理現実に即したものに変更
         document.getElementById('basic-explain-text').innerHTML = `
-        <strong>【減法混色（現実の物理モデル版）】</strong><br>
-        白い光から❶と❷が<strong>吸収する光（色相環の反対側の色）</strong>を引き算します。<br>
-        <span style="color:#ef4444; font-weight:bold;">※重要※</span> 色材の三原色はシアン・マゼンタ・イエローです。赤(R)や青(B)の絵の具はすでに多くの光を吸収しているため、これらを混ぜるとほとんどの光が吸収され、<strong>現実の絵の具と同じように黒っぽい色</strong>になります。`;
+        <strong>【減法混色（理論上のフィルター積層）】</strong><br>
+        白い光から、選んだ色（フィルター）が<strong>吸収する光</strong>をそれぞれ100%引き算します。<br>
+        <span style="color:#ef4444; font-weight:bold;">※重要※</span> 赤(R)や青(B)などのフィルターはすでに2つの光を吸収しているため、これらを重ねるとすべての光が遮断されて<strong>黒(光ゼロ)</strong>になります。`;
     }
 
     function createSwatchHTML(labelTop, hex, idStr, valArray, isLarge = false, pureHex = null) {
@@ -420,7 +411,6 @@
         const g255 = valArray[1];
         const b255 = valArray[2];
         
-        // pureHexが指定されていれば、見た目（背景色）はそれを採用
         const displayHex = pureHex ? pureHex : hex;
         
         const r = parseInt(displayHex.substr(1,2), 16);
@@ -446,7 +436,6 @@
         return `#${Math.round(rgb[0]*255).toString(16).padStart(2,'0')}${Math.round(rgb[1]*255).toString(16).padStart(2,'0')}${Math.round(rgb[2]*255).toString(16).padStart(2,'0')}`;
     }
 
-    // 物理シミュレータ側は変更なし
     function updatePhysics() {
       const canvas = document.getElementById('ray-scene');
       const ctx = canvas.getContext('2d');
