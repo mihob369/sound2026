@@ -12,7 +12,7 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body { font-family: system-ui, sans-serif; background: var(--bg); color: #111; padding: 20px; }
-    .container { max-width: 900px; margin: 10px auto; padding: 24px; background: var(--card); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
+    .container { max-width: 950px; margin: 10px auto; padding: 24px; background: var(--card); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); }
     h1 { font-size: 1.4rem; margin: 0 0 4px; text-align: center; }
     .subtitle { text-align: center; color: var(--muted); margin-bottom: 20px; font-size: 0.9rem; }
     
@@ -30,21 +30,24 @@
     #interactive-wheel { cursor: pointer; border-radius: 50%; }
     .wheel-hint { font-size: 0.85rem; color: var(--muted); margin-top: 12px; text-align: center; line-height: 1.4; }
     
-    .basic-controls { flex: 1; min-width: 380px; }
+    .basic-controls { flex: 1; min-width: 420px; }
     .mix-type-toggle { display: flex; gap: 12px; margin-bottom: 16px; background: #f1f5f9; padding: 12px; border-radius: 12px; justify-content: center; }
     .mix-type-toggle label { cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: bold; color: #334155;}
     
-    .formula-display { background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; min-height: 220px;}
-    .equation { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;}
+    /* 数式表示エリアの２段レイアウト */
+    .formula-display { background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; }
+    .equation-block { margin-bottom: 18px; }
+    .equation-title { font-size: 0.85rem; font-weight: bold; color: #475569; margin-bottom: 8px; text-align: left; padding-left: 6px; }
+    .equation { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
     
     .swatch-container { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .color-swatch { width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-    .result-swatch { width: 70px; height: 70px; border-radius: 16px; font-size: 1rem; text-align: center; line-height: 1.2; position: relative;}
-    .swatch-rgb { font-size: 0.7rem; color: #475569; font-family: monospace; background: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-weight: bold; border: 1px solid #e2e8f0; }
+    .result-swatch { width: 64px; height: 64px; border-radius: 16px; font-size: 1rem; text-align: center; line-height: 1.2; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid rgba(0,0,0,0.1); text-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .swatch-rgb { font-size: 0.7rem; color: #475569; font-family: monospace; background: #fff; padding: 2px 4px; border-radius: 4px; font-weight: bold; border: 1px solid #e2e8f0; }
     .swatch-label { font-size: 0.75rem; font-weight: bold; color: #ef4444; margin-bottom: 2px; height: 1em; }
     
-    .math-sign { font-size: 1.3rem; font-weight: bold; color: #475569; margin: 16px 4px 0 4px; }
-    .basic-explain { font-size: 0.85rem; line-height: 1.6; color: #334155; text-align: left; background: #f8fafc; padding: 12px; border-radius: 8px; margin-top: 16px; }
+    .math-sign { font-size: 1.3rem; font-weight: bold; color: #475569; margin-top: 14px; }
+    .basic-explain { font-size: 0.85rem; line-height: 1.6; color: #334155; text-align: left; background: #f0fdf4; padding: 14px; border-radius: 8px; margin-top: 16px; border-left: 4px solid #22c55e; }
 
     /* 物理シミュレータ */
     .simulator-card { background: #fff; border: 1px solid var(--panel-border); border-radius: 14px; padding: 16px; margin-top: 20px; }
@@ -85,7 +88,14 @@
           </div>
           
           <div class="formula-display">
-            <div id="equation-container" class="equation"></div>
+            <div id="equation-block1" class="equation-block">
+              <div id="equation-title1" class="equation-title"></div>
+              <div id="equation-row1" class="equation"></div>
+            </div>
+            <div id="equation-block2" class="equation-block">
+              <div id="equation-title2" class="equation-title"></div>
+              <div id="equation-row2" class="equation"></div>
+            </div>
             <div id="basic-explain-text" class="basic-explain"></div>
           </div>
         </div>
@@ -93,7 +103,7 @@
     </section>
 
     <section id="panel-mix" class="panel simulator-card">
-      <p style="font-size: 0.9rem; margin-top:0; color:#475569;">光の「透過・反射率のグラデーション」による、パステルカラーなどの中間色ができる理屈を学びます。2つの絵の具（フィルター）を選んで、紙の色がどう変わるかを観察してみましょう。</p>
+      <p style="font-size: 0.9rem; margin-top:0; color:#475569;">光の「透過・反射率 of グラデーション」による、パステルカラーなどの中間色ができる理屈を学びます。2つの絵の具（フィルター）を選んで、紙の色がどう変わるかを観察してみましょう。</p>
       <div class="control-box">
         <div><label>絵の具 1（フィルター1）：</label><select id="mix-ink1" onchange="updatePhysics()"></select></div>
         <div><label>絵の具 2（フィルター2）：</label><select id="mix-ink2" onchange="updatePhysics()"></select></div>
@@ -166,13 +176,12 @@
       const ctx = canvas.getContext('2d');
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
-      const radius = 90; // 少し小さくして外側のラベルの余白を作る
+      const radius = 90;
       const sliceAngle = (Math.PI * 2) / 12;
       const isSubtractive = document.querySelector('input[name="mixType"]:checked').value === 'subtractive';
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 色相環の描画
       colors.forEach((color, i) => {
         const startAngle = i * sliceAngle - sliceAngle / 2 - Math.PI / 2;
         const endAngle = startAngle + sliceAngle;
@@ -199,12 +208,10 @@
         }
       });
 
-      // マーカーの描画
       colors.forEach((color, i) => {
         const startAngle = i * sliceAngle - sliceAngle / 2 - Math.PI / 2;
         const textAngle = startAngle + sliceAngle / 2;
         
-        // ❶、❷の丸バッジ
         if (selectedIndices.includes(i)) {
           const badgeIndex = selectedIndices.indexOf(i) + 1;
           const tx = cx + Math.cos(textAngle) * (radius - 12);
@@ -212,7 +219,6 @@
           drawBadge(ctx, tx, ty, badgeIndex === 1 ? '❶' : '❷', "#111", "#fff");
         }
 
-        // 結果の★マーク
         if (i === resultIndex && !isResultCenter) {
           const tx = cx + Math.cos(textAngle) * (radius + 10);
           const ty = cy + Math.sin(textAngle) * (radius + 10);
@@ -220,21 +226,17 @@
         }
       });
 
-      // 減法混色時の「吸収ラベル」の描画（色相環の反対側）
       if (isSubtractive) {
         selectedIndices.forEach((selIdx, idx) => {
-            const absorbIdx = (selIdx + 6) % 12; // 補色（反対側）のインデックス
+            const absorbIdx = (selIdx + 6) % 12;
             const startAngle = absorbIdx * sliceAngle - sliceAngle / 2 - Math.PI / 2;
             const textAngle = startAngle + sliceAngle / 2;
-            // 結果★と被らないよう、さらに外側に配置
             const txAbs = cx + Math.cos(textAngle) * (radius + 32);
             const tyAbs = cy + Math.sin(textAngle) * (radius + 32);
-            
             drawRectBadge(ctx, txAbs, tyAbs, (idx === 0 ? '❶' : '❷') + 'の吸収', "#475569", "#fff");
         });
       }
 
-      // 白・黒など、色相環の中心に結果を描画する場合
       if (isResultCenter) {
           ctx.beginPath(); ctx.arc(cx, cy, 24, 0, Math.PI*2);
           const isWhite = resultIndex === 999;
@@ -284,7 +286,7 @@
         ctx.lineTo(rx + w - r, ry); ctx.quadraticCurveTo(rx + w, ry, rx + w, ry + r);
         ctx.lineTo(rx + w, ry + h - r); ctx.quadraticCurveTo(rx + w, ry + h, rx + w - r, ry + h);
         ctx.lineTo(rx + r, ry + h); ctx.quadraticCurveTo(rx, ry + h, rx, ry + h - r);
-        ctx.lineTo(rx, ry + r); ctx.quadraticCurveTo(rx, ry, rx + r, ry);
+        ctx.lineTo(rx + r, ry + r); ctx.quadraticCurveTo(rx, ry, rx + r, ry);
         ctx.closePath();
         ctx.fillStyle = bg; ctx.fill();
         ctx.fillStyle = fg;
@@ -341,7 +343,6 @@
         renderAdditiveUI(c1, c2, res_int, add1_int, add2_int, pureHex);
 
       } else {
-        // ★ 修正箇所：割合の分散（scale）を廃止し、それぞれ100%の力で吸収させる
         let a1 = [1 - c1.rgb[0], 1 - c1.rgb[1], 1 - c1.rgb[2]];
         let a2 = [1 - c2.rgb[0], 1 - c2.rgb[1], 1 - c2.rgb[2]];
         
@@ -363,14 +364,18 @@
     }
 
     function renderAdditiveUI(c1, c2, res_int, add1_int, add2_int, pureHex) {
-        const container = document.getElementById('equation-container');
+        const block2 = document.getElementById('equation-block2');
+        const row1 = document.getElementById('equation-row1');
         const resFloat = [res_int[0]/255, res_int[1]/255, res_int[2]/255];
         const resData = getResultName(resFloat);
         
         let c1Hex = rgbToHex(c1.rgb);
         let c2Hex = rgbToHex(c2.rgb);
 
-        container.innerHTML = `
+        document.getElementById('equation-title1').innerHTML = '💡 <strong>加法混色（光の足し算）</strong>：直感と理論が完全に一致します';
+        block2.style.display = 'none';
+
+        row1.innerHTML = `
             ${createSwatchHTML('❶', c1Hex, c1.id, add1_int, false, c1Hex)}
             <div class="math-sign">＋</div>
             ${createSwatchHTML('❷', c2Hex, c2.id, add2_int, false, c2Hex)}
@@ -385,25 +390,51 @@
     }
 
     function renderSubtractiveUI(c1, c2, res_int, abs1_int, abs2_int) {
-        const container = document.getElementById('equation-container');
+        const block2 = document.getElementById('equation-block2');
+        const row1 = document.getElementById('equation-row1');
+        const row2 = document.getElementById('equation-row2');
         const resFloat = [res_int[0]/255, res_int[1]/255, res_int[2]/255];
         const resData = getResultName(resFloat);
 
-        // ★ 修正箇所：UIの背景色に、選択したフィルター（c1.hex / c2.hex）を直接適用
-        container.innerHTML = `
+        block2.style.display = 'block';
+
+        document.getElementById('equation-title1').innerHTML = '🎨 <strong>上の列：【直感的な式】</strong> ユーザーが選んだ色の掛け合わせ（絵の具のイメージ）';
+        document.getElementById('equation-title2').innerHTML = '💡 <strong>下の列：【理論的な式】</strong> 白い光から、各フィルターが吸収する光の引き算';
+
+        let c1_rgb255 = [Math.round(c1.rgb[0]*255), Math.round(c1.rgb[1]*255), Math.round(c1.rgb[2]*255)];
+        let c2_rgb255 = [Math.round(c2.rgb[0]*255), Math.round(c2.rgb[1]*255), Math.round(c2.rgb[2]*255)];
+
+        // 上の列：直感的な足し算
+        row1.innerHTML = `
+            ${createSwatchHTML('❶', c1.hex, c1.id, c1_rgb255, false, c1.hex)}
+            <div class="math-sign">＋</div>
+            ${createSwatchHTML('❷', c2.hex, c2.id, c2_rgb255, false, c2.hex)}
+            <div class="math-sign">＝</div>
+            ${createSwatchHTML('結果 (★)', rgbToHex(resFloat), resData.id, res_int, true, rgbToHex(resFloat))}
+        `;
+
+        // ★修正箇所：対角線上にある補色（吸収する光そのものの色）のデータを取得して表示
+        let absorbIdx1 = (selectedIndices[0] + 6) % 12;
+        let absorbIdx2 = (selectedIndices[1] + 6) % 12;
+        let absColor1 = colors[absorbIdx1];
+        let absColor2 = colors[absorbIdx2];
+
+        // 下の列：理論的に正しい引き算（光源の色から、吸い取られる補色のRGBを引き算）
+        row2.innerHTML = `
             ${createSwatchHTML('光源', '#ffffff', '白', [255,255,255], false)}
             <div class="math-sign">－</div>
-            ${createSwatchHTML('❶の吸収', c1.hex, c1.id, abs1_int, false, c1.hex)}
+            ${createSwatchHTML('❶の吸収', absColor1.hex, absColor1.label, abs1_int, false, absColor1.hex)}
             <div class="math-sign">－</div>
-            ${createSwatchHTML('❷の吸収', c2.hex, c2.id, abs2_int, false, c2.hex)}
+            ${createSwatchHTML('❷の吸収', absColor2.hex, absColor2.label, abs2_int, false, absColor2.hex)}
             <div class="math-sign">＝</div>
             ${createSwatchHTML('結果 (★)', rgbToHex(resFloat), resData.id, res_int, true, rgbToHex(resFloat))}
         `;
 
         document.getElementById('basic-explain-text').innerHTML = `
-        <strong>【減法混色（理論上のフィルター積層）】</strong><br>
-        白い光から、選んだ色（フィルター）が<strong>吸収する光</strong>をそれぞれ100%引き算します。<br>
-        <span style="color:#ef4444; font-weight:bold;">※重要※</span> 赤(R)や青(B)などのフィルターはすでに2つの光を吸収しているため、これらを重ねるとすべての光が遮断されて<strong>黒(光ゼロ)</strong>になります。`;
+        <strong>【減法混色（理論と直感の比較）】</strong><br>
+        上の列は、絵の具を混ぜる感覚に近い<strong>「直感的な足し算」</strong>の表現です。しかし、RGBの数値をそのまま足しても右辺の結果には一致しません。<br>
+        そこで下の列の<strong>「理論的な引き算」</strong>の登場です。例えばシアンのフィルターは「赤（R）」の光を、マゼンタのフィルターは「緑（G）」の光を100%吸収（マイナス）します。白い光からこの**補色（吸収される光）**を引き算すると、数値の計算が完全に一致します！<br>
+        「感覚的な足し算だと計算が合わないから、光の引き算として考えるんだよ」と伝えることで、減法混色の本質が非常にすっきりと理解できます。`;
     }
 
     function createSwatchHTML(labelTop, hex, idStr, valArray, isLarge = false, pureHex = null) {
@@ -443,7 +474,12 @@
       const ink1 = inkData[document.getElementById('mix-ink1').value];
       const ink2 = inkData[document.getElementById('mix-ink2').value];
       
-      const finalRates = { r: (ink1.r + ink2.r)/2, g: (ink1.g + ink2.g)/2, b: (ink1.b + ink2.b)/2 };
+      const finalRates = {
+        r: ((ink1.r + ink2.r) / 2 + (ink1.r * ink2.r)) / 2,
+        g: ((ink1.g + ink2.g) / 2 + (ink1.g * ink2.g)) / 2,
+        b: ((ink1.b + ink2.b) / 2 + (ink1.b * ink2.b)) / 2
+      };
+      
       const layout = { light: { x: 80, y: 80 }, eye: { x: 760, y: 80 }, paperY: 300, inkWidth: 460 };
       
       ctx.fillStyle = "#ffffff"; ctx.fillRect(120, layout.paperY, 600, 15);
