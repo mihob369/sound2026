@@ -77,6 +77,45 @@ h3 {
     padding: 0 10px;
 }
 
+.rangeControls {
+    margin: 15px;
+    padding: 10px;
+    background: #333;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.rangeControls label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rangeControls input[type="number"] {
+    width: 80px;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background: #444;
+    color: white;
+    font-size: 14px;
+}
+
+.rangeControls button {
+    padding: 8px 15px;
+    font-size: 14px;
+    background: #4caf50;
+    color: white;
+}
+
+.rangeControls button:hover {
+    background: #45a049;
+}
+
 /* ======================
    モード共通設定
 ====================== */
@@ -99,9 +138,11 @@ h3 {
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(35px, 1fr));
     gap:6px;
-    max-width:800px;
+    max-width:1200px;
     margin-bottom:20px;
     box-sizing: border-box;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .excludeNum{
@@ -110,7 +151,7 @@ h3 {
     border-radius:8px;
     cursor:pointer;
     user-select:none;
-    font-size:clamp(12px, 2vw, 14px);
+    font-size:clamp(11px, 1.5vw, 12px);
     min-width: 35px;
     min-height: 35px;
     display: flex;
@@ -155,14 +196,14 @@ h3 {
     margin:auto;
     padding: 0 5px;
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(70px, 1fr));
-    gap:10px;
-    max-width:1000px;
+    grid-template-columns:repeat(auto-fit, minmax(60px, 1fr));
+    gap:8px;
+    max-width:1200px;
     box-sizing: border-box;
 }
 
 .card{
-    height:110px;
+    height:80px;
     perspective:1000px;
     cursor:pointer;
 }
@@ -193,7 +234,7 @@ h3 {
     display:flex;
     justify-content:center;
     align-items:center;
-    font-size:34px;
+    font-size:clamp(18px, 2vw, 28px);
     font-weight:bold;
     backface-visibility:hidden;
 }
@@ -227,14 +268,14 @@ h3 {
 }
 
 .target{
-    width:80px;
-    height:80px;
+    width:60px;
+    height:60px;
     border-radius:50%;
     position:absolute;
     display:flex;
     justify-content:center;
     align-items:center;
-    font-size:26px;
+    font-size:clamp(14px, 2vw, 18px);
     font-weight:bold;
     color:black;
     background: radial-gradient(circle, white 0%, white 15%, red 15%, red 30%, white 30%, white 45%, red 45%, red 60%);
@@ -401,14 +442,14 @@ h3 {
 
 .runner { 
     position: absolute; 
-    width: 45px; 
-    height: 45px; 
+    width: 35px; 
+    height: 35px; 
     background: #2196f3; 
     border-radius: 50%; 
     display: flex; 
     justify-content: center; 
     align-items: center; 
-    font-size: 14px; 
+    font-size: 10px; 
     font-weight: bold; 
     color: white; 
     border: 2px solid #fff; 
@@ -424,14 +465,14 @@ h3 {
 
 #oni { 
     position: absolute; 
-    width: 55px; 
-    height: 55px; 
+    width: 45px; 
+    height: 45px; 
     background: #f44336; 
     border-radius: 50%; 
     display: flex; 
     justify-content: center; 
     align-items: center; 
-    font-size: 28px; 
+    font-size: 24px; 
     border: 3px solid white; 
     z-index: 20; 
 }
@@ -453,15 +494,15 @@ h3 {
 
 .fishSnack {
     position: absolute;
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     background: #ffb74d;
     border-radius: 50%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: bold;
     color: #5d4037;
     border: 2px solid #fff;
@@ -478,9 +519,9 @@ h3 {
 
 #cat {
     position: absolute;
-    font-size: 55px;
-    width: 60px;
-    height: 60px;
+    font-size: 45px;
+    width: 50px;
+    height: 50px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -557,8 +598,12 @@ h3 {
 ====================== */
 @media (max-width: 768px) {
     .cardContainer {
-        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+        gap: 6px;
+    }
+
+    .card {
+        height: 60px;
     }
 
     .targetGameWrap {
@@ -574,13 +619,26 @@ h3 {
     }
 
     .angleWrapper {
-        height: 200px;
+        height: 180px;
     }
 
     .gameButton {
-        width: 120px;
-        font-size: 14px;
+        width: 110px;
+        font-size: 13px;
         padding: 8px;
+    }
+
+    .rangeControls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .rangeControls label {
+        flex-direction: column;
+    }
+
+    .rangeControls input[type="number"] {
+        width: 70px;
     }
 }
 
@@ -591,22 +649,22 @@ h3 {
     }
 
     .cardContainer {
-        grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-        gap: 6px;
+        grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+        gap: 5px;
         padding: 0 5px;
     }
 
     .card {
-        height: 80px;
+        height: 50px;
     }
 
     .cardFront, .cardBack {
-        font-size: 28px;
+        font-size: 16px;
     }
 
     .gameButton {
         width: 100px;
-        font-size: 13px;
+        font-size: 12px;
         padding: 6px;
     }
 
@@ -616,9 +674,9 @@ h3 {
     }
 
     .target {
-        width: 60px;
-        height: 60px;
-        font-size: 16px;
+        width: 50px;
+        height: 50px;
+        font-size: 12px;
     }
 
     .tagArea {
@@ -634,27 +692,27 @@ h3 {
     }
 
     .runner {
-        width: 35px;
-        height: 35px;
-        font-size: 12px;
+        width: 30px;
+        height: 30px;
+        font-size: 9px;
     }
 
     #oni {
-        width: 45px;
-        height: 45px;
-        font-size: 24px;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
     }
 
     #cat {
-        font-size: 45px;
-        width: 50px;
-        height: 50px;
+        font-size: 40px;
+        width: 45px;
+        height: 45px;
     }
 
     .fishSnack {
-        width: 50px;
-        height: 50px;
-        font-size: 14px;
+        width: 45px;
+        height: 45px;
+        font-size: 10px;
     }
 
     .slotMachine {
@@ -663,7 +721,24 @@ h3 {
     }
 
     .slotNotice {
-        font-size: 14px;
+        font-size: 12px;
+    }
+
+    .rangeControls {
+        margin: 10px;
+        padding: 8px;
+        font-size: 12px;
+    }
+
+    .rangeControls input[type="number"] {
+        width: 60px;
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+
+    .rangeControls button {
+        padding: 6px 12px;
+        font-size: 12px;
     }
 }
 
@@ -680,6 +755,11 @@ h3 {
     <button class="modeButton" onclick="switchMode('tag')">👹 鬼ごっこ</button>
     <button class="modeButton" onclick="switchMode('cat')">🐱 猫まっしぐら</button>
     <button class="modeButton" onclick="switchMode('slot')">🎰 スロット</button>
+</div>
+
+<div class="rangeControls">
+    <label>指名番号の範囲: 1〜 <input type="number" id="maxNumberInput" value="24" min="1" max="1000"></label>
+    <button onclick="updateMaxNumber()">範囲を設定</button>
 </div>
 
 <h3>除外する番号をクリック</h3>
@@ -743,12 +823,24 @@ h3 {
 
 <script>
 
-const maxNumber = 24;
+let maxNumber = 24;
 let excluded = [];
 const resultDiv = document.getElementById("result");
 const excludePanel = document.getElementById("excludePanel");
 const cardContainer = document.getElementById("cardContainer");
 const targetArea = document.getElementById("targetArea");
+const maxNumberInput = document.getElementById("maxNumberInput");
+
+/* ======================
+   最大番号の更新
+====================== */
+function updateMaxNumber() {
+    const newMax = Math.max(1, Math.min(1000, parseInt(maxNumberInput.value) || 24));
+    maxNumber = newMax;
+    maxNumberInput.value = maxNumber;
+    excluded = [];
+    resetGame();
+}
 
 /* ======================
    🔊 WEBオーディオ効果音
@@ -929,12 +1021,21 @@ function updateTargetAreaSize() {
 function initPositions(){
     positions.length = 0;
     updateTargetAreaSize();
-    for(let i=1;i<=24;i++) {
-        positions.push({ 
-            num:i, 
-            x: 50 + (i%6) * (targetAreaWidth/6), 
-            y: 40 + Math.floor((i-1)/6) * (targetAreaHeight/4)
-        });
+    
+    let col = 0, row = 0;
+    const targetSize = 60;
+    const cols = Math.floor(targetAreaWidth / (targetSize + 10));
+    
+    for(let i=1;i<=maxNumber;i++) {
+        const x = 10 + col * (targetSize + 10);
+        const y = 10 + row * (targetSize + 10);
+        positions.push({ num:i, x, y });
+        
+        col++;
+        if(col >= cols) {
+            col = 0;
+            row++;
+        }
     }
 }
 initPositions();
@@ -943,6 +1044,7 @@ function createTargets(){
     updateTargetAreaSize();
     document.querySelectorAll(".target").forEach(t=>t.remove());
     positions.forEach(p=>{
+        if(p.x + 60 > targetAreaWidth || p.y + 60 > targetAreaHeight) return;
         const div = document.createElement("div");
         div.className = "target";
         div.dataset.number = p.num;
@@ -961,7 +1063,6 @@ let gameOverTimeout = null;
 function updateAimPosition() {
     if(horizontalLocked) {
         horizontalStopTime += 20;
-        // 連続4秒（4000ms）停止でゲームオーバー
         if(horizontalStopTime >= 4000) {
             resultDiv.textContent = "⏰ 時間切れ！ゲームオーバー";
             resetTargetGame();
@@ -1031,6 +1132,10 @@ function shootArrow(){
     }
 
     const target = [...document.querySelectorAll(".target")].find(t=>Number(t.dataset.number) === best.num);
+    if(!target) {
+        resetTargetGame();
+        return;
+    }
     target.classList.add("hit");
     const arrow = document.createElement("div");
     arrow.className = "arrow"; arrow.textContent = "🏹"; arrow.style.left = aimX+"px"; arrow.style.bottom = "0px";
@@ -1101,7 +1206,7 @@ function initTagGame() {
 
     document.querySelectorAll(".runner").forEach(r => r.remove());
     updateTagAreaSize();
-    oni.style.left = (tagAreaWidth/2 - 27)+"px"; oni.style.top = (tagAreaHeight/2 - 27)+"px";
+    oni.style.left = (tagAreaWidth/2 - 22)+"px"; oni.style.top = (tagAreaHeight/2 - 22)+"px";
     oni.style.display = "none"; runners = [];
     
     for(let i=1; i<=maxNumber; i++) {
@@ -1139,9 +1244,9 @@ function startTagGame() {
             r.x += r.vx; r.y += r.vy;
 
             if (r.x < 0) { r.x = 0; r.vx *= -1; }
-            if (r.x > tagAreaWidth - 45) { r.x = tagAreaWidth - 45; r.vx *= -1; }
+            if (r.x > tagAreaWidth - 35) { r.x = tagAreaWidth - 35; r.vx *= -1; }
             if (r.y < 0) { r.y = 0; r.vy *= -1; }
-            if (r.y > tagAreaHeight - 45) { r.y = tagAreaHeight - 45; r.vy *= -1; }
+            if (r.y > tagAreaHeight - 35) { r.y = tagAreaHeight - 35; r.vy *= -1; }
 
             r.element.style.left = r.x + "px"; r.element.style.top = r.y + "px";
         });
@@ -1189,16 +1294,17 @@ function initCatGame() {
 
     document.querySelectorAll(".fishSnack").forEach(s => s.remove());
     updateCatAreaSize();
-    cat.style.left = (catAreaWidth/2 - 30)+"px"; cat.style.top = (catAreaHeight/2 - 30)+"px"; cat.style.display = "none"; cat.textContent = "🐱";
+    cat.style.left = (catAreaWidth/2 - 25)+"px"; cat.style.top = (catAreaHeight/2 - 25)+"px"; cat.style.display = "none"; cat.textContent = "🐱";
     snacks = [];
     
     let count = 0;
+    const availableCount = maxNumber - excluded.length;
     for(let i=1; i<=maxNumber; i++) {
         if(excluded.includes(i)) continue; 
         const div = document.createElement("div");
         div.className = "fishSnack"; div.innerHTML = `🐟<br>${i}`;
         
-        const angle = (count * 2 * Math.PI) / (maxNumber - excluded.length);
+        const angle = (count * 2 * Math.PI) / availableCount;
         const sx = catAreaWidth/2 + Math.cos(angle) * (catAreaWidth/2.8) + (Math.random()-0.5)*30;
         const sy = catAreaHeight/2 + Math.sin(angle) * (catAreaHeight/2.8) + (Math.random()-0.5)*20;
         
@@ -1300,36 +1406,37 @@ function startSlotGame() {
     slotNotice.textContent = "";
 
     const finalNum = available[Math.floor(Math.random() * available.length)];
-    const final10 = Math.floor(finalNum / 10);
-    const final1 = finalNum % 10;
+    const finalStr = String(finalNum).padStart(3, '0');
+    const final1 = parseInt(finalStr[finalStr.length - 2]);
+    const final2 = parseInt(finalStr[finalStr.length - 1]);
     const isUr切り = Math.random() < 0.35;
 
     let count = 0;
     let shuffleInterval = setInterval(() => {
         playSound('slot_roll');
-        reel1.textContent = Math.floor(Math.random() * 3);
+        reel1.textContent = Math.floor(Math.random() * 10);
         reel2.textContent = Math.floor(Math.random() * 10);
         count++;
         if(count > 15) {
             clearInterval(shuffleInterval);
-            stopReels(finalNum, final10, final1, isUr切り);
+            stopReels(finalNum, final1, final2, isUr切り);
         }
     }, 80);
 }
 
-function stopReels(finalNum, final10, final1, isUr切り) {
+function stopReels(finalNum, final1, final2, isUr切り) {
     playSound('slot_stop');
-    reel1.textContent = final10 === 0 ? " " : final10;
+    reel1.textContent = final1;
     
-    let firstStop1 = final1;
+    let firstStop2 = final2;
     if(isUr切り) {
-        firstStop1 = (final1 + 3) % 10;
+        firstStop2 = (final2 + 3) % 10;
     }
 
     setTimeout(() => {
         playSound('slot_stop');
-        reel2.textContent = firstStop1;
-        const currentDisplayed = Number((reel1.textContent.trim() || "0") + firstStop1);
+        reel2.textContent = firstStop2;
+        const currentDisplayed = Number(String(reel1.textContent) + String(firstStop2));
 
         if(isUr切り) {
             playSound('slot_feint');
@@ -1346,7 +1453,7 @@ function stopReels(finalNum, final10, final1, isUr切り) {
                 
                 setTimeout(() => {
                     playSound('hit');
-                    reel2.textContent = final1;
+                    reel2.textContent = final2;
                     showSlotResult(finalNum);
                 }, 1000);
             }, 1000);
@@ -1390,6 +1497,7 @@ window.addEventListener('resize', () => {
     updateTargetAreaSize();
     updateTagAreaSize();
     updateCatAreaSize();
+    initPositions();
     createTargets();
     if (document.getElementById('tagGame').classList.contains('active')) {
         initTagGame();
