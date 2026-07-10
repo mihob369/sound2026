@@ -2,14 +2,24 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
 <title>ゲーム式ランダム指名 - 究極エンタメ音付き版（的あて自由度UP版）</title>
 
 <style>
 
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 body{
-    margin:0;
     font-family:sans-serif;
     background:#1d1d1d;
     color:white;
@@ -19,11 +29,14 @@ body{
 
 h1{
     margin-top:10px;
+    margin-left: 0;
+    margin-right: 0;
     font-size:clamp(20px, 5vw, 40px);
 }
 
 .topButtons{
     margin:10px;
+    padding: 0 10px;
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
@@ -55,6 +68,13 @@ button{
     margin:15px;
     color: #ffeb3b;
     text-shadow: 0 0 10px rgba(255,235,59,0.5);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+h3 {
+    margin: 10px 0;
+    padding: 0 10px;
 }
 
 /* ======================
@@ -62,6 +82,7 @@ button{
 ====================== */
 .gameArea{
     display:none;
+    padding: 0 5px;
 }
 
 .gameArea.active{
@@ -72,13 +93,15 @@ button{
    除外番号
 ====================== */
 .excludePanel{
-    width:95%;
+    width:100%;
     margin:auto;
+    padding: 0 10px;
     display:grid;
     grid-template-columns:repeat(auto-fit, minmax(35px, 1fr));
     gap:6px;
     max-width:800px;
     margin-bottom:20px;
+    box-sizing: border-box;
 }
 
 .excludeNum{
@@ -88,6 +111,11 @@ button{
     cursor:pointer;
     user-select:none;
     font-size:clamp(12px, 2vw, 14px);
+    min-width: 35px;
+    min-height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .excludeNum.off{
@@ -123,12 +151,14 @@ button{
    1. カードゲーム
 ====================== */
 .cardContainer{
-    width:95%;
+    width:100%;
     margin:auto;
+    padding: 0 5px;
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(80px, 1fr));
-    gap:15px;
+    grid-template-columns:repeat(auto-fit, minmax(70px, 1fr));
+    gap:10px;
     max-width:1000px;
+    box-sizing: border-box;
 }
 
 .card{
@@ -175,13 +205,15 @@ button{
    2. 的あて
 ====================== */
 .targetGameWrap{
-    width:95%;
+    width:100%;
     max-width:1100px;
     margin:0 auto;
+    padding: 0 5px;
     display:flex;
     flex-direction:column;
     gap:20px;
     align-items:center;
+    box-sizing: border-box;
 }
 
 .targetArea{
@@ -221,14 +253,20 @@ button{
 }
 
 .controlPanel{
-    width:140px;
+    width:100%;
+    max-width: 160px;
     display:flex;
     flex-direction:column;
     align-items:center;
     gap:15px;
 }
 
-.controlPanel h3{ margin:0; font-size:18px; }
+.controlPanel h3{ 
+    margin:0; 
+    font-size:18px;
+    width: 100%;
+    padding: 0;
+}
 
 .angleWrapper{
     width:50px;
@@ -256,14 +294,91 @@ button{
 /* ======================
    3. ガチャ
 ====================== */
-.gachaContainer { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.gachaMachine { width: 200px; height: 260px; background: #e91e63; border-radius: 40px 40px 20px 20px; position: relative; border: 4px solid #fff; box-shadow: 0 8px 0 #c2185b; }
-.gachaGlass { width: 160px; height: 120px; background: rgba(255, 255, 255, 0.2); border-radius: 30px 30px 10px 10px; margin: 15px auto 0; position: relative; overflow: hidden; border: 2px solid rgba(255, 255, 255, 0.5); }
-.gachaBalls { font-size: 24px; position: absolute; width: 100%; bottom: 5px; left: 0; letter-spacing: -2px; user-select: none; }
-.gachaHandle { width: 60px; height: 60px; background: #fff; border-radius: 50%; margin: 15px auto 0; position: relative; border: 4px solid #888; cursor: pointer; transition: transform 0.5s ease; }
-.gachaHandle::before { content: ""; position: absolute; width: 50px; height: 12px; background: #888; top: 20px; left: 1px; border-radius: 6px; }
-.gachaPocket { width: 50px; height: 40px; background: #333; border-radius: 10px 10px 0 0; position: absolute; bottom: 0; left: 75px; }
-#gachaOutput { width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(to bottom, #ff5722 50%, #fff 50%); border: 3px solid #333; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; }
+.gachaContainer { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 20px;
+    padding: 0 10px;
+}
+
+.gachaMachine { 
+    width: 200px; 
+    height: 260px; 
+    background: #e91e63; 
+    border-radius: 40px 40px 20px 20px; 
+    position: relative; 
+    border: 4px solid #fff; 
+    box-shadow: 0 8px 0 #c2185b; 
+}
+
+.gachaGlass { 
+    width: 160px; 
+    height: 120px; 
+    background: rgba(255, 255, 255, 0.2); 
+    border-radius: 30px 30px 10px 10px; 
+    margin: 15px auto 0; 
+    position: relative; 
+    overflow: hidden; 
+    border: 2px solid rgba(255, 255, 255, 0.5); 
+}
+
+.gachaBalls { 
+    font-size: 24px; 
+    position: absolute; 
+    width: 100%; 
+    bottom: 5px; 
+    left: 0; 
+    letter-spacing: -2px; 
+    user-select: none; 
+}
+
+.gachaHandle { 
+    width: 60px; 
+    height: 60px; 
+    background: #fff; 
+    border-radius: 50%; 
+    margin: 15px auto 0; 
+    position: relative; 
+    border: 4px solid #888; 
+    cursor: pointer; 
+    transition: transform 0.5s ease; 
+}
+
+.gachaHandle::before { 
+    content: ""; 
+    position: absolute; 
+    width: 50px; 
+    height: 12px; 
+    background: #888; 
+    top: 20px; 
+    left: 1px; 
+    border-radius: 6px; 
+}
+
+.gachaPocket { 
+    width: 50px; 
+    height: 40px; 
+    background: #333; 
+    border-radius: 10px 10px 0 0; 
+    position: absolute; 
+    bottom: 0; 
+    left: 75px; 
+}
+
+#gachaOutput { 
+    width: 70px; 
+    height: 70px; 
+    border-radius: 50%; 
+    background: linear-gradient(to bottom, #ff5722 50%, #fff 50%); 
+    border: 3px solid #333; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    font-size: 32px; 
+    font-weight: bold; 
+}
+
 .shake { animation: shakeAnim 0.5s ease-in-out; }
 @keyframes shakeAnim { 0%, 100% { transform: translate(0, 0); } 20%, 60% { transform: translate(-5px, 5px); } 40%, 80% { transform: translate(5px, -5px); } }
 .popCapsule { animation: popAnim 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -283,9 +398,43 @@ button{
     overflow: hidden; 
     border-radius: 15px; 
 }
-.runner { position: absolute; width: 45px; height: 45px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: white; border: 2px solid #fff; }
-.runner.captured { background: #ffeb3b; color: black; transform: scale(1.4); border-color: #f44336; z-index: 10; }
-#oni { position: absolute; width: 55px; height: 55px; background: #f44336; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 28px; border: 3px solid white; z-index: 20; }
+
+.runner { 
+    position: absolute; 
+    width: 45px; 
+    height: 45px; 
+    background: #2196f3; 
+    border-radius: 50%; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    font-size: 14px; 
+    font-weight: bold; 
+    color: white; 
+    border: 2px solid #fff; 
+}
+
+.runner.captured { 
+    background: #ffeb3b; 
+    color: black; 
+    transform: scale(1.4); 
+    border-color: #f44336; 
+    z-index: 10; 
+}
+
+#oni { 
+    position: absolute; 
+    width: 55px; 
+    height: 55px; 
+    background: #f44336; 
+    border-radius: 50%; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    font-size: 28px; 
+    border: 3px solid white; 
+    z-index: 20; 
+}
 
 /* ======================
    5. 猫のフェイント
@@ -301,6 +450,7 @@ button{
     overflow: hidden;
     border-radius: 15px;
 }
+
 .fishSnack {
     position: absolute;
     width: 60px;
@@ -317,12 +467,15 @@ button{
     border: 2px solid #fff;
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
+
 .fishSnack.targeted {
     background: #ff5722 !important;
     color: white;
     animation: pulseAnim 0.4s infinite alternate;
 }
+
 @keyframes pulseAnim { 0% { transform: scale(1); } 100% { transform: scale(1.15); } }
+
 #cat {
     position: absolute;
     font-size: 55px;
@@ -338,6 +491,13 @@ button{
 /* ======================
    6. スロット
 ====================== */
+.slotContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 10px;
+}
+
 .slotMachine {
     width: 100%;
     max-width: 320px;
@@ -349,6 +509,7 @@ button{
     box-sizing: border-box;
     box-shadow: 0 10px 20px rgba(0,0,0,0.7);
 }
+
 .slotReels {
     display: flex;
     justify-content: center;
@@ -360,6 +521,7 @@ button{
     height: 90px;
     overflow: hidden;
 }
+
 .reelWindow {
     width: 100px;
     height: 90px;
@@ -372,18 +534,22 @@ button{
     border-radius: 5px;
     position: relative;
 }
+
 .reelContainer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
 }
+
 .slotNotice {
     color: #ff5722;
     font-weight: bold;
     font-size: 18px;
     min-height: 24px;
     margin-top: 10px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ======================
@@ -392,11 +558,12 @@ button{
 @media (max-width: 768px) {
     .cardContainer {
         grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
-        gap: 10px;
+        gap: 8px;
     }
 
     .targetGameWrap {
         flex-direction: column;
+        padding: 0 5px;
     }
 
     .controlPanel {
@@ -415,20 +582,18 @@ button{
         font-size: 14px;
         padding: 8px;
     }
-
-    .slotMachine {
-        max-width: 280px;
-    }
 }
 
 @media (max-width: 480px) {
     h1 {
         font-size: 24px;
+        padding: 0 10px;
     }
 
     .cardContainer {
         grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-        gap: 8px;
+        gap: 6px;
+        padding: 0 5px;
     }
 
     .card {
@@ -459,11 +624,13 @@ button{
     .tagArea {
         aspect-ratio: auto;
         height: 250px;
+        margin: 10px 5px;
     }
 
     .catArea {
         aspect-ratio: auto;
         height: 280px;
+        margin: 10px 5px;
     }
 
     .runner {
@@ -559,17 +726,19 @@ button{
 </div>
 
 <div id="slotGame" class="gameArea">
-    <div class="slotMachine">
-        <div class="slotReels">
-            <div class="reelWindow"><div id="reel1" class="reelContainer">-</div></div>
-            <div class="reelWindow"><div id="reel2" class="reelContainer">-</div></div>
+    <div class="slotContainer">
+        <div class="slotMachine">
+            <div class="slotReels">
+                <div class="reelWindow"><div id="reel1" class="reelContainer">-</div></div>
+                <div class="reelWindow"><div id="reel2" class="reelContainer">-</div></div>
+            </div>
+            <div class="slotNotice" id="slotNotice"></div>
         </div>
-        <div class="slotNotice" id="slotNotice"></div>
+        <button class="gameButton" style="background:#ffd700; color:black; font-weight:bold;" onclick="startSlotGame()">REEL START</button>
     </div>
-    <button class="gameButton" style="background:#ffd700; color:black; font-weight:bold;" onclick="startSlotGame()">REEL START</button>
 </div>
 
-<hr style="border:1px solid #333; margin:20px 0;">
+<hr style="border:1px solid #333; margin:20px 10px;">
 <button class="resetButton" onclick="resetGame()">リセット</button>
 
 <script>
