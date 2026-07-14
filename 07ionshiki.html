@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>イオン学習アプリ（大きいボタン版）</title>
+<style>
+body { font-family: sans-serif; text-align: center; background: #f1f5f9; }
+
+/* コンテナ */
+#choices {
+  display: flex;
+  flex-direction: column; /* 縦並び */
+  align-items: center;
+  gap: 12px;
+}
+
+/* ボタンを大きく */
+button {
+  width: 300px;
+  padding: 18px;
+  font-size: 20px;  /* ←大きく */
+  border-radius: 10px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+}
+
+.result { font-size:20px; margin-top:12px; }
+#score { font-size:18px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h2 id="question"></h2>
+<div id="choices"></div>
+<p id="result" class="result"></p>
+<p id="score"></p>
+
+<script>
+const ions=[
+{name:"水素イオン",formula:"H<sup>+</sup>"},
+{name:"リチウムイオン",formula:"Li<sup>+</sup>"},
+{name:"ナトリウムイオン",formula:"Na<sup>+</sup>"},
+{name:"カリウムイオン",formula:"K<sup>+</sup>"},
+{name:"銀イオン",formula:"Ag<sup>+</sup>"},
+{name:"アンモニウムイオン",formula:"NH<sub>4</sub><sup>+</sup>"},
+{name:"銅イオン",formula:"Cu<sup>2+</sup>"},
+{name:"マグネシウムイオン",formula:"Mg<sup>2+</sup>"},
+{name:"亜鉛イオン",formula:"Zn<sup>2+</sup>"},
+{name:"鉄イオン",formula:"Fe<sup>2+</sup>"},
+{name:"カルシウムイオン",formula:"Ca<sup>2+</sup>"},
+{name:"バリウムイオン",formula:"Ba<sup>2+</sup>"},
+{name:"塩化物イオン",formula:"Cl<sup>-</sup>"},
+{name:"水酸化物イオン",formula:"OH<sup>-</sup>"},
+{name:"硝酸イオン",formula:"NO<sub>3</sub><sup>-</sup>"},
+{name:"酢酸イオン",formula:"CH<sub>3</sub>COO<sup>-</sup>"},
+{name:"硫化物イオン",formula:"S<sup>2-</sup>"},
+{name:"硫酸イオン",formula:"SO<sub>4</sub><sup>2-</sup>"},
+{name:"炭酸イオン",formula:"CO<sub>3</sub><sup>2-</sup>"}
+];
+
+let questions=[];
+ions.forEach(i=>{
+  questions.push({q:i.formula, a:i.name, type:"formula"});
+  questions.push({q:i.name, a:i.formula, type:"name"});
+});
+questions.sort(()=>Math.random()-0.5);
+
+let index=0;
+let score=0;
+
+function showQuestion(){
+  if(index>=questions.length){
+    document.getElementById("question").innerHTML = "終了！";
+    document.getElementById("choices").innerHTML = "";
+    document.getElementById("result").innerHTML = "";
+    document.getElementById("score").innerHTML = `最終得点：${score} / 38`;
+    return;
+  }
+
+  const q=questions[index];
+  document.getElementById("result").innerHTML="";
+
+  if(q.type==="formula"){
+    document.getElementById("question").innerHTML = q.q + " はどれ？";
+  }else{
+    document.getElementById("question").innerHTML = q.q + " の化学式は？";
+  }
+
+  let options=[q.a];
+  while(options.length<4){
+    let r=ions[Math.floor(Math.random()*ions.length)];
+    let val = q.type==="formula" ? r.name : r.formula;
+    if(!options.includes(val)) options.push(val);
+  }
+
+  options.sort(()=>Math.random()-0.5);
+
+  const div=document.getElementById("choices");
+  div.innerHTML="";
+
+  options.forEach(opt=>{
+    let btn=document.createElement("button");
+    btn.innerHTML=opt;
+    btn.onclick=()=>check(opt);
+    div.appendChild(btn);
+  });
+
+  document.getElementById("score").innerHTML = `現在：${score} / ${index}`;
+}
+
+function check(choice){
+  const correct = questions[index].a;
+  const result=document.getElementById("result");
+
+  if(choice===correct){
+    score++;
+    result.innerHTML="✅ 正解！";
+    result.style.color="green";
+  }else{
+    result.innerHTML="❌ 正解は「"+correct+"」";
+    result.style.color="red";
+  }
+
+  index++;
+  setTimeout(showQuestion,500);
+}
+
+showQuestion();
+</script>
+
+</body>
+</html>

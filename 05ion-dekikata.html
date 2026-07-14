@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原子→イオン アニメーション</title>
+<style>
+  :root{
+    --cream:#F7F4EC;
+    --card:#FFFFFF;
+    --ink:#2B2A28;
+    --sub:#6B6A66;
+    --coral:#CC785C;
+    --coral-dark:#B36347;
+    --sand:#E8E1D3;
+    --line:#DDD6C5;
+    --blue:#5A8FB0;
+  }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cream);
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(204,120,92,0.07), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(90,143,176,0.06), transparent 45%);
+    font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+    color: var(--ink);
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background: var(--card);
+    padding: 28px 32px 24px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 2px rgba(43,42,40,0.04), 0 12px 28px rgba(43,42,40,0.06);
+  }
+  .eyebrow{
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--coral-dark);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  h2 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  canvas {
+    background: var(--cream);
+    border-radius: 16px;
+    border: 1px solid var(--line);
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  button {
+    margin: 0;
+    padding: 9px 16px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+    font-family: inherit;
+  }
+  button:hover { transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button:focus-visible {
+    outline: 2px solid var(--coral);
+    outline-offset: 2px;
+  }
+  .primary { background: var(--coral); color: #fff; }
+  .primary:hover { background: var(--coral-dark); }
+  .secondary { background: var(--sand); color: var(--ink); border-color: var(--line); }
+  .secondary:hover { background: #ddd5c2; }
+  .switch { background: var(--blue); color: #fff; }
+  .switch:hover { background: #4a7c9d; }
+  .stop { background: var(--card); color: var(--ink); border-color: var(--line); }
+  .stop:hover { background: var(--sand); }
+  #label {
+    margin: 4px 0 0;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    color: var(--coral-dark);
+    background: var(--sand);
+    padding: 8px 28px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    text-align: center;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+<p class="eyebrow">原子の構造</p>
+<h2 id="title">ナトリウム（2-8-1）</h2>
+<canvas id="canvas" width="320" height="320"></canvas>
+<p id="label">Na（原子）</p>
+<div class="controls">
+  <button id="actionBtn" class="primary" onclick="ionize()">電子を動かす</button>
+  <button class="secondary" onclick="resetAnim()">リセット</button>
+  <button class="switch" onclick="toggleAtom()">Na / Cl 切り替え</button>
+  <button class="stop" onclick="toggleStop()">ストップ / 再開</button>
+</div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const COLORS = {
+  nucleus: "#CC785C",
+  nucleusText: "#FFFFFF",
+  shell: "#DDD6C5",
+  electron: "#5A8FB0",
+  electronOuterNa: "#CC785C",
+  bg: "#F7F4EC"
+};
+
+let angle = 0;
+let ionized = false;
+let flyingElectron = null;
+let mode = "Na";
+let isStopped = false;
+
+
+function drawElectron(x,y,color){
+  ctx.beginPath();
+  ctx.arc(x,y,4,0,Math.PI*2);
+  ctx.fillStyle = color || COLORS.electron;
+  ctx.fill();
+}
+
+function drawShell(cx,cy,r){
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle = COLORS.shell;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const cx=160, cy=160;
+
+  // nucleus
+  ctx.beginPath();
+  ctx.arc(cx,cy,25,0,Math.PI*2);
+  ctx.fillStyle = COLORS.nucleus;
+  ctx.fill();
+
+  ctx.fillStyle = COLORS.nucleusText;
+  ctx.font = "600 14px sans-serif";
+  ctx.fillText(mode==="Na"?"+11":"+17",cx-14,cy+4);
+
+  drawShell(cx,cy,50);
+  drawShell(cx,cy,80);
+  drawShell(cx,cy,110);
+
+  // 内側
+  for(let i=0;i<2;i++){
+    let a=(Math.PI*2*i)/2;
+    drawElectron(cx+Math.cos(a)*50,cy+Math.sin(a)*50);
+  }
+
+  for(let i=0;i<8;i++){
+    let a=(Math.PI*2*i)/8 + (isStopped?0:angle*0.2);
+    drawElectron(cx+Math.cos(a)*80,cy+Math.sin(a)*80);
+  }
+
+  // 外側電子
+  if(mode==="Na"){
+    if(!ionized){
+      let a = isStopped?0:angle;
+      drawElectron(cx+Math.cos(a)*110,cy+Math.sin(a)*110, COLORS.electronOuterNa);
+    }
+  } else {
+    // Cl：7→8に増える
+    let count = ionized ? 8 : 7;
+    for(let i=0;i<count;i++){
+      let a=(Math.PI*2*i)/8 + (isStopped?0:angle);
+      drawElectron(cx+Math.cos(a)*110,cy+Math.sin(a)*110);
+    }
+  }
+
+  // 飛んでくる電子（Cl）：回転しているスロットへホーミングして着地
+  if(mode==="Cl" && flyingElectron){
+    const targetA = (Math.PI*2*7)/8 + (isStopped?0:angle);
+    const targetX = cx+Math.cos(targetA)*110;
+    const targetY = cy+Math.sin(targetA)*110;
+
+    let dx=targetX-flyingElectron.x;
+    let dy=targetY-flyingElectron.y;
+    let dist=Math.sqrt(dx*dx+dy*dy);
+
+    if(dist<4){
+      ionized=true; // 7 → 8 になる
+      flyingElectron=null; // 消える
+      document.getElementById("label").innerText="Cl⁻（塩化物イオン）";
+    } else {
+      const speed = 3;
+      flyingElectron.x += dx/dist*speed;
+      flyingElectron.y += dy/dist*speed;
+      drawElectron(flyingElectron.x,flyingElectron.y);
+    }
+  }
+
+  // Na 放出
+  if(mode==="Na" && flyingElectron){
+    flyingElectron.x+=flyingElectron.vx;
+    flyingElectron.y+=flyingElectron.vy;
+    drawElectron(flyingElectron.x,flyingElectron.y, COLORS.electronOuterNa);
+  }
+
+  if(!isStopped) angle+=0.02;
+
+
+  requestAnimationFrame(draw);
+}
+
+function ionize(){
+  if(mode==="Na"){
+    if(ionized) return;
+    ionized=true;
+    document.getElementById("label").innerText="Na⁺（ナトリウムイオン）";
+    {
+      const cx=160, cy=160, r=110;
+      const a = isStopped?0:angle;
+      const sx = cx+Math.cos(a)*r;
+      const sy = cy+Math.sin(a)*r;
+      // 接線方向（円の進行方向）に飛ばす
+      const tx = -Math.sin(a);
+      const ty = Math.cos(a);
+      flyingElectron={x:sx,y:sy,vx:tx*3,vy:ty*3};
+    }
+  } else {
+    if(flyingElectron||ionized) return;
+    // 画面外の適当な位置からスタート（毎フレーム、回転するスロットへホーミングする）
+    flyingElectron={x:300,y:10};
+  }
+}
+
+function resetAnim(){
+  ionized=false;
+  flyingElectron=null;
+  document.getElementById("label").innerText = mode==="Na"?"Na（原子）":"Cl（原子）";
+}
+
+function toggleAtom(){
+  mode = mode==="Na"?"Cl":"Na";
+  ionized=false;
+  flyingElectron=null;
+
+
+  document.getElementById("title").innerText = mode==="Na"?
+    "ナトリウム（2-8-1）":"塩素（2-8-7）";
+
+  document.getElementById("label").innerText = mode==="Na"?
+    "Na（原子）":"Cl（原子）";
+}
+
+function toggleStop(){
+  isStopped = !isStopped;
+}
+
+ draw();
+</script>
+</body>
+</html>

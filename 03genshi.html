@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原子の構造を見る</title>
+<style>
+  :root{
+    --bg: #F4F1EA;
+    --card: #FFFFFF;
+    --ink: #2B2A28;
+    --ink-soft: #6B6660;
+    --line: #E3DDD0;
+    --accent: #D97757;      /* 陽子 */
+    --accent-soft: #F1D9CC;
+    --accent2: #6B8E8E;     /* 電子 */
+    --accent2-soft: #DCE7E5;
+    --neutron: #9B968D;     /* 中性子 */
+    --neutron-soft: #E8E5DD;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Hiragino Sans", "Yu Gothic", "Helvetica Neue", Arial, sans-serif;
+    padding: 32px 20px 60px;
+  }
+  .wrap{ max-width: 1000px; margin: 0 auto; }
+
+  header{ margin-bottom: 26px; }
+  .eyebrow{
+    font-size: 12px;
+    letter-spacing: .12em;
+    color: var(--accent);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  h1{
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 32px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -.01em;
+  }
+  .lede{ color: var(--ink-soft); font-size: 15px; margin:0; }
+
+  .legend{
+    display:flex; gap:18px; flex-wrap:wrap;
+    margin-top: 14px;
+  }
+  .legend-item{
+    display:flex; align-items:center; gap:7px;
+    font-size: 13px; color: var(--ink-soft);
+  }
+  .swatch{ width:13px; height:13px; border-radius:50%; flex:none; }
+
+  .layout{
+    display:grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 760px){ .layout{ grid-template-columns: 1fr; } }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+  }
+  .card h3{
+    margin: 0 0 14px;
+    font-size: 13px;
+    letter-spacing: .02em;
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  #atomCanvas{
+    width: 100%;
+    height: auto;
+    display:block;
+  }
+
+  .element-banner{
+    display:flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  .symbol-box{
+    width: 70px; height: 70px;
+    border-radius: 14px;
+    background: var(--accent);
+    color: #fff;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    font-family: Georgia, serif;
+    flex: none;
+  }
+  .symbol-box .z{ font-size: 11px; opacity:.85; }
+  .symbol-box .sym{ font-size: 26px; font-weight: 700; line-height:1; }
+  .elem-name{ font-size: 20px; font-weight: 700; }
+  .elem-sub{ font-size: 13px; color: var(--ink-soft); margin-top:2px; }
+
+  .stat-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .stat{
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family: Georgia, serif;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .stat.proton .num{ color: var(--accent); }
+  .stat.neutron .num{ color: var(--neutron); }
+  .stat.electron .num{ color: var(--accent2); }
+  .stat .label{ font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+
+  .breakdown{
+    font-size: 14px;
+    line-height: 1.9;
+    border-top: 1px dashed var(--line);
+    padding-top: 14px;
+  }
+  .breakdown .row{ display:flex; justify-content: space-between; }
+  .breakdown .row b{ font-weight: 700; }
+  .tag-nucleus{ color: var(--ink-soft); font-size:12px; }
+
+  .picker{
+    display:flex; flex-wrap:wrap; gap:6px;
+  }
+  .picker button{
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--ink);
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .picker button:hover{ border-color: var(--accent); }
+  .picker button.active{
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .slider-row{ margin-top: 16px; }
+  .slider-row label{
+    display:flex; justify-content: space-between;
+    font-size: 13px; color: var(--ink-soft); margin-bottom:8px;
+  }
+  input[type="range"]{
+    width: 100%;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--line);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Atomic Structure · 体験ラボ</div>
+    <h1>原子は何でできているのか</h1>
+    <p class="lede">原子は中心の「原子核」と、その周りを回る「電子」からできています。原子核はさらに「陽子」と「中性子」からできています。</p>
+    <div class="legend">
+      <div class="legend-item"><span class="swatch" style="background:var(--accent)"></span>陽子（+）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--neutron)"></span>中性子（電荷なし）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--accent2)"></span>電子（−）</div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <div class="card">
+      <h3>原子モデル（最も存在比の高い同位体）</h3>
+      <canvas id="atomCanvas" width="560" height="560"></canvas>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>元素を選ぶ（原子番号 1〜118）</h3>
+        <div class="picker" id="picker"></div>
+        <div class="slider-row">
+          <label><span>原子番号 Z</span><span id="zSliderVal">1</span></label>
+          <input type="range" id="zSlider" min="1" max="118" value="1">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// 元素データ：原子番号1〜118、代表的な同位体の質量数A
+// （安定元素は天然存在比が最大の同位体／放射性元素は最も安定な既知同位体）
+const ELEMENTS = [
+  {z:1,sym:"H",name:"水素",a:1},{z:2,sym:"He",name:"ヘリウム",a:4},
+  {z:3,sym:"Li",name:"リチウム",a:7},{z:4,sym:"Be",name:"ベリリウム",a:9},
+  {z:5,sym:"B",name:"ホウ素",a:11},{z:6,sym:"C",name:"炭素",a:12},
+  {z:7,sym:"N",name:"窒素",a:14},{z:8,sym:"O",name:"酸素",a:16},
+  {z:9,sym:"F",name:"フッ素",a:19},{z:10,sym:"Ne",name:"ネオン",a:20},
+  {z:11,sym:"Na",name:"ナトリウム",a:23},{z:12,sym:"Mg",name:"マグネシウム",a:24},
+  {z:13,sym:"Al",name:"アルミニウム",a:27},{z:14,sym:"Si",name:"ケイ素",a:28},
+  {z:15,sym:"P",name:"リン",a:31},{z:16,sym:"S",name:"硫黄",a:32},
+  {z:17,sym:"Cl",name:"塩素",a:35},{z:18,sym:"Ar",name:"アルゴン",a:40},
+  {z:19,sym:"K",name:"カリウム",a:39},{z:20,sym:"Ca",name:"カルシウム",a:40},
+  {z:21,sym:"Sc",name:"スカンジウム",a:45},{z:22,sym:"Ti",name:"チタン",a:48},
+  {z:23,sym:"V",name:"バナジウム",a:51},{z:24,sym:"Cr",name:"クロム",a:52},
+  {z:25,sym:"Mn",name:"マンガン",a:55},{z:26,sym:"Fe",name:"鉄",a:56},
+  {z:27,sym:"Co",name:"コバルト",a:59},{z:28,sym:"Ni",name:"ニッケル",a:58},
+  {z:29,sym:"Cu",name:"銅",a:63},{z:30,sym:"Zn",name:"亜鉛",a:64},
+  {z:31,sym:"Ga",name:"ガリウム",a:69},{z:32,sym:"Ge",name:"ゲルマニウム",a:74},
+  {z:33,sym:"As",name:"ヒ素",a:75},{z:34,sym:"Se",name:"セレン",a:80},
+  {z:35,sym:"Br",name:"臭素",a:79},{z:36,sym:"Kr",name:"クリプトン",a:84},
+  {z:37,sym:"Rb",name:"ルビジウム",a:85},{z:38,sym:"Sr",name:"ストロンチウム",a:88},
+  {z:39,sym:"Y",name:"イットリウム",a:89},{z:40,sym:"Zr",name:"ジルコニウム",a:90},
+  {z:41,sym:"Nb",name:"ニオブ",a:93},{z:42,sym:"Mo",name:"モリブデン",a:98},
+  {z:43,sym:"Tc",name:"テクネチウム",a:98},{z:44,sym:"Ru",name:"ルテニウム",a:102},
+  {z:45,sym:"Rh",name:"ロジウム",a:103},{z:46,sym:"Pd",name:"パラジウム",a:106},
+  {z:47,sym:"Ag",name:"銀",a:107},{z:48,sym:"Cd",name:"カドミウム",a:114},
+  {z:49,sym:"In",name:"インジウム",a:115},{z:50,sym:"Sn",name:"スズ",a:120},
+  {z:51,sym:"Sb",name:"アンチモン",a:121},{z:52,sym:"Te",name:"テルル",a:130},
+  {z:53,sym:"I",name:"ヨウ素",a:127},{z:54,sym:"Xe",name:"キセノン",a:132},
+  {z:55,sym:"Cs",name:"セシウム",a:133},{z:56,sym:"Ba",name:"バリウム",a:138},
+  {z:57,sym:"La",name:"ランタン",a:139},{z:58,sym:"Ce",name:"セリウム",a:140},
+  {z:59,sym:"Pr",name:"プラセオジム",a:141},{z:60,sym:"Nd",name:"ネオジム",a:142},
+  {z:61,sym:"Pm",name:"プロメチウム",a:145},{z:62,sym:"Sm",name:"サマリウム",a:152},
+  {z:63,sym:"Eu",name:"ユウロピウム",a:153},{z:64,sym:"Gd",name:"ガドリニウム",a:158},
+  {z:65,sym:"Tb",name:"テルビウム",a:159},{z:66,sym:"Dy",name:"ジスプロシウム",a:164},
+  {z:67,sym:"Ho",name:"ホルミウム",a:165},{z:68,sym:"Er",name:"エルビウム",a:166},
+  {z:69,sym:"Tm",name:"ツリウム",a:169},{z:70,sym:"Yb",name:"イッテルビウム",a:174},
+  {z:71,sym:"Lu",name:"ルテチウム",a:175},{z:72,sym:"Hf",name:"ハフニウム",a:180},
+  {z:73,sym:"Ta",name:"タンタル",a:181},{z:74,sym:"W",name:"タングステン",a:184},
+  {z:75,sym:"Re",name:"レニウム",a:187},{z:76,sym:"Os",name:"オスミウム",a:192},
+  {z:77,sym:"Ir",name:"イリジウム",a:193},{z:78,sym:"Pt",name:"白金",a:195},
+  {z:79,sym:"Au",name:"金",a:197},{z:80,sym:"Hg",name:"水銀",a:202},
+  {z:81,sym:"Tl",name:"タリウム",a:205},{z:82,sym:"Pb",name:"鉛",a:208},
+  {z:83,sym:"Bi",name:"ビスマス",a:209},{z:84,sym:"Po",name:"ポロニウム",a:209},
+  {z:85,sym:"At",name:"アスタチン",a:210},{z:86,sym:"Rn",name:"ラドン",a:222},
+  {z:87,sym:"Fr",name:"フランシウム",a:223},{z:88,sym:"Ra",name:"ラジウム",a:226},
+  {z:89,sym:"Ac",name:"アクチニウム",a:227},{z:90,sym:"Th",name:"トリウム",a:232},
+  {z:91,sym:"Pa",name:"プロトアクチニウム",a:231},{z:92,sym:"U",name:"ウラン",a:238},
+  {z:93,sym:"Np",name:"ネプツニウム",a:237},{z:94,sym:"Pu",name:"プルトニウム",a:244},
+  {z:95,sym:"Am",name:"アメリシウム",a:243},{z:96,sym:"Cm",name:"キュリウム",a:247},
+  {z:97,sym:"Bk",name:"バークリウム",a:247},{z:98,sym:"Cf",name:"カリホルニウム",a:251},
+  {z:99,sym:"Es",name:"アインスタイニウム",a:252},{z:100,sym:"Fm",name:"フェルミウム",a:257},
+  {z:101,sym:"Md",name:"メンデレビウム",a:258},{z:102,sym:"No",name:"ノーベリウム",a:259},
+  {z:103,sym:"Lr",name:"ローレンシウム",a:266},{z:104,sym:"Rf",name:"ラザホージウム",a:267},
+  {z:105,sym:"Db",name:"ドブニウム",a:268},{z:106,sym:"Sg",name:"シーボーギウム",a:269},
+  {z:107,sym:"Bh",name:"ボーリウム",a:270},{z:108,sym:"Hs",name:"ハッシウム",a:269},
+  {z:109,sym:"Mt",name:"マイトネリウム",a:278},{z:110,sym:"Ds",name:"ダームスタチウム",a:281},
+  {z:111,sym:"Rg",name:"レントゲニウム",a:282},{z:112,sym:"Cn",name:"コペルニシウム",a:285},
+  {z:113,sym:"Nh",name:"ニホニウム",a:286},{z:114,sym:"Fl",name:"フレロビウム",a:289},
+  {z:115,sym:"Mc",name:"モスコビウム",a:290},{z:116,sym:"Lv",name:"リバモリウム",a:293},
+  {z:117,sym:"Ts",name:"テネシン",a:294},{z:118,sym:"Og",name:"オガネソン",a:294},
+];
+
+// 電子配置（殻ごとの電子数）は軌道が詰まる順番から自動計算する。
+// これにより118種類すべてに対応でき、元素ごとのデータを持つ必要がない。
+const FILL_ORDER = [
+  [1,2],[2,2],[2,6],[3,2],[3,6],[4,2],[3,10],[4,6],[5,2],[4,10],
+  [5,6],[6,2],[4,14],[5,10],[6,6],[7,2],[5,14],[6,10],[7,6]
+];
+
+function getShellConfig(electrons){
+  const shells = [];
+  let remaining = electrons;
+  for(const [n, cap] of FILL_ORDER){
+    if(remaining <= 0) break;
+    const fill = Math.min(cap, remaining);
+    shells[n-1] = (shells[n-1] || 0) + fill;
+    remaining -= fill;
+  }
+  return shells.filter(v => v !== undefined);
+}
+
+
+const ACCENT = "#D97757";
+const NEUTRON = "#9B968D";
+const ACCENT2 = "#6B8E8E";
+const LINE = "#E3DDD0";
+const INK = "#2B2A28";
+
+const canvas = document.getElementById("atomCanvas");
+const ctx = canvas.getContext("2d");
+let t = 0; // アニメーション用時間
+let currentZ = 1;
+
+function drawAtom(z){
+  const el = ELEMENTS[z-1];
+  const protons = el.z;
+  const neutrons = el.a - el.z;
+  const electrons = el.z;
+  const shells = getShellConfig(electrons);
+
+  const w = canvas.width, h = canvas.height;
+  const cx = w/2, cy = h/2;
+  ctx.clearRect(0,0,w,h);
+
+  // ---- 電子殻の軌道（点線、内側から） ----
+  const baseOrbit = 130;
+  const orbitGap = 22;
+  shells.forEach((count, i) => {
+    const r = baseOrbit + i*orbitGap;
+    ctx.beginPath();
+    ctx.setLineDash([3,5]);
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 1.5;
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // ---- 原子核（陽子+中性子の粒） ----
+  const nucleusParticles = [];
+  for(let i=0;i<protons;i++) nucleusParticles.push("p");
+  for(let i=0;i<neutrons;i++) nucleusParticles.push("n");
+
+  const totalNucleons = nucleusParticles.length;
+  const particleR = Math.min(13, Math.max(2.4, 88/Math.sqrt(totalNucleons)));
+  // 隙間なく密着させるパッキング半径（フィボナッチ螘旋）
+  const packRadius = particleR * Math.sqrt(totalNucleons) * 1.06;
+
+  // 陽子と中性子を交互気味に混ぜて自然に見せる
+  const order = [];
+  let pi = 0, ni = 0;
+  while(pi < protons || ni < neutrons){
+    if(pi < protons){ order.push("p"); pi++; }
+    if(ni < neutrons){ order.push("n"); ni++; }
+  }
+
+  order.forEach((type, i) => {
+    const golden = Math.PI * (3 - Math.sqrt(5));
+    const radius = packRadius * Math.sqrt((i+0.5)/totalNucleons);
+    const angle = i * golden;
+    const px = cx + radius * Math.cos(angle);
+    const py = cy + radius * Math.sin(angle);
+
+    ctx.beginPath();
+    ctx.arc(px, py, particleR, 0, Math.PI*2);
+    ctx.fillStyle = type === "p" ? ACCENT : NEUTRON;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.6)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    if(type === "p"){
+      ctx.fillStyle = "#fff";
+      ctx.font = `bold ${Math.round(particleR*1.2)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("+", px, py+1);
+    }
+  });
+
+  // ---- 電子（殻ごとに軌道を周回、−を表示） ----
+  shells.forEach((count, shellIdx) => {
+    const r = baseOrbit + shellIdx*orbitGap;
+    for(let i=0;i<count;i++){
+      const angle = (Math.PI*2*i/count) + t*(0.5 - shellIdx*0.04) + shellIdx;
+      const ex = cx + r*Math.cos(angle);
+      const ey = cy + r*Math.sin(angle);
+
+      ctx.beginPath();
+      ctx.arc(ex, ey, 6.5, 0, Math.PI*2);
+      ctx.fillStyle = ACCENT2;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("−", ex, ey+0.5);
+    }
+  });
+}
+
+function animate(){
+  t += 0.012;
+  drawAtom(currentZ);
+  requestAnimationFrame(animate);
+}
+
+// ---------- UI ----------
+const picker = document.getElementById("picker");
+ELEMENTS.forEach(el => {
+  const btn = document.createElement("button");
+  btn.textContent = el.sym;
+  btn.title = `${el.name}（Z=${el.z}）`;
+  btn.onclick = () => setElement(el.z);
+  btn.id = "pick-" + el.z;
+  picker.appendChild(btn);
+});
+
+const zSlider = document.getElementById("zSlider");
+zSlider.oninput = () => setElement(Number(zSlider.value));
+
+function setElement(z){
+  currentZ = z;
+  zSlider.value = z;
+  document.getElementById("zSliderVal").textContent = z;
+
+  document.querySelectorAll(".picker button").forEach(b => b.classList.remove("active"));
+  document.getElementById("pick-"+z).classList.add("active");
+}
+
+setElement(1);
+animate();
+</script>
+
+</body>
+</html>

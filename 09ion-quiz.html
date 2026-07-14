@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>イオン化合物クイズ完全版</title>
+<style>
+body { font-family: Arial; text-align: center; background:#f0f0f0; }
+.container { background:#fff; padding:20px; margin:50px auto; width:450px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2);} 
+.choice { display:block; margin:5px; padding:8px; background:#eee; border-radius:5px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="container">
+<h2>イオン化合物クイズ（48点満点）</h2>
+<p id="score">スコア: 0 / 48</p>
+<p id="question"></p>
+<div id="choices"></div>
+<p id="result"></p>
+</div>
+
+<script>
+const data = [
+  {f:"NaCl", n:"塩化ナトリウム"},
+  {f:"NaOH", n:"水酸化ナトリウム"},
+  {f:"NaNO3", n:"硝酸ナトリウム"},
+  {f:"Na2SO4", n:"硫酸ナトリウム"},
+  {f:"Na2CO3", n:"炭酸ナトリウム"},
+
+  {f:"KCl", n:"塩化カリウム"},
+  {f:"KOH", n:"水酸化カリウム"},
+  {f:"KNO3", n:"硝酸カリウム"},
+  {f:"K2SO4", n:"硫酸カリウム"},
+
+  {f:"AgCl", n:"塩化銀"},
+  {f:"AgNO3", n:"硝酸銀"},
+
+  {f:"CuCl2", n:"塩化銅"},
+  {f:"Cu(OH)2", n:"水酸化銅"},
+  {f:"CuSO4", n:"硫酸銅"},
+
+  {f:"MgCl2", n:"塩化マグネシウム"},
+  {f:"Mg(OH)2", n:"水酸化マグネシウム"},
+  {f:"MgSO4", n:"硫酸マグネシウム"},
+
+  {f:"ZnCl2", n:"塩化亜鉛"},
+  {f:"ZnSO4", n:"硫酸亜鉛"},
+
+  {f:"CaCl2", n:"塩化カルシウム"},
+  {f:"Ca(OH)2", n:"水酸化カルシウム"},
+  {f:"CaCO3", n:"炭酸カルシウム"},
+
+  {f:"NH4Cl", n:"塩化アンモニウム"},
+  {f:"NH4NO3", n:"硝酸アンモニウム"}
+];
+
+let score = 0;
+let locked = false;
+let usedQuestions = new Set();
+
+function shuffle(arr){ return arr.sort(()=>Math.random()-0.5); }
+
+function formatFormula(str){
+  str = str.replace(/\^([0-9]+[\+\-])/g, '<sup>$1</sup>');
+  str = str.replace(/([A-Za-z])([\+\-])/g, '$1<sup>$2</sup>');
+  str = str.replace(/(\d+)/g, '<sub>$1</sub>');
+  return str;
+}
+
+function makeKey(index, reverse){
+  return index + "_" + (reverse ? "R" : "N");
+}
+
+function nextQuestion(){
+  locked = false;
+  document.getElementById('result').textContent = "";
+
+  const totalQuestions = data.length * 2;
+
+  if(usedQuestions.size >= totalQuestions){
+    document.getElementById('question').textContent = "終了！最終スコア: " + score + " / " + totalQuestions;
+    document.getElementById('choices').innerHTML = "";
+    return;
+  }
+
+  let index, isReverse, key;
+
+  do {
+    index = Math.floor(Math.random()*data.length);
+    isReverse = Math.random() < 0.5;
+    key = makeKey(index, isReverse);
+  } while(usedQuestions.has(key));
+
+  usedQuestions.add(key);
+
+  const current = data[index];
+
+  let correct;
+  let questionText;
+
+  if(isReverse){
+    questionText = current.n + " の化学式は？";
+    correct = current.f;
+  }else{
+    questionText = formatFormula(current.f) + " の名称は？";
+    correct = current.n;
+  }
+
+  document.getElementById('question').innerHTML = questionText;
+
+  let choices = [correct];
+  while(choices.length < 4){
+    let rand = data[Math.floor(Math.random()*data.length)];
+    let val = isReverse ? rand.f : rand.n;
+    if(!choices.includes(val)) choices.push(val);
+  }
+
+  choices = shuffle(choices);
+
+  const choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = "";
+
+  choices.forEach(choice => {
+    const btn = document.createElement('div');
+    btn.className = 'choice';
+    btn.innerHTML = isReverse ? formatFormula(choice) : choice;
+    btn.onclick = () => checkAnswer(choice, correct);
+    choicesDiv.appendChild(btn);
+  });
+}
+
+function checkAnswer(choice, correct){
+  if(locked) return;
+  locked = true;
+
+  if(choice === correct){
+    document.getElementById('result').textContent = "正解！";
+    score++;
+  }else{
+    const display = correct.match(/[A-Za-z]/) ? formatFormula(correct) : correct;
+    document.getElementById('result').innerHTML = "不正解 正解: " + display;
+  }
+
+  document.getElementById('score').textContent = "スコア: " + score + " / " + (data.length * 2);
+
+  setTimeout(nextQuestion, 500);
+}
+
+nextQuestion();
+</script>
+</body>
+</html>

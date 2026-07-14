@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>元素クイズ</title>
+<style>
+  :root{
+    --cream:#F4F1EA;
+    --ink:#2B2A28;
+    --terracotta:#CC785C;
+    --terracotta-deep:#B35F45;
+    --sage:#7C9885;
+    --slate:#6B7280;
+    --card:#FFFFFF;
+    --line:#E3DDD0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Iowan Old Style','Hiragino Mincho ProN', ui-serif, serif, 'Hiragino Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height:100vh;
+    padding: 32px 16px 60px;
+  }
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    max-width: 1100px;
+    margin: 0 auto 24px;
+  }
+  h1{
+    text-align:center;
+    font-weight:600;
+    font-size: 1.2rem;
+    letter-spacing: 0.02em;
+    margin:0;
+  }
+
+  .mode-switch{
+    display:flex;
+    gap:0;
+    position:absolute;
+    right: 0;
+  }
+  .mode-switch button{
+    font-family:'Hiragino Sans', system-ui, sans-serif;
+    border: 1.5px solid var(--terracotta);
+    background: var(--cream);
+    color: var(--terracotta-deep);
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    cursor:pointer;
+    transition: 0.18s;
+  }
+  .mode-switch button:first-child{ border-radius: 999px 0 0 999px; border-right-width: 0.75px;}
+  .mode-switch button:last-child{ border-radius: 0 999px 999px 0; border-left-width: 0.75px;}
+  .mode-switch button.active{
+    background: var(--terracotta);
+    color: #fff;
+  }
+  .mode-switch button:hover:not(.active){
+    background: #ecdfd6;
+  }
+
+  .layout{
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    gap: 28px;
+    max-width: 1100px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+  }
+
+  .table-wrap{
+    overflow-x:auto;
+  }
+  .table {
+    display: grid;
+    grid-template-columns: repeat(18, 38px);
+    grid-auto-rows: 38px;
+    gap: 3px;
+  }
+  .table.full{
+    grid-template-columns: repeat(18, 34px);
+    grid-auto-rows: 34px;
+  }
+  .cell {
+    border-radius: 4px;
+    font-family:'Hiragino Sans', system-ui, sans-serif;
+    font-size: 11px;
+    font-weight:600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s;
+    color: var(--ink);
+    cursor:default;
+  }
+  .table.full .cell{ font-size: 9.5px; }
+  .cell:not(.empty):hover { transform: scale(1.18); box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index:2; }
+  .cell.correctFlash { background: #F7D87C !important; }
+  .empty { background: transparent; }
+
+  .nonmetal { background: #CFE3D4; }
+  .noble    { background: #D9CDE8; }
+  .metalloid{ background: #F2DCAE; }
+  .metal    { background: #BCD9E8; }
+  .lanthanide{ background: #F4C7C3; }
+  .actinide  { background: #E8B7CF; }
+
+  .gap-row { height: 12px; grid-column: 1 / -1; }
+
+  #questionArea {
+    width: 320px;
+    flex-shrink: 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px 24px 20px;
+    text-align:center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  #question{
+    font-size: 1.25rem;
+    margin: 0 0 18px;
+  }
+  input {
+    font-family:'Hiragino Sans', system-ui, sans-serif;
+    width: 70%;
+    padding: 10px 14px;
+    font-size: 1rem;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    outline:none;
+    transition: 0.15s;
+  }
+  input:focus{ border-color: var(--terracotta); }
+  .btnrow{ margin-top: 16px; }
+  button.action{
+    font-family:'Hiragino Sans', system-ui, sans-serif;
+    padding: 10px 22px;
+    margin: 4px 6px;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .btn-primary{ background: var(--terracotta); color: #fff; }
+  .btn-primary:hover{ background: var(--terracotta-deep); }
+  .btn-secondary{ background: transparent; color: var(--slate); border: 1.5px solid var(--line); }
+  .btn-secondary:hover{ background: #ECE7DC; }
+
+  #result{
+    font-family:'Hiragino Sans', system-ui, sans-serif;
+    min-height: 22px;
+    margin-top: 16px;
+    font-size: 0.95rem;
+    color: var(--terracotta-deep);
+  }
+  #score, #timer{
+    font-family:'Hiragino Sans', system-ui, sans-serif;
+    color: var(--slate);
+    font-size: 0.88rem;
+    margin: 2px 0;
+  }
+  #questionArea{
+    position: sticky;
+    top: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>元素クイズ</h1>
+  <div class="mode-switch">
+    <button id="btn30" class="active" onclick="setMode(30)">30種類</button>
+    <button id="btn118" onclick="setMode(118)">118種類</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="table-wrap">
+    <div class="table" id="table"></div>
+  </div>
+
+  <div id="questionArea">
+    <p id="question"></p>
+    <input type="text" id="answer" placeholder="答えを入力">
+    <div class="btnrow">
+      <button class="action btn-primary" onclick="submitAnswer()">答える</button>
+      <button class="action btn-secondary" onclick="resetGame()">リセット</button>
+    </div>
+    <p id="result"></p>
+    <p id="score"></p>
+    <p id="timer"></p>
+  </div>
+</div>
+
+<script>
+// ---- 30種類セット ----
+const elements30 = [
+{num:1,name:"水素",sym:"H",type:"nonmetal",x:1,y:1},{num:2,name:"ヘリウム",sym:"He",type:"noble",x:18,y:1},
+{num:3,name:"リチウム",sym:"Li",type:"metal",x:1,y:2},{num:4,name:"ベリリウム",sym:"Be",type:"metal",x:2,y:2},
+{num:5,name:"ホウ素",sym:"B",type:"metalloid",x:13,y:2},{num:6,name:"炭素",sym:"C",type:"nonmetal",x:14,y:2},{num:7,name:"窒素",sym:"N",type:"nonmetal",x:15,y:2},{num:8,name:"酸素",sym:"O",type:"nonmetal",x:16,y:2},{num:9,name:"フッ素",sym:"F",type:"nonmetal",x:17,y:2},{num:10,name:"ネオン",sym:"Ne",type:"noble",x:18,y:2},
+{num:11,name:"ナトリウム",sym:"Na",type:"metal",x:1,y:3},{num:12,name:"マグネシウム",sym:"Mg",type:"metal",x:2,y:3},
+{num:13,name:"アルミニウム",sym:"Al",type:"metal",x:13,y:3},{num:14,name:"ケイ素",sym:"Si",type:"metalloid",x:14,y:3},{num:15,name:"リン",sym:"P",type:"nonmetal",x:15,y:3},{num:16,name:"硫黄",sym:"S",type:"nonmetal",x:16,y:3},{num:17,name:"塩素",sym:"Cl",type:"nonmetal",x:17,y:3},{num:18,name:"アルゴン",sym:"Ar",type:"noble",x:18,y:3},
+{num:19,name:"カリウム",sym:"K",type:"metal",x:1,y:4},{num:20,name:"カルシウム",sym:"Ca",type:"metal",x:2,y:4},
+{num:26,name:"鉄",sym:"Fe",type:"metal",x:8,y:4},{num:29,name:"銅",sym:"Cu",type:"metal",x:11,y:4},{num:30,name:"亜鉛",sym:"Zn",type:"metal",x:12,y:4},
+{num:47,name:"銀",sym:"Ag",type:"metal",x:11,y:5},{num:50,name:"スズ",sym:"Sn",type:"metal",x:14,y:5},{num:53,name:"ヨウ素",sym:"I",type:"nonmetal",x:17,y:5},{num:56,name:"バリウム",sym:"Ba",type:"metal",x:2,y:6},
+{num:78,name:"白金",sym:"Pt",type:"metal",x:10,y:6},{num:79,name:"金",sym:"Au",type:"metal",x:11,y:6},{num:80,name:"水銀",sym:"Hg",type:"metal",x:12,y:6}
+];
+
+// ---- 118種類フルセット ----
+const elements118 = [
+{num:1,name:"水素",sym:"H",type:"nonmetal",x:1,y:1},
+{num:2,name:"ヘリウム",sym:"He",type:"noble",x:18,y:1},
+{num:3,name:"リチウム",sym:"Li",type:"metal",x:1,y:2},
+{num:4,name:"ベリリウム",sym:"Be",type:"metal",x:2,y:2},
+{num:5,name:"ホウ素",sym:"B",type:"metalloid",x:13,y:2},
+{num:6,name:"炭素",sym:"C",type:"nonmetal",x:14,y:2},
+{num:7,name:"窒素",sym:"N",type:"nonmetal",x:15,y:2},
+{num:8,name:"酸素",sym:"O",type:"nonmetal",x:16,y:2},
+{num:9,name:"フッ素",sym:"F",type:"nonmetal",x:17,y:2},
+{num:10,name:"ネオン",sym:"Ne",type:"noble",x:18,y:2},
+{num:11,name:"ナトリウム",sym:"Na",type:"metal",x:1,y:3},
+{num:12,name:"マグネシウム",sym:"Mg",type:"metal",x:2,y:3},
+{num:13,name:"アルミニウム",sym:"Al",type:"metal",x:13,y:3},
+{num:14,name:"ケイ素",sym:"Si",type:"metalloid",x:14,y:3},
+{num:15,name:"リン",sym:"P",type:"nonmetal",x:15,y:3},
+{num:16,name:"硫黄",sym:"S",type:"nonmetal",x:16,y:3},
+{num:17,name:"塩素",sym:"Cl",type:"nonmetal",x:17,y:3},
+{num:18,name:"アルゴン",sym:"Ar",type:"noble",x:18,y:3},
+{num:19,name:"カリウム",sym:"K",type:"metal",x:1,y:4},
+{num:20,name:"カルシウム",sym:"Ca",type:"metal",x:2,y:4},
+{num:21,name:"スカンジウム",sym:"Sc",type:"metal",x:3,y:4},
+{num:22,name:"チタン",sym:"Ti",type:"metal",x:4,y:4},
+{num:23,name:"バナジウム",sym:"V",type:"metal",x:5,y:4},
+{num:24,name:"クロム",sym:"Cr",type:"metal",x:6,y:4},
+{num:25,name:"マンガン",sym:"Mn",type:"metal",x:7,y:4},
+{num:26,name:"鉄",sym:"Fe",type:"metal",x:8,y:4},
+{num:27,name:"コバルト",sym:"Co",type:"metal",x:9,y:4},
+{num:28,name:"ニッケル",sym:"Ni",type:"metal",x:10,y:4},
+{num:29,name:"銅",sym:"Cu",type:"metal",x:11,y:4},
+{num:30,name:"亜鉛",sym:"Zn",type:"metal",x:12,y:4},
+{num:31,name:"ガリウム",sym:"Ga",type:"metal",x:13,y:4},
+{num:32,name:"ゲルマニウム",sym:"Ge",type:"metalloid",x:14,y:4},
+{num:33,name:"ヒ素",sym:"As",type:"metalloid",x:15,y:4},
+{num:34,name:"セレン",sym:"Se",type:"nonmetal",x:16,y:4},
+{num:35,name:"臭素",sym:"Br",type:"nonmetal",x:17,y:4},
+{num:36,name:"クリプトン",sym:"Kr",type:"noble",x:18,y:4},
+{num:37,name:"ルビジウム",sym:"Rb",type:"metal",x:1,y:5},
+{num:38,name:"ストロンチウム",sym:"Sr",type:"metal",x:2,y:5},
+{num:39,name:"イットリウム",sym:"Y",type:"metal",x:3,y:5},
+{num:40,name:"ジルコニウム",sym:"Zr",type:"metal",x:4,y:5},
+{num:41,name:"ニオブ",sym:"Nb",type:"metal",x:5,y:5},
+{num:42,name:"モリブデン",sym:"Mo",type:"metal",x:6,y:5},
+{num:43,name:"テクネチウム",sym:"Tc",type:"metal",x:7,y:5},
+{num:44,name:"ルテニウム",sym:"Ru",type:"metal",x:8,y:5},
+{num:45,name:"ロジウム",sym:"Rh",type:"metal",x:9,y:5},
+{num:46,name:"パラジウム",sym:"Pd",type:"metal",x:10,y:5},
+{num:47,name:"銀",sym:"Ag",type:"metal",x:11,y:5},
+{num:48,name:"カドミウム",sym:"Cd",type:"metal",x:12,y:5},
+{num:49,name:"インジウム",sym:"In",type:"metal",x:13,y:5},
+{num:50,name:"スズ",sym:"Sn",type:"metal",x:14,y:5},
+{num:51,name:"アンチモン",sym:"Sb",type:"metalloid",x:15,y:5},
+{num:52,name:"テルル",sym:"Te",type:"metalloid",x:16,y:5},
+{num:53,name:"ヨウ素",sym:"I",type:"nonmetal",x:17,y:5},
+{num:54,name:"キセノン",sym:"Xe",type:"noble",x:18,y:5},
+{num:55,name:"セシウム",sym:"Cs",type:"metal",x:1,y:6},
+{num:56,name:"バリウム",sym:"Ba",type:"metal",x:2,y:6},
+{num:57,name:"ランタン",sym:"La",type:"lanthanide",x:3,y:6},
+{num:72,name:"ハフニウム",sym:"Hf",type:"metal",x:4,y:6},
+{num:73,name:"タンタル",sym:"Ta",type:"metal",x:5,y:6},
+{num:74,name:"タングステン",sym:"W",type:"metal",x:6,y:6},
+{num:75,name:"レニウム",sym:"Re",type:"metal",x:7,y:6},
+{num:76,name:"オスミウム",sym:"Os",type:"metal",x:8,y:6},
+{num:77,name:"イリジウム",sym:"Ir",type:"metal",x:9,y:6},
+{num:78,name:"白金",sym:"Pt",type:"metal",x:10,y:6},
+{num:79,name:"金",sym:"Au",type:"metal",x:11,y:6},
+{num:80,name:"水銀",sym:"Hg",type:"metal",x:12,y:6},
+{num:81,name:"タリウム",sym:"Tl",type:"metal",x:13,y:6},
+{num:82,name:"鉛",sym:"Pb",type:"metal",x:14,y:6},
+{num:83,name:"ビスマス",sym:"Bi",type:"metal",x:15,y:6},
+{num:84,name:"ポロニウム",sym:"Po",type:"metalloid",x:16,y:6},
+{num:85,name:"アスタチン",sym:"At",type:"metalloid",x:17,y:6},
+{num:86,name:"ラドン",sym:"Rn",type:"noble",x:18,y:6},
+{num:87,name:"フランシウム",sym:"Fr",type:"metal",x:1,y:7},
+{num:88,name:"ラジウム",sym:"Ra",type:"metal",x:2,y:7},
+{num:89,name:"アクチニウム",sym:"Ac",type:"actinide",x:3,y:7},
+{num:104,name:"ラザホージウム",sym:"Rf",type:"metal",x:4,y:7},
+{num:105,name:"ドブニウム",sym:"Db",type:"metal",x:5,y:7},
+{num:106,name:"シーボーギウム",sym:"Sg",type:"metal",x:6,y:7},
+{num:107,name:"ボーリウム",sym:"Bh",type:"metal",x:7,y:7},
+{num:108,name:"ハッシウム",sym:"Hs",type:"metal",x:8,y:7},
+{num:109,name:"マイトネリウム",sym:"Mt",type:"metal",x:9,y:7},
+{num:110,name:"ダームスタチウム",sym:"Ds",type:"metal",x:10,y:7},
+{num:111,name:"レントゲニウム",sym:"Rg",type:"metal",x:11,y:7},
+{num:112,name:"コペルニシウム",sym:"Cn",type:"metal",x:12,y:7},
+{num:113,name:"ニホニウム",sym:"Nh",type:"metal",x:13,y:7},
+{num:114,name:"フレロビウム",sym:"Fl",type:"metal",x:14,y:7},
+{num:115,name:"モスコビウム",sym:"Mc",type:"metal",x:15,y:7},
+{num:116,name:"リバモリウム",sym:"Lv",type:"metal",x:16,y:7},
+{num:117,name:"テネシン",sym:"Ts",type:"nonmetal",x:17,y:7},
+{num:118,name:"オガネソン",sym:"Og",type:"noble",x:18,y:7},
+{num:58,name:"セリウム",sym:"Ce",type:"lanthanide",x:4,y:9},
+{num:59,name:"プラセオジム",sym:"Pr",type:"lanthanide",x:5,y:9},
+{num:60,name:"ネオジム",sym:"Nd",type:"lanthanide",x:6,y:9},
+{num:61,name:"プロメチウム",sym:"Pm",type:"lanthanide",x:7,y:9},
+{num:62,name:"サマリウム",sym:"Sm",type:"lanthanide",x:8,y:9},
+{num:63,name:"ユウロピウム",sym:"Eu",type:"lanthanide",x:9,y:9},
+{num:64,name:"ガドリニウム",sym:"Gd",type:"lanthanide",x:10,y:9},
+{num:65,name:"テルビウム",sym:"Tb",type:"lanthanide",x:11,y:9},
+{num:66,name:"ジスプロシウム",sym:"Dy",type:"lanthanide",x:12,y:9},
+{num:67,name:"ホルミウム",sym:"Ho",type:"lanthanide",x:13,y:9},
+{num:68,name:"エルビウム",sym:"Er",type:"lanthanide",x:14,y:9},
+{num:69,name:"ツリウム",sym:"Tm",type:"lanthanide",x:15,y:9},
+{num:70,name:"イッテルビウム",sym:"Yb",type:"lanthanide",x:16,y:9},
+{num:71,name:"ルテチウム",sym:"Lu",type:"lanthanide",x:17,y:9},
+{num:90,name:"トリウム",sym:"Th",type:"actinide",x:4,y:10},
+{num:91,name:"プロトアクチニウム",sym:"Pa",type:"actinide",x:5,y:10},
+{num:92,name:"ウラン",sym:"U",type:"actinide",x:6,y:10},
+{num:93,name:"ネプツニウム",sym:"Np",type:"actinide",x:7,y:10},
+{num:94,name:"プルトニウム",sym:"Pu",type:"actinide",x:8,y:10},
+{num:95,name:"アメリシウム",sym:"Am",type:"actinide",x:9,y:10},
+{num:96,name:"キュリウム",sym:"Cm",type:"actinide",x:10,y:10},
+{num:97,name:"バークリウム",sym:"Bk",type:"actinide",x:11,y:10},
+{num:98,name:"カリホルニウム",sym:"Cf",type:"actinide",x:12,y:10},
+{num:99,name:"アインスタイニウム",sym:"Es",type:"actinide",x:13,y:10},
+{num:100,name:"フェルミウム",sym:"Fm",type:"actinide",x:14,y:10},
+{num:101,name:"メンデレビウム",sym:"Md",type:"actinide",x:15,y:10},
+{num:102,name:"ノーベリウム",sym:"No",type:"actinide",x:16,y:10},
+{num:103,name:"ローレンシウム",sym:"Lr",type:"actinide",x:17,y:10}
+];
+
+let mode = 30;
+let elements, current, used=[];
+let count=0, correct=0, totalQuestions=10;
+let startTime=null, timerInterval, penalty=0;
+
+const tableEl = document.getElementById("table");
+
+function buildTable(){
+ tableEl.innerHTML="";
+ tableEl.className = mode===118 ? "table full" : "table";
+ const maxRow = mode===118 ? 10 : 7;
+ const dataset = mode===118 ? elements118 : elements30;
+ for(let y=1;y<=maxRow;y++){
+  if(mode===118 && y===8){
+    const gap = document.createElement("div");
+    gap.className = "gap-row";
+    tableEl.appendChild(gap);
+    continue;
+  }
+  for(let x=1;x<=18;x++){
+   const el=dataset.find(e=>e.x===x&&e.y===y);
+   const div=document.createElement("div");
+   if(el){
+     div.className="cell "+el.type;
+     div.innerHTML=`<div>${el.sym}</div>`;
+     div.title=el.name;
+   } else div.className="cell empty";
+   tableEl.appendChild(div);
+  }
+ }
+}
+
+function setMode(m){
+ mode = m;
+ document.getElementById("btn30").classList.toggle("active", m===30);
+ document.getElementById("btn118").classList.toggle("active", m===118);
+ buildTable();
+ resetGame();
+}
+
+function nextQuestion(){
+ if(count>=totalQuestions){
+   clearInterval(timerInterval);
+   document.getElementById("question").innerText="終了！";
+   document.getElementById("result").innerText=`正解 ${correct}/${totalQuestions}`;
+   return;
+ }
+
+ let pool=elements.filter(e=>!used.includes(e));
+ current=pool[Math.floor(Math.random()*pool.length)];
+ used.push(current);
+
+ const askName=Math.random()<0.5;
+ if(askName){
+   current.ask="name";
+   document.getElementById("question").innerText=`${current.name} の記号は？`;
+ }else{
+   current.ask="symbol";
+   document.getElementById("question").innerText=`${current.sym} の元素名は？`;
+ }
+
+ document.getElementById("answer").value="";
+ document.getElementById("answer").focus();
+ count++;
+}
+
+function submitAnswer(){
+ if(!startTime){
+   startTime=Date.now();
+   timerInterval=setInterval(updateTimer,100);
+ }
+ const raw=document.getElementById("answer").value.trim();
+ if(!raw) return;
+
+ let isCorrect=false;
+ if(current.ask==="name"){
+   isCorrect=(raw===current.sym);
+ }else{
+   isCorrect=(raw===current.name);
+ }
+
+ if(isCorrect){
+   correct++;
+   document.getElementById("result").innerText="正解！";
+ }else{
+   penalty+=2;
+   document.getElementById("result").innerText=`不正解 +2秒: ${current.name}(${current.sym})`;
+ }
+
+ document.getElementById("score").innerText=`${correct}/${totalQuestions}`;
+ nextQuestion();
+}
+
+function updateTimer(){
+ const t=(Date.now()-startTime)/1000+penalty;
+ document.getElementById("timer").innerText=`時間 ${t.toFixed(1)}秒`;
+}
+
+function resetGame(){
+ elements = mode===118 ? [...elements118] : [...elements30];
+ used=[];
+ count=0;
+ correct=0;
+ penalty=0;
+ startTime=null;
+ clearInterval(timerInterval);
+ document.getElementById("timer").innerText="";
+ document.getElementById("result").innerText="";
+ document.getElementById("score").innerText="";
+ nextQuestion();
+}
+
+document.getElementById("answer").addEventListener("keydown",e=>{
+ if(e.key==="Enter") submitAnswer();
+});
+
+buildTable();
+resetGame();
+</script>
+
+</body>
+</html>

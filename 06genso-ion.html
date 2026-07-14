@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>元素周期表（1〜20番）</title>
+<style>
+  :root{
+    --bg:#F4F1EA;
+    --panel:#FBFAF6;
+    --line:#DCD5C6;
+    --text:#2B2723;
+    --sub:#8A8273;
+
+    --alkali:#E8B4A0;        --alkali-text:#A8431F;
+    --alkaline:#EAC9A0;      --alkaline-text:#A8701F;
+    --metalloid:#E3D49A;     --metalloid-text:#8C7212;
+    --nonmetal:#AECBB0;      --nonmetal-text:#2F6B45;
+    --noble:#A9C2D9;         --noble-text:#2C5A82;
+    --hydrogen:#A7CFC9;      --hydrogen-text:#1F6E68;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Hiragino Sans','Yu Gothic',-apple-system,BlinkMacSystemFont,sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:32px 16px 60px;
+  }
+  .hint{
+    margin-top:18px;
+    color:var(--sub);
+    font-size:.8rem;
+    letter-spacing:.04em;
+  }
+
+  .table{
+    cursor:pointer;
+    display:grid;
+    grid-template-columns:repeat(8, minmax(82px,108px));
+    gap:10px;
+    max-width:1200px;
+  }
+  .cell{
+    aspect-ratio:1/1;
+    border-radius:10px;
+    border:2px solid var(--accent, var(--line));
+    background:var(--panel);
+    box-shadow:0 2px 6px -2px rgba(0,0,0,.10);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:6px 4px;
+    position:relative;
+    overflow:hidden;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    cursor:default;
+  }
+  .cell:hover{
+    transform:translateY(-3px);
+    box-shadow:0 10px 20px -6px rgba(0,0,0,.20);
+    border-color:var(--accent);
+  }
+  .symbol{
+    font-size:1.5rem;
+    font-weight:700;
+    line-height:1.1;
+    color:var(--accent-text);
+    white-space:nowrap;
+    max-width:100%;
+    transition:font-size .15s ease, color .15s ease;
+  }
+  .name{
+    font-size:.8rem;
+    font-weight:600;
+    color:var(--text);
+    margin-top:5px;
+    text-align:center;
+    line-height:1.15;
+    white-space:normal;
+    word-break:keep-all;
+    overflow-wrap:break-word;
+    max-width:100%;
+    transition:font-size .15s ease, color .15s ease, font-weight .15s ease;
+  }
+  /* 6文字以上のイオン名は枠内に収まるよう縮小 */
+  .name.long{ font-size:.66rem; }
+  .name.xlong{ font-size:.58rem; line-height:1.1; }
+
+  /* 記号を大きく濃く、名称を太字の濃色バッジ風にして目立たせる（元素・イオン共通） */
+  .cell.active-cell{
+    border-width:3px;
+    background:linear-gradient(180deg, var(--panel) 60%, color-mix(in srgb, var(--accent) 22%, var(--panel)) 100%);
+  }
+  .cell.active-cell .symbol{
+    font-size:1.75rem;
+    color:var(--accent-text);
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
+  }
+  .cell.active-cell .name{
+    font-weight:800;
+    color:#FBFAF6;
+    background:var(--accent-text);
+    border-radius:999px;
+    padding:2px 8px;
+    margin-top:7px;
+    box-shadow:0 2px 5px -2px rgba(0,0,0,.35);
+  }
+  .cell.active-cell .name.long{ padding:2px 6px; }
+  .cell.active-cell .name.xlong{ padding:1px 5px; }
+
+  .empty{visibility:hidden;}
+
+  @media (max-width:760px){
+    .table{grid-template-columns:repeat(8, minmax(38px,1fr)); gap:4px;}
+    .symbol{font-size:1.05rem;}
+    .name{font-size:.5rem;}
+    .name.long{font-size:.44rem;}
+    .name.xlong{font-size:.4rem;}
+  }
+</style>
+</head>
+<body>
+
+<div class="table" id="table"></div>
+<div class="hint">クリックでイオン式に切替</div>
+
+<script>
+  // 各元素データ: 記号, 名前, 周期(row), 族(col), カテゴリ, イオン式, イオン名
+  const elements = [
+    {s:"H", n:"水素", row:1, col:1, cat:"hydrogen", ionS:"H⁺", ionN:"水素イオン"},
+    {s:"He", n:"ヘリウム", row:1, col:18, cat:"noble", ionS:null, ionN:null},
+
+    {s:"Li", n:"リチウム", row:2, col:1, cat:"alkali", ionS:"Li⁺", ionN:"リチウムイオン"},
+    {s:"Be", n:"ベリリウム", row:2, col:2, cat:"alkaline", ionS:"Be²⁺", ionN:"ベリリウムイオン"},
+    {s:"B", n:"ホウ素", row:2, col:13, cat:"metalloid", ionS:null, ionN:null},
+    {s:"C", n:"炭素", row:2, col:14, cat:"nonmetal", ionS:null, ionN:null},
+    {s:"N", n:"窒素", row:2, col:15, cat:"nonmetal", ionS:null, ionN:null},
+    {s:"O", n:"酸素", row:2, col:16, cat:"nonmetal", ionS:"O²⁻", ionN:"酸化物イオン"},
+    {s:"F", n:"フッ素", row:2, col:17, cat:"nonmetal", ionS:"F⁻", ionN:"フッ化物イオン"},
+    {s:"Ne", n:"ネオン", row:2, col:18, cat:"noble", ionS:null, ionN:null},
+
+    {s:"Na", n:"ナトリウム", row:3, col:1, cat:"alkali", ionS:"Na⁺", ionN:"ナトリウムイオン"},
+    {s:"Mg", n:"マグネシウム", row:3, col:2, cat:"alkaline", ionS:"Mg²⁺", ionN:"マグネシウムイオン"},
+    {s:"Al", n:"アルミニウム", row:3, col:13, cat:"metalloid", ionS:"Al³⁺", ionN:"アルミニウムイオン"},
+    {s:"Si", n:"ケイ素", row:3, col:14, cat:"metalloid", ionS:null, ionN:null},
+    {s:"P", n:"リン", row:3, col:15, cat:"nonmetal", ionS:null, ionN:null},
+    {s:"S", n:"硫黄", row:3, col:16, cat:"nonmetal", ionS:"S²⁻", ionN:"硫化物イオン"},
+    {s:"Cl", n:"塩素", row:3, col:17, cat:"nonmetal", ionS:"Cl⁻", ionN:"塩化物イオン"},
+    {s:"Ar", n:"アルゴン", row:3, col:18, cat:"noble", ionS:null, ionN:null},
+
+    {s:"K", n:"カリウム", row:4, col:1, cat:"alkali", ionS:"K⁺", ionN:"カリウムイオン"},
+    {s:"Ca", n:"カルシウム", row:4, col:2, cat:"alkaline", ionS:"Ca²⁺", ionN:"カルシウムイオン"},
+  ];
+
+  const colors = {
+    alkali:"var(--alkali)",
+    alkaline:"var(--alkaline)",
+    metalloid:"var(--metalloid)",
+    nonmetal:"var(--nonmetal)",
+    noble:"var(--noble)",
+    hydrogen:"var(--hydrogen)"
+  };
+  const textColors = {
+    alkali:"var(--alkali-text)",
+    alkaline:"var(--alkaline-text)",
+    metalloid:"var(--metalloid-text)",
+    nonmetal:"var(--nonmetal-text)",
+    noble:"var(--noble-text)",
+    hydrogen:"var(--hydrogen-text)"
+  };
+
+  const table = document.getElementById("table");
+  const hint = document.querySelector(".hint");
+  let isIonMode = false;
+
+  // 名前の文字数に応じてクラスを付与し、枠内に収まるよう縮小する
+  function nameSizeClass(name){
+    if(name.length >= 8) return "xlong";
+    if(name.length >= 6) return "long";
+    return "";
+  }
+
+  // 4行 x 8列のグリッド（3〜12族の空白を詰めて表示）
+  // 表示列: 1,2 はそのまま族1,2。表示列3〜8 は族13〜18に対応
+  function render(){
+    table.innerHTML = "";
+    for(let row=1; row<=4; row++){
+      for(let dispCol=1; dispCol<=8; dispCol++){
+        const origCol = dispCol<=2 ? dispCol : dispCol+10;
+        const el = elements.find(e=>e.row===row && e.col===origCol);
+        const cell = document.createElement("div");
+        if(el){
+          cell.className = "cell active-cell";
+          cell.style.setProperty("--accent", colors[el.cat]);
+          cell.style.setProperty("--accent-text", textColors[el.cat]);
+
+          // ①イオンモードでも元素記号(s)は変えず、表示するのは名称のみ切り替える
+          const showSymbol = isIonMode && el.ionS ? el.ionS : el.s;
+          const showName = isIonMode && el.ionN ? el.ionN : el.n;
+          const sizeClass = nameSizeClass(showName);
+
+          cell.innerHTML = `<div class="symbol">${showSymbol}</div><div class="name ${sizeClass}">${showName}</div>`;
+        } else {
+          cell.className = "cell empty";
+        }
+        table.appendChild(cell);
+      }
+    }
+  }
+
+  table.addEventListener("click", ()=>{
+    isIonMode = !isIonMode;
+    hint.textContent = isIonMode ? "クリックで元素記号に戻す" : "クリックでイオン式に切替";
+    render();
+  });
+
+  render();
+</script>
+
+</body>
+</html>

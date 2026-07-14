@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>NaCl イオン結合アニメーション</title>
+<style>
+  :root {
+    --bg: #F4F1EA;
+    --ink: #2B2723;
+    --na-atom: #E3A07A;   /* light terracotta */
+    --na-ion:  #B14A1E;   /* deep terracotta */
+    --cl-atom: #8FAE9C;   /* light sage */
+    --cl-ion:  #2F5A45;   /* deep sage */
+    --electron: #3D6FB4;
+    --rule: #DCD5C6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Georgia", "Hiragino Mincho ProN", serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 48px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0 0 4px;
+  }
+
+  p.caption {
+    font-family: "Helvetica Neue", Arial, "Hiragino Sans", sans-serif;
+    font-size: 13px;
+    color: #6B6356;
+    margin: 0 0 20px;
+    text-align: center;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+
+  svg#scene {
+    background: #FBFAF6;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+  }
+
+  svg#scene:hover {
+    box-shadow: 0 0 0 2px rgba(177, 74, 30, 0.25);
+  }
+
+  text {
+    font-family: "Helvetica Neue", Arial, "Hiragino Sans", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    fill: #FBFAF6;
+    pointer-events: none;
+  }
+
+  circle.na { fill: var(--na-atom); transition: fill 0.5s ease; }
+  circle.cl { fill: var(--cl-atom); transition: fill 0.5s ease; }
+  circle.na-ion { fill: var(--na-ion); transition: fill 0.5s ease; }
+  circle.cl-ion { fill: var(--cl-ion); transition: fill 0.5s ease; }
+  .electron { fill: var(--electron); }
+
+  .toolbar {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: "Helvetica Neue", Arial, "Hiragino Sans", sans-serif;
+  }
+
+  .step-label {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: #8A8273;
+    text-transform: uppercase;
+  }
+
+  button#resetBtn {
+    appearance: none;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  button#resetBtn:hover {
+    border-color: var(--na-ion);
+    color: var(--na-ion);
+  }
+</style>
+</head>
+<body>
+
+<h1>NaCl のイオン結合</h1>
+<p class="caption">図をクリックすると次のステップに進みます。</p>
+
+<svg id="scene" width="720" height="400"></svg>
+
+<div class="toolbar">
+  <span class="step-label" id="stepLabel">ステップ 1 / 3 ・ 原子配置</span>
+  <button id="resetBtn" onclick="reset()">リセット</button>
+</div>
+
+<script>
+const svg = document.getElementById("scene");
+const stepLabel = document.getElementById("stepLabel");
+let step = 0;
+let busy = false;
+
+let naAtoms = [];
+let clAtoms = [];
+let pairs = [];
+let allIons = []; // { g, circle, text, type }
+
+const ROWS = 4;
+const COLS = 6;
+
+const STEP_TEXT = [
+  "ステップ 1 / 3 ・ 原子配置",
+  "ステップ 2 / 3 ・ 電子の移動",
+  "ステップ 3 / 3 ・ イオン結合"
+];
+
+function createAtoms() {
+  svg.innerHTML = "";
+  naAtoms = [];
+  clAtoms = [];
+  pairs = [];
+  allIons = [];
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      let x = 80 + c * 90;
+      let y = 60 + r * 80;
+      let type = (r + c) % 2 === 0 ? "Na" : "Cl";
+
+      let g = createAtom(x, y, type, type === "Na" ? "na" : "cl");
+      svg.appendChild(g);
+
+      if (type === "Na") {
+        naAtoms.push(g);
+      } else {
+        clAtoms.push(g);
+      }
+    }
+  }
+
+  for (let i = 0; i < 12; i++) {
+    pairs.push({ na: naAtoms[i], cl: clAtoms[i] });
+  }
+}
+
+function createAtom(x, y, label, cls) {
+  let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+  let c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  c.setAttribute("cx", x);
+  c.setAttribute("cy", y);
+  c.setAttribute("r", 20);
+  c.setAttribute("class", cls);
+
+  let t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  t.setAttribute("x", x);
+  t.setAttribute("y", y);
+  t.textContent = label;
+
+  g.appendChild(c);
+  g.appendChild(t);
+
+  return g;
+}
+
+// ステップ2: 電子移動 → イオン化（色も変化）
+function moveElectrons(done) {
+  let remaining = pairs.length;
+  pairs.forEach(pair => {
+    let na = pair.na.children[0];
+    let cl = pair.cl.children[0];
+
+    let x1 = +na.getAttribute("cx");
+    let y1 = +na.getAttribute("cy");
+    let x2 = +cl.getAttribute("cx");
+    let y2 = +cl.getAttribute("cy");
+
+    let e = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    e.setAttribute("cx", x1);
+    e.setAttribute("cy", y1);
+    e.setAttribute("r", 5);
+    e.setAttribute("class", "electron");
+    svg.appendChild(e);
+
+    let dx = (x2 - x1) / 40;
+    let dy = (y2 - y1) / 40;
+    let count = 0;
+
+    let interval = setInterval(() => {
+      count++;
+      e.setAttribute("cx", +e.getAttribute("cx") + dx);
+      e.setAttribute("cy", +e.getAttribute("cy") + dy);
+
+      if (count > 40) {
+        clearInterval(interval);
+        svg.removeChild(e);
+
+        // 色とラベルをイオンに変化
+        pair.na.children[0].setAttribute("class", "na-ion");
+        pair.na.children[1].textContent = "Na⁺";
+
+        pair.cl.children[0].setAttribute("class", "cl-ion");
+        pair.cl.children[1].textContent = "Cl⁻";
+
+        remaining--;
+        if (remaining === 0 && done) done();
+      }
+    }, 20);
+  });
+}
+
+// イーズイン・アウト
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// ステップ3: 24個のイオンが交互配置の格子状に集合（スムーズアニメーション）
+function gatherIons(done) {
+  // 全イオンをリスト化
+  allIons = [];
+  naAtoms.forEach(g => allIons.push({ g, type: "Na" }));
+  clAtoms.forEach(g => allIons.push({ g, type: "Cl" }));
+
+  // ターゲット格子（中央寄せ・隙間なく接する6x4の交互配置）
+  const spacing = 42;
+  const gridW = (COLS - 1) * spacing;
+  const gridH = (ROWS - 1) * spacing;
+  const startX = 360 - gridW / 2;
+  const startY = 200 - gridH / 2;
+
+  let targets = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      let type = (r + c) % 2 === 0 ? "Na" : "Cl";
+      targets.push({
+        type,
+        x: startX + c * spacing,
+        y: startY + r * spacing
+      });
+    }
+  }
+
+  // タイプ別に振り分け（Na→Naの目標、Cl→Clの目標）
+  let naTargets = targets.filter(t => t.type === "Na");
+  let clTargets = targets.filter(t => t.type === "Cl");
+
+  let moves = [];
+  allIons.forEach(ion => {
+    let circle = ion.g.children[0];
+    let text = ion.g.children[1];
+    let target = ion.type === "Na" ? naTargets.shift() : clTargets.shift();
+
+    moves.push({
+      circle, text,
+      x0: +circle.getAttribute("cx"),
+      y0: +circle.getAttribute("cy"),
+      x1: target.x,
+      y1: target.y
+    });
+  });
+
+  const duration = 1100;
+  const start = performance.now();
+
+  function frame(now) {
+    let t = Math.min(1, (now - start) / duration);
+    let e = easeInOutCubic(t);
+
+    moves.forEach(m => {
+      let x = m.x0 + (m.x1 - m.x0) * e;
+      let y = m.y0 + (m.y1 - m.y0) * e;
+      m.circle.setAttribute("cx", x);
+      m.circle.setAttribute("cy", y);
+      m.text.setAttribute("x", x);
+      m.text.setAttribute("y", y);
+    });
+
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else if (done) {
+      done();
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+function nextStep() {
+  if (busy || step >= 3) return;
+  step++;
+  stepLabel.textContent = STEP_TEXT[step - 1] || "完了";
+
+  if (step === 1) {
+    busy = true;
+    moveElectrons(() => { busy = false; });
+  } else if (step === 2) {
+    busy = true;
+    gatherIons(() => { busy = false; });
+  } else if (step === 3) {
+    stepLabel.textContent = "完了 ・ もう一度見るにはリセット";
+  }
+}
+
+function reset() {
+  step = 0;
+  busy = false;
+  stepLabel.textContent = STEP_TEXT[0];
+  createAtoms();
+}
+
+svg.addEventListener("click", nextStep);
+
+createAtoms();
+</script>
+
+</body>
+</html>
