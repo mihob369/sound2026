@@ -1,676 +1,102 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>アプリリンク集</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    *, *::before, *::after { 
-      box-sizing: border-box; 
-      margin: 0; 
-      padding: 0; 
-    }
-
-    body {
-      font-family: 'Noto Sans JP', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      color: #1a1a2e;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-o[...]");
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ── Header ── */
-    header {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      padding: 40px 40px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-      position: relative;
-      z-index: 10;
-    }
-
-    header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      color: #667eea;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    header h1::before {
-      content: '🎵';
-      font-size: 2.2rem;
-    }
-
-    header p {
-      font-size: 0.95rem;
-      color: #6b7280;
-      letter-spacing: 0.02em;
-      font-weight: 500;
-    }
-
-    /* ── Main Container ── */
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 60px 24px 80px;
-      position: relative;
-      z-index: 5;
-    }
-
-    /* ── Category ── */
-    .category {
-      margin-bottom: 70px;
-      animation: slideIn 0.6s ease-out;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .category-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 28px;
-      position: relative;
-    }
-
-    .category-icon {
-      font-size: 1.8rem;
-      min-width: 40px;
-      text-align: center;
-    }
-
-    .category-label {
-      font-size: 0.85rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      min-width: max-content;
-      padding: 8px 16px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.9);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Category specific colors */
-    .category:nth-child(1) .category-label {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .category:nth-child(2) .category-label {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-    }
-
-    .category:nth-child(3) .category-label {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: white;
-    }
-
-    .category:nth-child(4) .category-label {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-      color: white;
-    }
-
-    .category-line {
-      flex: 1;
-      height: 2px;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
-    }
-
-    /* ── Grid ── */
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 20px;
-    }
-
-    /* ── Card ── */
-    .card {
-      perspective: 1000px;
-    }
-
-    .card a {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
-      padding: 22px 20px;
-      text-decoration: none;
-      color: #1a1a2e;
-      font-size: 0.95rem;
-      font-weight: 600;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative;
-      overflow: hidden;
-      height: 100%;
-      min-height: 120px;
-    }
-
-    .card a::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-      transition: left 0.5s ease;
-    }
-
-    .card a:hover::before {
-      left: 100%;
-    }
-
-    .card a:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-
-    .card a:active {
-      transform: translateY(-4px) scale(0.98);
-    }
-
-    .card-content {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      width: 100%;
-      position: relative;
-      z-index: 2;
-    }
-
-    .card-icon {
-      font-size: 1.5rem;
-      min-width: 24px;
-      text-align: center;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .card-text {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .card-title {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .card-description {
-      font-size: 0.75rem;
-      color: #9ca3af;
-      font-weight: 400;
-    }
-
-    .arrow {
-      font-size: 0.9rem;
-      color: #d1d5db;
-      margin-left: auto;
-      transition: transform 0.3s ease;
-      flex-shrink: 0;
-      position: relative;
-      z-index: 2;
-    }
-
-    .card a:hover .arrow {
-      transform: translateX(4px) translateY(-4px);
-      color: #667eea;
-    }
-
-    /* Category-specific card colors on hover */
-    .category:nth-child(1) .card a:hover {
-      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
-    }
-
-    .category:nth-child(2) .card a:hover {
-      box-shadow: 0 20px 40px rgba(245, 87, 108, 0.4);
-    }
-
-    .category:nth-child(3) .card a:hover {
-      box-shadow: 0 20px 40px rgba(79, 172, 254, 0.4);
-    }
-
-    .category:nth-child(4) .card a:hover {
-      box-shadow: 0 20px 40px rgba(67, 233, 123, 0.4);
-    }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      padding: 32px 24px;
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.8);
-      letter-spacing: 0.05em;
-      background: rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(10px);
-      position: relative;
-      z-index: 10;
-      margin-top: 40px;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      header {
-        padding: 28px 20px;
-      }
-
-      header h1 {
-        font-size: 1.5rem;
-      }
-
-      .container {
-        padding: 40px 16px 60px;
-      }
-
-      .grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 16px;
-      }
-
-      .category-header {
-        gap: 12px;
-      }
-
-      .category-icon {
-        font-size: 1.4rem;
-      }
-
-      .category-label {
-        font-size: 0.75rem;
-        padding: 6px 12px;
-      }
-
-      .card a {
-        padding: 16px 14px;
-        min-height: 100px;
-      }
-
-      .card-icon {
-        font-size: 1.2rem;
-      }
-    }
-  </style>
-</head>
-<body>
-
-<header>
-  <h1>アプリリンク集</h1>
-  <p>よく使うアプリへのリンクをまとめています</p>
-</header>
-
-<div class="container">
-
-  <!-- 授業用アプリ -->
+  <!-- 理科 -->
   <div class="category">
     <div class="category-header">
-      <span class="category-icon">🎓</span>
-      <span class="category-label">授業用アプリ</span>
+      <span class="category-icon">🔬</span>
+      <span class="category-label">理科</span>
       <div class="category-line"></div>
     </div>
+
     <div class="grid">
+
       <div class="card">
-        <a href="https://mihob369.github.io/sound2026/sekigae.html" target="_blank">
+        <a href="https69.github.io/sound2026/01genso.html
           <div class="card-content">
-            <span class="card-icon">🔀</span>
+            <span class="card-icon">🧪</span>
             <div class="card-text">
-              <span class="card-title">席替え</span>
-              <span class="card-description">ランダム配置</span>
+              <span class="card-title">元素クイズ（クロ）</span>
+              <span class="card-description">元素の学習</span>
             </div>
           </div>
           <span class="arrow">↗</span>
         </a>
       </div>
+
       <div class="card">
-        <a href="https://mihob369.github.io/sound2026/shimei-app.html" target="_blank">
+        <a href="https://mihob369.github2026/03genshi.html
           <div class="card-content">
-            <span class="card-icon">👆</span>
+            <span class="card-icon">⚛️</span>
             <div class="card-text">
-              <span class="card-title">指名アプリ</span>
-              <span class="card-description">ランダム選択</span>
+              <span class="card-title">原子の構造</span>
+              <span class="card-description">原子モデルの学習</span>
             </div>
           </div>
           <span class="arrow">↗</span>
         </a>
       </div>
-            <div class="card">
-        <a href="https://mihob369.github.io/sound2026/shimei2.html" target="_blank">
+
+      <div class="card">
+        <a href="https://mihob369.github.io/sound2026kikata.html
           <div class="card-content">
-            <span class="card-icon">👆</span>
+            <span class="card-icon">⚡</span>
             <div class="card-text">
-              <span class="card-title">指名アプリⅡ</span>
-              <span class="card-description">ランダム選択</span>
+              <span class="card-title">イオンのでき方（クロ）</span>
+              <span class="card-description">電子の移動を学ぶ</span>
             </div>
           </div>
           <span class="arrow">↗</span>
         </a>
       </div>
+
       <div class="card">
-        <a href="https://mihob369.github.io/sound2026/mondai.html" target="_blank">
+        <a href="https://mihob369.github.io/sound2026ion.html
+          <div class="card-content">
+            <span class="card-icon">🔤</span>
+            <div class="card-text">
+              <span class="card-title">元素記号とイオン式の対応</span>
+              <span class="card-description">イオン式の確認</span>
+            </div>
+          </div>
+          <span class="arrow">↗</span>
+        </a>
+      </div>
+
+      <div class="card">
+        <a href="https://mihob369.github.io/sound2026/07ionshiki       <div class="card-content">
+            <span class="card-icon">📝</span>
+            <div class="card-text">
+              <span class="card-title">イオンの名称とイオン式</span>
+              <span class="card-description">名称と式の対応</span>
+            </div>
+          </div>
+          <span class="arrow">↗</span>
+        </a>
+      </div>
+
+      <div class="card">
+        <atps://mihob369.github.io/sound2026/08ion-kessho.html
+          <div class="card-content">
+            <span class="card-icon">💎</span>
+            <div class="card-text">
+              <span class="card-title">イオン結晶のでき方（クロ）</span>
+              <span class="card-description">結晶形成シミュレータ</span>
+            </div>
+          </div>
+          <span class="arrow">↗</span>
+        </a>
+      </div>
+
+      <div class="card">
+        <a href="https://github.io/sound2026/09ion-quiz.html
           <div class="card-content">
             <span class="card-icon">❓</span>
             <div class="card-text">
-              <span class="card-title">三択アプリ</span>
-              <span class="card-description">問題出題</span>
+              <span class="card-title">イオンからなる物質クイズ</span>
+              <span class="card-description">確認テスト</span>
             </div>
           </div>
           <span class="arrow">↗</span>
         </a>
       </div>
+
     </div>
   </div>
-
-  <!-- 情報科 -->
-  <div class="category">
-    <div class="category-header">
-      <span class="category-icon">💻</span>
-      <span class="category-label">情報科</span>
-      <div class="category-line"></div>
-    </div>
-    <div class="grid">
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/DigitalWave.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🌊</span>
-            <div class="card-text">
-              <span class="card-title">デジタル化</span>
-              <span class="card-description">ノイズの影響</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/sound.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🎵</span>
-            <div class="card-text">
-              <span class="card-title">音のデジタル化</span>
-              <span class="card-description">学習ツール</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/2shinsu.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🔢</span>
-            <div class="card-text">
-              <span class="card-title">2進数学習</span>
-              <span class="card-description">基礎学習</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/digital-kansan.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">➕</span>
-            <div class="card-text">
-              <span class="card-title">デジタル量計算</span>
-              <span class="card-description">計算演習</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/moji-code.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">📝</span>
-            <div class="card-text">
-              <span class="card-title">文字コード</span>
-              <span class="card-description">エンコーディング</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/data-compression.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">📦</span>
-            <div class="card-text">
-              <span class="card-title">データ圧縮</span>
-              <span class="card-description">圧縮技術</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/oto-gazo-doga.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🎬</span>
-            <div class="card-text">
-              <span class="card-title">音・画像・動画</span>
-              <span class="card-description">マルチメディア</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/apps/color-mixing/index.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🎨</span>
-            <div class="card-text">
-              <span class="card-title">色の混色</span>
-              <span class="card-description">加法(RGB) と 減法(CMY) の学習</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-            <div class="card">
-        <a href="https://mihob369.github.io/sound2026/genpo-color.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🎨</span>
-            <div class="card-text">
-              <span class="card-title">減法混色</span>
-              <span class="card-description">しくみ</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      
-        <div class="card">
-  <a href="https://mihob369.github.io/sound2026/genpo-color2.html" target="_blank">
-    <div class="card-content">
-      <span class="card-icon">🎨</span>
-      <div class="card-text">
-        <span class="card-title">減法混色Ⅱ</span>
-        <span class="card-description">色相環・吸収・減法混色シミュレータ</span>
-      </div>
-    </div>
-    <span class="arrow">↗</span>
-  </a>
-</div>
-
-              <div class="card">
-  <a href="https://mihob369.github.io/sound2026/color3.html" target="_blank">
-    <div class="card-content">
-      <span class="card-icon">🎨</span>
-      <div class="card-text">
-        <span class="card-title">減法混色Ⅲ</span>
-        <span class="card-description">色相環・吸収・減法混色シミュレータ</span>
-      </div>
-    </div>
-    <span class="arrow">↗</span>
-  </a>
-</div>
-      
-      <div class="card">
-      
-        <a href="https://mihob369.github.io/sound2026/display.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🖥️</span>
-            <div class="card-text">
-              <span class="card-title">ディスプレイ</span>
-              <span class="card-description">のしくみ</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-
-            <div class="card">
-      
-        <a href="https://mihob369.github.io/sound2026/PC.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🖥️</span>
-            <div class="card-text">
-              <span class="card-title">コンピュータの構成</span>
-              <span class="card-description">シミュレータく</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      
-    </div>
-  </div>
-
-  <!-- 数学 -->
-  <div class="category">
-    <div class="category-header">
-      <span class="category-icon">🧮</span>
-      <span class="category-label">数学</span>
-      <div class="category-line"></div>
-    </div>
-    <div class="grid">
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/tasuki.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">❌</span>
-            <div class="card-text">
-              <span class="card-title">たすきがけ</span>
-              <span class="card-description">シミュレーター</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/sosu.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">⭐</span>
-            <div class="card-text">
-              <span class="card-title">素数分解ゲーム</span>
-              <span class="card-description">練習ゲーム</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/numberdrop.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🎮</span>
-            <div class="card-text">
-              <span class="card-title">数字分解ゲーム</span>
-              <span class="card-description">Level 1</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/numberdrop2.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🎮</span>
-            <div class="card-text">
-              <span class="card-title">数字分解ゲーム2</span>
-              <span class="card-description">Level 2</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-      <div class="card">
-        <a href="https://mihob369.github.io/sound2026/numberdrop3.html" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">🎮</span>
-            <div class="card-text">
-              <span class="card-title">数字分解ゲーム3</span>
-              <span class="card-description">Level 3</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <!-- その他 -->
-  <div class="category">
-    <div class="category-header">
-      <span class="category-icon">✨</span>
-      <span class="category-label">その他</span>
-      <div class="category-line"></div>
-    </div>
-    <div class="grid">
-      <div class="card">
-        <a href="https://docs.google.com/spreadsheets/d/1CTpPXWgQKivHTVyQI5aTjY7H2ZcJk5158oD8ACo6J6A/edit?usp=sharing" target="_blank">
-          <div class="card-content">
-            <span class="card-icon">📊</span>
-            <div class="card-text">
-              <span class="card-title">三択入力シート</span>
-              <span class="card-description">Google Sheets</span>
-            </div>
-          </div>
-          <span class="arrow">↗</span>
-        </a>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<footer>© 2026 My Apps | Created with ✨</footer>
-
-</body>
-</html>
