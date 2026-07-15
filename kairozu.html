@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>論理式から回路図へ！学習＆シミュレーター</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f5a623;
+            --bg: #f8f9fa;
+            --panel-bg: #ffffff;
+            --text: #333333;
+            --border: #cccccc;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* タブ切り替え */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-bottom: -2px;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tab.active {
+            background-color: var(--panel-bg);
+            border-color: var(--border) var(--border) var(--panel-bg);
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 学習モード用のスタイル */
+        .lesson-selector {
+            margin-bottom: 15px;
+        }
+        
+        .lesson-btn {
+            padding: 8px 15px;
+            margin-right: 5px;
+            background-color: #e9ecef;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .lesson-btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .steps-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .steps-list {
+            flex: 1;
+            max-width: 350px;
+        }
+
+        .step-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #f1f3f5;
+            border-left: 5px solid var(--border);
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+            transition: all 0.2s;
+        }
+
+        .step-item.active {
+            background: #e7f5ff;
+            border-left-color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* シミュレーター用のスタイル */
+        .formula-builder {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f1f3f5;
+            border-radius: 6px;
+        }
+
+        .formula-display {
+            font-size: 24px;
+            font-family: monospace;
+            padding: 10px;
+            background: white;
+            border: 1px solid var(--border);
+            min-height: 36px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn:hover { background: #e9ecef; }
+        .btn-input { color: #2b8a3e; border-color: #2b8a3e; }
+        .btn-op { color: #e8590c; border-color: #e8590c; }
+        .btn-control { background: #dee2e6; }
+        .btn-clear { background: #fa5252; color: white; border-color: #fa5252; }
+
+        /* キャンバス領域 */
+        .canvas-area {
+            flex: 2;
+            border: 2px dashed var(--border);
+            border-radius: 6px;
+            min-height: 350px;
+            background: #fafafa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            min-height: 350px;
+        }
+
+        .error-msg {
+            color: #fa5252;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>論理式 ⇄ 回路図 学習Webアプリ</h1>
+    <p>論理式がどのように回路図に組み立てられるかを視覚的に学べます。</p>
+</header>
+
+<div class="container">
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('lesson')">① ステップ学習モード</div>
+        <div class="tab" onclick="switchTab('sim')">② 式クリック・シミュレーター</div>
+    </div>
+
+    <div id="lesson-tab" class="tab-content active">
+        <div class="lesson-selector">
+            <button class="lesson-btn active" onclick="loadLesson(0)">基本: Y = A · B (AND)</button>
+            <button class="lesson-btn" onclick="loadLesson(1)">標準: Y = A · B' + C</button>
+            <button class="lesson-btn" onclick="loadLesson(2)">応用: Y = (A + B) · C'</button>
+        </div>
+        <h3 id="lesson-title">論理式: Y = A · B</h3>
+        <div class="steps-container">
+            <div class="steps-list" id="steps-list">
+                </div>
+            <div class="canvas-area">
+                <svg id="lesson-svg"></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="sim-tab" class="tab-content">
+        <div class="formula-builder">
+            <div><strong>数式を入力してください（ボタンをクリック）：</strong></div>
+            <div class="formula-display" id="form-display">Y = </div>
+            <div id="error-area" class="error-msg"></div>
+            
+            <div class="btn-group">
+                <button class="btn btn-input" onclick="pressKey('A')">A</button>
+                <button class="btn btn-input" onclick="pressKey('B')">B</button>
+                <button class="btn btn-input" onclick="pressKey('C')">C</button>
+                <button class="btn btn-op" onclick="pressKey('\'')">’ (NOT)</button>
+                <button class="btn btn-op" onclick="pressKey('·')">· (AND)</button>
+                <button class="btn btn-op" onclick="pressKey('+')">+ (OR)</button>
+                <button class="btn btn-op" onclick="pressKey('(')">(</button>
+                <button class="btn btn-op" onclick="pressKey(')')">)</button>
+                <button class="btn btn-control" onclick="pressBackspace()">⌫ 1文字削除</button>
+                <button class="btn btn-clear" onclick="clearSim()">全てクリア</button>
+            </div>
+        </div>
+        <div class="canvas-area">
+            <svg id="sim-svg"></svg>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 共有のデータ・描画関数 ---
+    // MIL規格風のゲートを表現するSVGパス定義
+    const GATES = {
+        AND: (x, y) => `<path d="M ${x} ${y-20} L ${x+20} ${y-20} A 20 20 0 0 1 ${x+40} ${y} A 20 20 0 0 1 ${x+20} ${y+20} L ${x} ${y+20} Z" fill="none" stroke="#333" stroke-width="3"/>`,
+        OR: (x, y) => `<path d="M ${x} ${y-20} Q ${x+15} ${y-20} ${x+40} ${y} Q ${x+15} ${y+20} ${x} ${y+20} Q ${x+12} ${y} ${x} ${y-20} Z" fill="none" stroke="#333" stroke-width="3"/>`,
+        NOT: (x, y) => `<path d="M ${x} ${y-15} L ${x+25} ${y} L ${x} ${y+15} Z" fill="none" stroke="#333" stroke-width="3"/><circle cx="${x+29}" cy="${y}" r="4" fill="none" stroke="#333" stroke-width="2"/>`,
+        LINE: (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#4a90e2" stroke-width="2" />`,
+        DOT: (x, y) => `<circle cx="${x}" cy="${y}" r="4" fill="#333"/>`,
+        TEXT: (x, y, text, color="#333") => `<text x="${x}" y="${y}" font-family="monospace" font-size="16" fill="${color}" dominant-baseline="middle">${text}</text>`
+    };
+
+    // --- タブ切り替え ---
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        if(tabName === 'lesson') {
+            document.querySelectorAll('.tab')[0].classList.add('active');
+            document.getElementById('lesson-tab').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            document.getElementById('sim-tab').classList.add('active');
+            updateSimCircuit();
+        }
+    }
+
+    // --- ① ステップ学習モードのデータ ---
+    const lessons = [
+        {
+            title: "基本: Y = A · B (AND回路)",
+            steps: [
+                { text: "1. 左側に入力信号のAとBを配置します。", draw: () => GATES.TEXT(30, 80, "A") + GATES.TEXT(30, 140, "B") },
+                { text: "2. 各入力から右に向かって信号線を伸ばします。", draw: () => lessons[0].steps[0].draw() + GATES.LINE(50, 80, 150, 80) + GATES.LINE(50, 140, 150, 140) },
+                { text: "3. 論理積(·)を表すANDゲートを配置し、線を接続します。", draw: () => lessons[0].steps[1].draw() + GATES.AND(150, 110) },
+                { text: "4. ゲートの右側から出力を伸ばしてYとし、完成です！", draw: () => lessons[0].steps[2].draw() + GATES.LINE(190, 110, 260, 110) + GATES.TEXT(270, 110, "Y = A · B", "#2b8a3e") }
+            ]
+        },
+        {
+            title: "標準: Y = A · B' + C (複合回路)",
+            steps: [
+                { text: "1. 入力信号 A, B, C の3本の線を左端に用意します。", draw: () => GATES.TEXT(30, 60, "A") + GATES.TEXT(30, 120, "B") + GATES.TEXT(30, 200, "C") },
+                { text: "2. 優先度の高いNOT( B' )を処理するため、Bの線にNOTゲートを置きます。", draw: () => lessons[1].steps[0].draw() + GATES.LINE(50, 60, 160, 60) + GATES.LINE(50, 120, 80, 120) + GATES.NOT(80, 120) + GATES.LINE(113, 120, 160, 120) },
+                { text: "3. A と B' を掛け合わせるため、ANDゲートに接続します。", draw: () => lessons[1].steps[1].draw() + GATES.AND(160, 90) },
+                { text: "4. ANDの出力(A·B')とCを足し合わせる(OR)ため、双方をORゲートに繋ぎます。", draw: () => lessons[1].steps[2].draw() + GATES.LINE(200, 90, 250, 90) + GATES.LINE(50, 200, 250, 200) + GATES.OR(250, 145) },
+                { text: "5. ORゲートから出力を伸ばして最終出力 Y とします。", draw: () => lessons[1].steps[3].draw() + GATES.LINE(290, 145, 340, 145) + GATES.TEXT(350, 145, "Y = A · B' + C", "#2b8a3e") }
+            ]
+        },
+        {
+            title: "応用: Y = (A + B) · C' (カッコのある回路)",
+            steps: [
+                { text: "1. 入力信号 A, B, C の3本の線を配置します。", draw: () => GATES.TEXT(30, 60, "A") + GATES.TEXT(30, 120, "B") + GATES.TEXT(30, 200, "C") },
+                { text: "2. カッコ内(A + B)を最優先します。AとBをORゲートに入力します。", draw: () => lessons[2].steps[0].draw() + GATES.LINE(50, 60, 100, 60) + GATES.LINE(50, 120, 100, 120) + GATES.OR(100, 90) },
+                { text: "3. Cの否定(C')を作るため、Cの線にNOTゲートを設置します。", draw: () => lessons[2].steps[1].draw() + GATES.LINE(50, 200, 100, 200) + GATES.NOT(100, 200) },
+                { text: "4. カッコの結果(A+B)と、C'をANDゲートで合流させます。", draw: () => lessons[2].steps[2].draw() + GATES.LINE(140, 90, 200, 90) + GATES.LINE(133, 200, 200, 200) + GATES.AND(200, 145) },
+                { text: "5. 全体の出力線を引き出し、Yとして完成です。", draw: () => lessons[2].steps[3].draw() + GATES.LINE(240, 145, 300, 145) + GATES.TEXT(310, 145, "Y = (A + B) · C'", "#2b8a3e") }
+            ]
+        }
+    ];
+
+    let currentLessonIdx = 0;
+
+    function loadLesson(idx) {
+        currentLessonIdx = idx;
+        document.querySelectorAll('.lesson-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+        document.getElementById('lesson-title').innerText = lessons[idx].title;
+        
+        const listContainer = document.getElementById('steps-list');
+        listContainer.innerHTML = '';
+        
+        lessons[idx].steps.forEach((step, sIdx) => {
+            const div = document.createElement('div');
+            div.className = `step-item ${sIdx === 0 ? 'active' : ''}`;
+            div.innerText = step.text;
+            div.onclick = () => selectStep(sIdx);
+            listContainer.appendChild(div);
+        });
+        
+        selectStep(0);
+    }
+
+    function selectStep(stepIdx) {
+        document.querySelectorAll('.step-item').forEach((item, i) => item.classList.toggle('active', i === stepIdx));
+        const svg = document.getElementById('lesson-svg');
+        svg.innerHTML = lessons[currentLessonIdx].steps[stepIdx].draw();
+    }
+
+
+    // --- ② シミュレーターモードのロジック ---
+    let simTokens = [];
+
+    function pressKey(val) {
+        simTokens.push(val);
+        updateSimDisplay();
+        updateSimCircuit();
+    }
+
+    function pressBackspace() {
+        simTokens.pop();
+        updateSimDisplay();
+        updateSimCircuit();
+    }
+
+    function clearSim() {
+        simTokens = [];
+        updateSimDisplay();
+        updateSimCircuit();
+    }
+
+    function updateSimDisplay() {
+        document.getElementById('form-display').innerText = "Y = " + simTokens.join(' ');
+    }
+
+    // 簡易構文解析＆描画処理
+    function updateSimCircuit() {
+        const svg = document.getElementById('sim-svg');
+        const errArea = document.getElementById('error-area');
+        svg.innerHTML = '';
+        errArea.innerText = '';
+
+        if (simTokens.length === 0) return;
+
+        const exprStr = simTokens.join('');
+
+        try {
+            // パース処理と中間ツリーの生成 (簡易再帰下降法)
+            // 優先順位: 括弧 -> NOT(') -> AND(·) -> OR(+)
+            let pos = 0;
+
+            function parseExpression() {
+                let node = parseTerm();
+                while (pos < exprStr.length && exprStr[pos] === '+') {
+                    pos++;
+                    let right = parseTerm();
+                    node = { type: 'OR', left: node, right: right };
+                }
+                return node;
+            }
+
+            function parseTerm() {
+                let node = parseFactor();
+                while (pos < exprStr.length && exprStr[pos] === '·') {
+                    pos++;
+                    let right = parseFactor();
+                    node = { type: 'AND', left: node, right: right };
+                }
+                // 明示的なドットがない「AB」のような並びもANDとする場合用
+                while (pos < exprStr.length && (exprStr[pos] === 'A' || exprStr[pos] === 'B' || exprStr[pos] === 'C' || exprStr[pos] === '(')) {
+                    let right = parseFactor();
+                    node = { type: 'AND', left: node, right: right };
+                }
+                return node;
+            }
+
+            function parseFactor() {
+                let node;
+                if (pos < exprStr.length && exprStr[pos] === '(') {
+                    pos++;
+                    node = parseExpression();
+                    if (pos >= exprStr.length || exprStr[pos] !== ')') {
+                        throw new Error("閉じカッコ ')' が足りません");
+                    }
+                    pos++;
+                } else if (pos < exprStr.length && ['A', 'B', 'C'].includes(exprStr[pos])) {
+                    node = { type: 'INPUT', value: exprStr[pos] };
+                    pos++;
+                } else {
+                    throw new Error("不正な式です。入力またはカッコが必要です。");
+                }
+
+                // 後置のNOT処理
+                while (pos < exprStr.length && exprStr[pos] === '\'') {
+                    node = { type: 'NOT', center: node };
+                    pos++;
+                }
+                return node;
+            }
+
+            const ast = parseExpression();
+            if (pos < exprStr.length) {
+                throw new Error("式を最後まで解析できませんでした");
+            }
+
+            // ASTから座標を計算し、描画関数を生成する
+            // 描画用の基本座標
+            const inputPositions = { 'A': 60, 'B': 140, 'C': 220 };
+            let currentX = 120;
+            let svgContent = GATES.TEXT(30, 60, "A") + GATES.TEXT(30, 140, "B") + GATES.TEXT(30, 220, "C");
+
+            // 再帰的に回路網を配置・描画する関数
+            function drawAST(node) {
+                if (node.type === 'INPUT') {
+                    return { x: 50, y: inputPositions[node.value], lastLineY: inputPositions[node.value] };
+                }
+                
+                if (node.type === 'NOT') {
+                    let sub = drawAST(node.center);
+                    let gateX = currentX;
+                    currentX += 60;
+                    svgContent += GATES.LINE(sub.x, sub.lastLineY, gateX, sub.lastLineY);
+                    svgContent += GATES.NOT(gateX, sub.lastLineY);
+                    return { x: gateX + 30, y: sub.lastLineY, lastLineY: sub.lastLineY };
+                }
+
+                if (node.type === 'AND' || node.type === 'OR') {
+                    let left = drawAST(node.left);
+                    let right = drawAST(node.right);
+                    
+                    let gateX = currentX;
+                    currentX += 70;
+                    let outY = (left.lastLineY + right.lastLineY) / 2;
+
+                    // 左側ノードからの配線
+                    svgContent += GATES.LINE(left.x, left.lastLineY, gateX - 10, left.lastLineY);
+                    svgContent += GATES.LINE(gateX - 10, left.lastLineY, gateX - 10, outY - 10);
+                    svgContent += GATES.LINE(gateX - 10, outY - 10, gateX, outY - 10);
+
+                    // 右側ノードからの配線
+                    svgContent += GATES.LINE(right.x, right.lastLineY, gateX - 10, right.lastLineY);
+                    svgContent += GATES.LINE(gateX - 10, right.lastLineY, gateX - 10, outY + 10);
+                    svgContent += GATES.LINE(gateX - 10, outY + 10, gateX, outY + 10);
+
+                    if (node.type === 'AND') {
+                        svgContent += GATES.AND(gateX, outY);
+                    } else {
+                        svgContent += GATES.OR(gateX, outY);
+                    }
+
+                    return { x: gateX + 40, y: outY, lastLineY: outY };
+                }
+            }
+
+            let finalOut = drawAST(ast);
+            svgContent += GATES.LINE(finalOut.x, finalOut.lastLineY, finalOut.x + 40, finalOut.lastLineY);
+            svgContent += GATES.TEXT(finalOut.x + 50, finalOut.lastLineY, "Y", "#2b8a3e");
+            
+            svg.innerHTML = svgContent;
+
+        } catch (e) {
+            errArea.innerText = "エラー: " + e.message;
+        }
+    }
+
+    // 初期化ロード
+    window.onload = () => {
+        loadLesson(0);
+    };
+</script>
+
+</body>
+</html>
