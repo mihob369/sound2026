@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情報Ⅰ 論理回路学習（基本配線・精密レイアウト修正版）</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary-color: #3498db;
+            --on-color: #2ecc71; /* ON(1)の緑 */
+            --off-color: #e74c3c; /* OFF(0)の赤 */
+            --text-color: #2c3e50;
+            --border-color: #dfe6e9;
+        }
+
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        h1 { font-size: 22px; margin: 0 0 5px 0; }
+        p { margin: 0; font-size: 14px; color: #7f8c8d; }
+
+        /* タブ */
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 950px; }
+        .tab-btn { flex: 1; padding: 10px; background-color: #e2e8f0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; }
+        .tab-btn.active { background-color: var(--primary-color); color: white; }
+
+        /* メインコンテナ */
+        .container { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; width: 100%; max-width: 950px; }
+        @media (max-width: 800px) { .container { grid-template-columns: 1fr; } }
+
+        .card { background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 18px; border: 1px solid var(--border-color); }
+        h2 { font-size: 17px; margin-top: 0; margin-bottom: 12px; border-left: 4px solid var(--primary-color); padding-left: 8px; }
+
+        /* セレクター */
+        .selector-group { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .selector-btn { flex: 1; min-width: 60px; padding: 7px; background: #f1f2f6; border: 1px solid #ced6e0; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold; text-align: center; transition: 0.2s; }
+        .selector-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+        /* 回路描画 Canvas エリア */
+        .canvas-area-container {
+            position: relative;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* 真理値表 */
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; }
+        th, td { padding: 9px; border: 1px solid var(--border-color); }
+        th { background-color: #f1f2f6; }
+        tr.highlight { background-color: #e8f4fd; font-weight: bold; border: 2px solid var(--primary-color); }
+
+        .control-panel {
+            margin-top: 10px;
+            font-size: 14px;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        
+        .on-text { color: var(--on-color); font-weight: bold; }
+        .off-text { color: var(--off-color); font-weight: bold; }
+        .desc-text { font-size: 13px; color: #7f8c8d; margin-top: 8px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>情報Ⅰ 論理回路学習（基本配線バグ修正・精密レイアウト版）</h1>
+    <p>基本ゲートの余分な斜線を削除し、規格準拠でクリーンな論理シミュレーションを提供します</p>
+</header>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchMode('basic')">基本論理ゲート</button>
+    <button class="tab-btn" onclick="switchMode('half')">半加算器（精密再現）</button>
+    <button class="tab-btn" onclick="switchMode('full')">全加算器</button>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h2 id="left-card-title">基本ゲート</h2>
+        <div id="gate-selectors" class="selector-group">
+            <button class="selector-btn active" onclick="setGate('AND')">AND</button>
+            <button class="selector-btn" onclick="setGate('OR')">OR</button>
+            <button class="selector-btn" onclick="setGate('NOT')">NOT</button>
+            <button class="selector-btn" onclick="setGate('NAND')">NAND</button>
+            <button class="selector-btn" onclick="setGate('NOR')">NOR</button>
+            <button class="selector-btn" onclick="setGate('XOR')">XOR</button>
+        </div>
+
+        <div class="canvas-area-container">
+            <canvas id="circuitCanvas" width="500" height="280"></canvas>
+        </div>
+        
+        <div class="control-panel">
+            <strong>操作方法:</strong> 
+            回路図左側の入力「0」「1」の数字、または右区画 of 真理値表の行をクリックすると、入力を切り替えられます。
+            <p id="mode-status-text" style="margin-top:5px; margin-bottom:0;"></p>
+            <p class="desc-text" id="mode-description"></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>真理値表</h2>
+        <div id="table-container"></div>
+    </div>
+</div>
+
+<script>
+    // --- 状態管理 ---
+    let currentMode = 'basic'; 
+    let currentGate = 'AND';
+    const state = { basic: {A:0, B:0}, half: {A:0, B:0}, full: {A:0, B:0, Cin:0} };
+
+    // --- Canvas初期化 ---
+    const canvas = document.getElementById('circuitCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 高解像度ディスプレイ対応
+    function setupCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+    }
+    setupCanvas();
+
+    // --- 色とスタイルの定数 ---
+    const COLOR_ON = '#2ecc71';
+    const COLOR_OFF = '#e74c3c';
+    const COLOR_LINE_OFF = '#ddd';
+    const COLOR_GATE_BODY = '#fcfcfc';
+    const COLOR_GATE_BORDER = '#2c3e50';
+    const LINE_WIDTH_GATE = 2.5;
+    const LINE_WIDTH_WIRE = 3;
+
+    // --- 論理計算関数 ---
+    const logic = {
+        AND: (a,b) => a && b,
+        OR: (a,b) => a || b,
+        NOT: (a) => !a,
+        NAND: (a,b) => !(a && b),
+        NOR: (a,b) => !(a || b),
+        XOR: (a,b) => a !== b,
+    };
+
+    // --- クリックイベント処理 ---
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // ヒットエリア定義（入力数字の周辺）
+        const isHit = (x, y) => Math.sqrt((mouseX-x)**2 + (mouseY-y)**2) < 25;
+
+        if (currentMode === 'basic') {
+            if (isHit(60, 90)) toggle('basic', 'A');
+            else if (currentGate !== 'NOT' && isHit(60, 190)) toggle('basic', 'B');
+        } else if (currentMode === 'half') {
+            if (isHit(60, 90)) toggle('half', 'A');
+            else if (isHit(60, 190)) toggle('half', 'B');
+        } else if (currentMode === 'full') {
+            if (isHit(60, 60)) toggle('full', 'A');
+            else if (isHit(60, 140)) toggle('full', 'B');
+            else if (isHit(60, 220)) toggle('full', 'Cin');
+        }
+    });
+
+    function toggle(mode, key) {
+        state[mode][key] = state[mode][key] ? 0 : 1;
+        updateApp();
+    }
+
+    function switchMode(mode) {
+        currentMode = mode;
+        updateTabUI(mode);
+        updateApp();
+    }
+
+    function setGate(gate) {
+        currentGate = gate;
+        updateBasicSelectorUI(gate);
+        updateApp();
+    }
+
+    function forceInput(mode, inputsObject) {
+        Object.assign(state[mode], inputsObject);
+        updateApp();
+    }
+
+    // --- 描画関数群 ---
+
+    // 1. 汎用パーツ
+    function drawWire(x1, y1, x2, y2, val) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = val ? COLOR_ON : COLOR_LINE_OFF;
+        ctx.lineWidth = LINE_WIDTH_WIRE;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+
+    function drawWirePath(path, val) {
+        ctx.beginPath();
+        ctx.moveTo(path[0][0], path[0][1]);
+        for(let i=1; i<path.length; i++) ctx.lineTo(path[i][0], path[i][1]);
+        ctx.strokeStyle = val ? COLOR_ON : COLOR_LINE_OFF;
+        ctx.lineWidth = LINE_WIDTH_WIRE;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+
+    function drawInputNode(x, y, val, label) {
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillStyle = '#7f8c8d';
+        ctx.fillText(label, x - 45, y + 5);
+
+        ctx.beginPath();
+        ctx.arc(x, y, 18, 0, Math.PI*2);
+        ctx.fillStyle = val ? COLOR_ON : COLOR_OFF;
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(val ? '1' : '0', x, y + 7);
+        ctx.textAlign = 'start';
+    }
+
+    function drawOutputNode(x, y, val, label) {
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#7f8c8d';
+        ctx.fillText(label, x + 25, y + 5);
+
+        ctx.beginPath();
+        ctx.arc(x, y, 16, 0, Math.PI*2);
+        ctx.fillStyle = val ? COLOR_ON : COLOR_OFF;
+        ctx.fill();
+        
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(val ? '1' : '0', x, y + 6);
+        ctx.textAlign = 'start';
+    }
+
+    // 各ゲートの入力側・出力側に小さな「0/1」の丸を、配線と重ならないよう「少し上」に表示する
+    function drawIoLabel(x, y, val, isInput) {
+        const drawX = x + (isInput ? -5 : 5);
+        const drawY = y - 14; // 配線の14px上に浮かせる
+
+        ctx.beginPath();
+        ctx.arc(drawX, drawY, 8, 0, Math.PI*2);
+        ctx.fillStyle = val ? COLOR_ON : COLOR_OFF;
+        ctx.fill();
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(val ? '1' : '0', drawX, drawY + 3.5);
+        ctx.textAlign = 'start';
+    }
+
+    function drawDot(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI*2);
+        ctx.fillStyle = '#2c3e50';
+        ctx.fill();
+    }
+
+    function drawBubble(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI*2);
+        ctx.fillStyle = COLOR_GATE_BODY;
+        ctx.fill();
+        ctx.strokeStyle = COLOR_GATE_BORDER;
+        ctx.lineWidth = LINE_WIDTH_GATE;
+        ctx.stroke();
+        return x + 5;
+    }
+
+    // 2. 規格に基づく形状
+    function drawAndShape(ctx, x, y, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w/2, y);
+        ctx.bezierCurveTo(x + w, y, x + w, y + h, x + w/2, y + h);
+        ctx.lineTo(x, y + h);
+        ctx.closePath();
+    }
+
+    // OR形状の下辺くぼみと先端の尖りを綺麗に再現
+    function drawOrShape(ctx, x, y, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.bezierCurveTo(x + w*0.2, y + h*0.2, x + w*0.2, y + h*0.8, x, y + h);
+        ctx.bezierCurveTo(x + w*0.6, y + h, x + w*0.8, y + h*0.7, x + w, y + h/2);
+        ctx.bezierCurveTo(x + w*0.8, y + h*0.3, x + w*0.6, y, x, y);
+        ctx.closePath();
+    }
+
+    function drawNotShape(ctx, x, y, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w, y + h/2);
+        ctx.lineTo(x, y + h);
+        ctx.closePath();
+    }
+
+    // 3. ゲート全体の描画
+    function drawGate(type, x, y, inputSigs, w=80, h=60, drawLabels=false) {
+        const gateX = x;
+        const gateY = y - h/2;
+        ctx.strokeStyle = COLOR_GATE_BORDER;
+        ctx.lineWidth = LINE_WIDTH_GATE;
+        ctx.fillStyle = COLOR_GATE_BODY;
+
+        // XOR用の二重線
+        if (type === 'XOR') {
+            ctx.beginPath();
+            const off = 10;
+            ctx.moveTo(gateX - off, gateY);
+            ctx.bezierCurveTo(gateX - off + w*0.2, gateY + h*0.2, gateX - off + w*0.2, gateY + h*0.8, gateX - off, gateY + h);
+            ctx.strokeStyle = COLOR_GATE_BORDER;
+            ctx.stroke();
+        }
+
+        // 本体描画
+        if (type === 'AND' || type === 'NAND') drawAndShape(ctx, gateX, gateY, w, h);
+        else if (type === 'OR' || type === 'NOR' || type === 'XOR') drawOrShape(ctx, gateX, gateY, w, h);
+        else if (type === 'NOT') drawNotShape(ctx, gateX, gateY, w, h);
+        ctx.fill();
+        ctx.stroke();
+
+        // テキストラベル
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#ccc';
+        ctx.textAlign = 'center';
+        ctx.fillText(type, gateX + w*0.4, y + 4);
+        ctx.textAlign = 'start';
+
+        // 入力接続点とIOラベルの描画
+        if (type !== 'NOT') {
+            const iy1 = y - h*0.25;
+            const iy2 = y + h*0.25;
+            const xOffset = (type === 'OR' || type === 'NOR' || type === 'XOR' ? 5 : 0);
+            drawWire(gateX - 10, iy1, gateX + xOffset, iy1, inputSigs[0]);
+            drawWire(gateX - 10, iy2, gateX + xOffset, iy2, inputSigs[1]);
+            if(drawLabels) {
+                drawIoLabel(gateX - 5, iy1, inputSigs[0], true);
+                drawIoLabel(gateX - 5, iy2, inputSigs[1], true);
+            }
+        } else {
+            drawWire(gateX - 10, y, gateX, y, inputSigs[0]);
+            if(drawLabels) drawIoLabel(gateX - 5, y, inputSigs[0], true);
+        }
+
+        // 出力計算
+        const outX = gateX + w;
+        let finalOutX = outX;
+        let outputVal = false;
+        
+        if (type === 'NOT') outputVal = logic.NOT(inputSigs[0]) ? 1 : 0;
+        else outputVal = logic[type](inputSigs[0], inputSigs[1]) ? 1 : 0;
+
+        // 反転用の丸バブル
+        if (type === 'NAND' || type === 'NOR' || type === 'NOT') {
+            finalOutX = drawBubble(outX, y);
+        }
+
+        // 出力接続線とIOラベルの描画
+        drawWire(finalOutX, y, finalOutX + 10, y, outputVal);
+        if(drawLabels) drawIoLabel(finalOutX + 2, y, outputVal, false);
+
+        return { x: finalOutX + 10, y: y, val: outputVal ? 1 : 0 };
+    }
+
+    // --- メイン更新処理 ---
+    function updateApp() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const title = document.getElementById('left-card-title');
+        const desc = document.getElementById('mode-description');
+        const status = document.getElementById('mode-status-text');
+
+        if (currentMode === 'basic') {
+            title.innerText = `基本ゲート: ${currentGate}`;
+            desc.innerText = getGateDescription(currentGate);
+            updateBasicPage(status);
+        } else if (currentMode === 'half') {
+            title.innerText = "半加算器 (Half Adder)";
+            desc.innerText = "2進数1桁の足し算を行います。AND(C)への配線から分岐した経路が、ORとNOTを通って最終AND(S)へとつながる論理構造です。";
+            updateHalfPage(status);
+        } else if (currentMode === 'full') {
+            title.innerText = "全加算器 (Full Adder)";
+            desc.innerText = "下位桁からの桁上げ(Cin)を考慮した足し算です。2つの半加算器とORゲートで構成されます。";
+            updateFullPage(status);
+        }
+    }
+
+    // 1. 基本ページ (配線バグである「Aからの不要な斜線」を完全修正)
+    function updateBasicPage(status) {
+        const inp = state.basic;
+        drawInputNode(60, 90, inp.A, 'A');
+        
+        let outPos;
+        const gateX = 170; // ゲート配置の起点X
+        if (currentGate === 'NOT') {
+            status.innerHTML = `入力Aは <span class="${inp.A?'on-text':'off-text'}">${inp.A}</span> です。`;
+            // AからNOTまでの配線 (単一の直角クランク線)
+            drawWire(60+18, 90, gateX - 10, 90, inp.A);
+            outPos = drawGate('NOT', gateX, 90, [inp.A], 80, 60, true);
+        } else {
+            drawInputNode(60, 190, inp.B, 'B');
+            status.innerHTML = `入力Aは <span class="${inp.A?'on-text':'off-text'}">${inp.A}</span>、Bは <span class="${inp.B?'on-text':'off-text'}">${inp.B}</span> です。`;
+            
+            // 【重要修正】: 不要だった斜線描画(drawWire)を削除し、直角配線(drawWirePath)だけに統一！
+            // 入力A ➔ ゲート上部入力
+            const iy1 = 140 - 60*0.25;
+            drawWirePath([[60+18, 90], [120, 90], [120, iy1], [gateX - 10, iy1]], inp.A);
+            
+            // 入力B ➔ ゲート下部入力
+            const iy2 = 140 + 60*0.25;
+            drawWirePath([[60+18, 190], [120, 190], [120, iy2], [gateX - 10, iy2]], inp.B);
+            
+            outPos = drawGate(currentGate, gateX, 140, [inp.A, inp.B], 80, 60, true);
+        }
+        
+        // 出力線と出力ノード
+        drawWire(outPos.x, outPos.y, 380, outPos.y, outPos.val);
+        drawOutputNode(380, outPos.y, outPos.val, 'Y');
+
+        buildTable(
+            currentGate === 'NOT' ? ['A', 'Y'] : ['A', 'B', 'Y'],
+            currentGate === 'NOT' ? [[0],[1]] : [[0,0],[0,1],[1,0],[1,1]],
+            (row) => {
+                const a = row[0];
+                const b = row[1];
+                if(currentGate==='NOT') return { Y: logic.NOT(a)?1:0, highlight: (a===inp.A) };
+                const y = logic[currentGate](a, b)?1:0;
+                return { Y: y, highlight: (a===inp.A && b===inp.B), setArgs: {basic: {A:a, B:b}} };
+            }
+        );
+    }
+
+    // 2. 半加算器ページ（画像イメージ通りの美しいレイアウトを維持）
+    function updateHalfPage(status) {
+        const inp = state.half;
+        const c_val = logic.AND(inp.A, inp.B) ? 1 : 0;
+        const or_val = logic.OR(inp.A, inp.B) ? 1 : 0;
+        const not_val = logic.NOT(c_val) ? 1 : 0;
+        const s_val = logic.AND(not_val, or_val) ? 1 : 0;
+
+        // 入力ノード
+        drawInputNode(60, 90, inp.A, 'A');
+        drawInputNode(60, 190, inp.B, 'B');
+
+        // 各種座標設定
+        const node1A = {x: 100, y: 90}; 
+        const gateAndC_X = 160; 
+        const gateAndC_Y = 90;
+        const gateOr_X = 160;
+        const gateOr_Y = 190;
+        const gateNot_X = 250;
+        const gateNot_Y = 140;
+        const gateAndS_X = 330; 
+        const gateAndS_Y = 160;
+        const outputX = 430; 
+
+        // --- 配線 (Aからの分岐) ---
+        drawWire(60+18, 90, node1A.x, 90, inp.A);
+        drawWire(node1A.x, 90, gateAndC_X - 10, 90 - 50*0.25, inp.A); // AND(C)の上入力へ
+        drawWirePath([[node1A.x, 90], [node1A.x, gateOr_Y - 50*0.25], [gateOr_X - 10, gateOr_Y - 50*0.25]], inp.A); // ORの上入力へ
+        drawDot(node1A.x, 90);
+
+        // --- 配線 (Bからの分岐) ---
+        const node1B = {x: 120, y: 190}; 
+        drawWire(60+18, 190, node1B.x, 190, inp.B);
+        drawWire(node1B.x, 190, gateOr_X - 10, gateOr_Y + 50*0.25, inp.B); // ORの下入力へ
+        drawWirePath([[node1B.x, 190], [node1B.x, gateAndC_Y + 50*0.25], [gateAndC_X - 10, gateAndC_Y + 50*0.25]], inp.B); // AND(C)の下入力へ
+        drawDot(node1B.x, 190);
+
+        // 1. AND (C) ゲートの描画
+        const outC = drawGate('AND', gateAndC_X, gateAndC_Y, [inp.A, inp.B], 60, 50, true);
+
+        // AND (C) 出力からの分岐
+        const node4C = {x: outC.x + 15, y: gateAndC_Y}; 
+        drawWire(outC.x, gateAndC_Y, node4C.x, gateAndC_Y, c_val);
+        drawDot(node4C.x, gateAndC_Y);
+        
+        // S(桁上げ)への直接出力配線
+        drawWire(node4C.x, gateAndC_Y, outputX, gateAndC_Y, c_val);
+        drawOutputNode(outputX, gateAndC_Y, c_val, 'C (桁上げ)');
+        
+        // NOT入力線への綺麗な直角配線
+        drawWirePath([[node4C.x, gateAndC_Y], [node4C.x, gateNot_Y], [gateNot_X - 10, gateNot_Y]], c_val); 
+
+        // 2. OR ゲートの描画
+        const outOr = drawGate('OR', gateOr_X, gateOr_Y, [inp.A, inp.B], 60, 50, true);
+
+        // 3. NOT ゲートの描画
+        const outNot = drawGate('NOT', gateNot_X, gateNot_Y, [c_val], 45, 36, true);
+
+        // NOT出力 ➔ AND(S)上部入力への直角配線
+        const andS_iy1 = gateAndS_Y - 50*0.25;
+        drawWirePath([[outNot.x, outNot.y], [outNot.x + 10, outNot.y], [outNot.x + 10, andS_iy1], [gateAndS_X - 10, andS_iy1]], not_val);
+        
+        // OR出力 ➔ AND(S)下部入力への直角配線
+        const andS_iy2 = gateAndS_Y + 50*0.25;
+        drawWirePath([[outOr.x, gateOr_Y], [outOr.x + 20, gateOr_Y], [outOr.x + 20, andS_iy2], [gateAndS_X - 10, andS_iy2]], or_val);
+
+        // 4. AND (S) ゲートの描画
+        const outS = drawGate('AND', gateAndS_X, gateAndS_Y, [not_val, or_val], 60, 50, true);
+        
+        // 最終和の出力配線とノード
+        drawWire(outS.x, gateAndS_Y, outputX, gateAndS_Y, s_val);
+        drawOutputNode(outputX, gateAndS_Y, s_val, 'S (和)');
+
+        status.innerHTML = `${inp.A} + ${inp.B} の計算結果：和 S = <span class="on-text">${s_val}</span>, 桁上げ C = <span class="on-text">${c_val}</span>`;
+
+        buildTable(['A', 'B', 'C (桁上)', 'S (和)'], [[0,0],[0,1],[1,0],[1,1]], row => {
+            const a = row[0]; const b = row[1];
+            const c = logic.AND(a,b)?1:0; const or = logic.OR(a,b)?1:0; const s = logic.AND(!c, or)?1:0;
+            return { vals: [c,s], highlight: (a===inp.A && b===inp.B), setArgs: {half: {A:a, B:b}} };
+        });
+    }
+
+    // 3. 全加算器ページ
+    function updateFullPage(status) {
+        const inp = state.full;
+        const s1 = logic.XOR(inp.A, inp.B)?1:0;
+        const c1 = logic.AND(inp.A, inp.B)?1:0;
+        const s2 = logic.XOR(s1, inp.Cin)?1:0;
+        const c2 = logic.AND(s1, inp.Cin)?1:0;
+        const cout = logic.OR(c1, c2)?1:0;
+
+        drawInputNode(60, 60, inp.A, 'A');
+        drawInputNode(60, 140, inp.B, 'B');
+        drawInputNode(60, 220, inp.Cin, 'Cin');
+
+        const ha1_x = 130;
+        const outS1 = drawGate('XOR', ha1_x, 60, [inp.A, inp.B], 50, 40, true);
+        const outC1 = drawGate('AND', ha1_x, 100, [inp.A, inp.B], 50, 40, true);
+        
+        const ha2_x = 240;
+        drawWire(60+18, 220, ha2_x-30, 220, inp.Cin); 
+        const outS2 = drawGate('XOR', ha2_x, 180, [s1, inp.Cin], 50, 40, true); 
+        drawWire(outS1.x, outS1.y, ha2_x-30, 180-40*0.25, s1); 
+
+        const outC2 = drawGate('AND', ha2_x, 220, [s1, inp.Cin], 50, 40, true);
+        drawWire(outS1.x, outS1.y, ha2_x-30, 220-40*0.25, s1); 
+
+        const outCout = drawGate('OR', 340, 140, [c1, c2], 50, 40, true);
+        drawWire(outC1.x, outC1.y, 340-30, 140-40*0.25, c1);
+        drawWire(outC2.x, outC2.y, 340-30, 140+40*0.25, c2);
+
+        drawOutputNode(outS2.x + 10, outS2.y, outS2.val, 'S (和)');
+        drawOutputNode(outCout.x + 10, outCout.y, outCout.val, 'Cout');
+
+        status.innerHTML = `計算結果：和 S = <span class="on-text">${s2}</span>, 次の桁上げ Cout = <span class="on-text">${cout}</span>`;
+
+        buildTable(['A', 'B', 'Cin', 'Cout', 'S'], [[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[1,1,0],[1,1,1]], row => {
+            const a = row[0]; const b = row[1]; const cin = row[2];
+            const ts1 = logic.XOR(a,b); const tc1 = logic.AND(a,b);
+            const ts2 = logic.XOR(ts1,cin)?1:0; const tc2 = logic.AND(ts1,cin);
+            const tcout = logic.OR(tc1,tc2)?1:0;
+            return { vals: [tcout,ts2], highlight: (a===inp.A && b===inp.B && cin===inp.Cin), setArgs: {full: {A:a, B:b, Cin:cin}} };
+        });
+    }
+
+    // --- UI補助関数 ---
+    function updateTabUI(mode) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('onclick').includes(mode));
+        });
+        document.getElementById('gate-selectors').style.display = mode === 'basic' ? 'flex' : 'none';
+    }
+
+    function updateBasicSelectorUI(gate) {
+        document.querySelectorAll('#gate-selectors .selector-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText === gate);
+        });
+    }
+
+    function getGateDescription(gate) {
+        switch(gate) {
+            case 'AND': return '【論理積】 すべての入力が「1」のときのみ、出力が「1」になります。';
+            case 'OR':  return '【論理和】 入力の少なくとも1つが「1」のとき、出力が「1」になります。';
+            case 'NOT': return '【論理否定】 入力を反転します（1つの入力）。尖った三角に「○」が付きます。';
+            case 'NAND': return '【否定論理積】 ANDの結果を反転します。ANDの出力に「○」が付きます。';
+            case 'NOR':  return '【否定論理和】 ORの結果を反転します。ORの出力に「○」が付きます。';
+            case 'XOR':  return '【排他的論理和】 入力が互いに異なるとき「1」、同じとき「0」になります。';
+            default: return '';
+        }
+    }
+
+    // --- 真理値表ビルダー ---
+    function buildTable(headers, rows, logicFunc) {
+        let html = '<table><tr>';
+        headers.forEach(h => html += `<th>${h}</th>`);
+        html += '</tr>';
+
+        rows.forEach(row => {
+            const res = logicFunc(row);
+            const hClass = res.highlight ? 'class="highlight"' : '';
+            let clickEv = '';
+            if(res.setArgs) {
+                const mode = Object.keys(res.setArgs)[0];
+                const args = JSON.stringify(res.setArgs[mode]);
+                clickEv = `onclick='forceInput("${mode}", ${args})' style="cursor:pointer;"`;
+            }
+
+            html += `<tr ${hClass} ${clickEv}>`;
+            row.forEach(val => html += `<td class="${val?'on-text':'off-text'}">${val}</td>`);
+            
+            if(res.vals) {
+                res.vals.forEach(v => html += `<td class="${v?'on-text':'off-text'}">${v}</td>`);
+            } else { 
+                html += `<td class="${res.Y?'on-text':'off-text'}">${res.Y}</td>`;
+            }
+            html += '</tr>';
+        });
+        html += '</table>';
+        document.getElementById('table-container').innerHTML = html;
+    }
+
+    // 初期起動
+    window.addEventListener('resize', () => { setupCanvas(); updateApp(); });
+    updateApp();
+
+</script>
+</body>
+</html>
