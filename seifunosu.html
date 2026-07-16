@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正負の数 計算シミュレーター</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --plus-color: #2ecc71;  /* 緑 */
+            --minus-color: #e74c3c; /* 赤 */
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 22px;
+            color: var(--text-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+
+        /* モード切り替え */
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border: 2px solid #e2e8f0;
+            background: white;
+            color: #7f8c8d;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ワークスペース */
+        .workspace {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        /* 数式エリア */
+        .expression-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            margin: 15px 0;
+            gap: 8px;
+            min-height: 60px;
+            flex-wrap: wrap;
+        }
+
+        .term {
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        /* ハイライト表現 */
+        .term.focus-abs {
+            background: #fef08a; /* 黄色い背景 */
+            transform: scale(1.15);
+            box-shadow: 0 4px 10px rgba(234, 179, 8, 0.3);
+        }
+        .term.focus-abs .sign {
+            opacity: 0.2; /* 絶対値フォーカス時は符号を半透明に */
+        }
+
+        .term.focus-sign {
+            background: #bfdbfe; /* 青い背景 */
+            transform: scale(1.15);
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+        .term.focus-sign .abs-val {
+            opacity: 0.3; /* 符号フォーカス時は絶対値を半透明に */
+        }
+
+        /* 引き算から足し算への変換ハイライト用 */
+        .term.focus-transform {
+            background: #fbcfe8; /* ピンク背景 */
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(244, 63, 94, 0.3);
+        }
+        .operator.focus-transform {
+            background: #fbcfe8;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .plus-term { color: var(--plus-color); }
+        .minus-term { color: var(--minus-color); }
+        .operator { color: #64748b; transition: all 0.3s ease; }
+
+        .answer-term {
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.5s ease;
+        }
+        .answer-term.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* 変換後の数式表示エリア (モード2用) */
+        .converted-expression {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            margin-top: -10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+        .converted-expression.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 視覚的な丸（オブジェクト）エリア */
+        .visual-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            margin: 25px 0;
+            min-height: 80px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .visual-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 32%;
+        }
+
+        .column-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .circle-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+            max-width: 120px;
+            min-height: 30px;
+        }
+
+        .circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .circle.plus {
+            background-color: var(--plus-color);
+            box-shadow: 0 2px 4px rgba(46, 204, 113, 0.4);
+        }
+
+        .circle.minus {
+            background-color: var(--minus-color);
+            box-shadow: 0 2px 4px rgba(231, 76, 60, 0.4);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ステップ進行エリア */
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .step-card {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .step-card.active {
+            border-color: var(--primary);
+            background: #f0f9ff;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .step-icon {
+            font-size: 18px;
+            margin-right: 8px;
+            color: #94a3b8;
+        }
+
+        .step-card.active .step-icon {
+            color: var(--primary);
+        }
+
+        .step-content {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .step-card.active .step-content {
+            display: block;
+        }
+
+        .step-calc {
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e293b;
+            background: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* 下部ナビゲーション */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+        }
+
+        .control-btn {
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-unwrap {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-unwrap:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-next {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-next:hover {
+            background: #2980b9;
+        }
+
+        /* かっこ外し表示 */
+        .unwrap-area {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid var(--primary);
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>正負の数 計算シミュレーター</h1>
+
+    <div class="mode-selector">
+        <button class="mode-btn active" id="btn-mode1" onclick="setMode(1)">2項の和 (A ＋ B)</button>
+        <button class="mode-btn" id="btn-mode2" onclick="setMode(2)">2項の差 (A － B)</button>
+    </div>
+
+    <div class="workspace">
+        <div class="expression-container" id="expression">
+            </div>
+
+        <div class="converted-expression" id="converted-expr"></div>
+
+        <div class="unwrap-area" id="unwrap-area"></div>
+
+        <div class="visual-container">
+            <div class="visual-column">
+                <div class="column-label" id="label-A">数Aの大きさ</div>
+                <div class="circle-container" id="visual-A"></div>
+            </div>
+            <div class="visual-column">
+                <div class="column-label" id="label-B">数Bの大きさ</div>
+                <div class="circle-container" id="visual-B"></div>
+            </div>
+            <div class="visual-column">
+                <div class="column-label">答えの大きさ</div>
+                <div class="circle-container" id="visual-Ans"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="steps-container">
+        <div class="step-card" id="step1-card" onclick="clickStep(1)">
+            <div class="step-header">
+                <span class="step-icon">❶</span>
+                <span id="step1-title">ステップ1 タイトル</span>
+            </div>
+            <div class="step-content" id="step1-desc">
+                </div>
+        </div>
+
+        <div class="step-card" id="step2-card" onclick="clickStep(2)">
+            <div class="step-header">
+                <span class="step-icon">❷</span>
+                <span id="step2-title">ステップ2 タイトル</span>
+            </div>
+            <div class="step-content" id="step2-desc">
+                </div>
+        </div>
+
+        <div class="step-card" id="step3-card" onclick="clickStep(3)">
+            <div class="step-header">
+                <span class="step-icon">❸</span>
+                <span id="step3-title">ステップ3 タイトル</span>
+            </div>
+            <div class="step-content" id="step3-desc">
+                </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn btn-unwrap" onclick="toggleUnwrap()">かっこを外す</button>
+        <button class="control-btn btn-next" onclick="initQuestion()">次の問題へ ➔</button>
+    </div>
+</div>
+
+<script>
+    let mode = 1; // 1: 和, 2: 差
+    let numA = 0;
+    let numB = 0;
+    let activeStep = 0;
+
+    window.onload = function() {
+        initQuestion();
+    };
+
+    function setMode(selectedMode) {
+        mode = selectedMode;
+        document.getElementById('btn-mode1').classList.toggle('active', mode === 1);
+        document.getElementById('btn-mode2').classList.toggle('active', mode === 2);
+        initQuestion();
+    }
+
+    function generateRandomValue() {
+        let val = Math.floor(Math.random() * 9) + 1; // 1~9
+        let sign = Math.random() < 0.5 ? 1 : -1;
+        return val * sign;
+    }
+
+    function initQuestion() {
+        activeStep = 0;
+        document.getElementById('unwrap-area').style.display = 'none';
+        
+        const convExpr = document.getElementById('converted-expr');
+        convExpr.classList.remove('show');
+        convExpr.innerHTML = '';
+        
+        document.querySelectorAll('.step-card').forEach(card => card.classList.remove('active'));
+        
+        numA = generateRandomValue();
+        numB = generateRandomValue();
+
+        renderExpression();
+        renderVisuals();
+        setupStepTitles();
+        calculateSteps();
+        
+        clearFocus();
+    }
+
+    // 数式を描画
+    function renderExpression() {
+        const exprDiv = document.getElementById('expression');
+        
+        const signA = numA > 0 ? '+' : '-';
+        const signB = numB > 0 ? '+' : '-';
+        const absA = Math.abs(numA);
+        const absB = Math.abs(numB);
+
+        const classA = numA > 0 ? 'plus-term' : 'minus-term';
+        const classB = numB > 0 ? 'plus-term' : 'minus-term';
+
+        const operator = mode === 1 ? '＋' : '－';
+
+        const ans = mode === 1 ? (numA + numB) : (numA - numB);
+        const signAns = ans > 0 ? '+' : (ans < 0 ? '-' : '');
+        const classAns = ans > 0 ? 'plus-term' : (ans < 0 ? 'minus-term' : '');
+
+        exprDiv.innerHTML = `
+            <span class="term ${classA}" id="term-A">
+                (<span class="sign">${signA}</span><span class="abs-val">${absA}</span>)
+            </span>
+            <span class="operator" id="operator-main">${operator}</span>
+            <span class="term ${classB}" id="term-B">
+                (<span class="sign">${signB}</span><span class="abs-val">${absB}</span>)
+            </span>
+            <span class="operator">＝</span>
+            <span class="term ${classAns} answer-term" id="term-Ans">
+                (${signAns}${Math.abs(ans)})
+            </span>
+        `;
+
+        // かっこを外した式のテキストを準備
+        const unwrapArea = document.getElementById('unwrap-area');
+        let unwrapText = "";
+        
+        if (mode === 1) {
+            let partA = numA > 0 ? `${absA}` : `-${absA}`;
+            let partB = numB > 0 ? ` + ${absB}` : ` - ${absB}`;
+            unwrapText = `${partA}${partB}`;
+        } else {
+            let partA = numA > 0 ? `${absA}` : `-${absA}`;
+            let partB = numB > 0 ? ` - ${absB}` : ` + ${absB}`; // 符号反転
+            unwrapText = `${partA}${partB}`;
+        }
+        unwrapArea.textContent = `かっこをはずすと： ${unwrapText}`;
+    }
+
+    // 変換後の式のHTML（＝で接続）
+    function prepareConvertedExpression() {
+        const convExpr = document.getElementById('converted-expr');
+        const signA = numA > 0 ? '+' : '-';
+        const convertedB = -numB;
+        const signConvB = convertedB > 0 ? '+' : '-';
+        const absA = Math.abs(numA);
+        const absB = Math.abs(convertedB);
+
+        const classA = numA > 0 ? 'plus-term' : 'minus-term';
+        const classConvB = convertedB > 0 ? 'plus-term' : 'minus-term';
+
+        convExpr.innerHTML = `
+            <span class="operator" style="color: #64748b; font-size: 28px; margin-right: 12px;">＝</span>
+            <span class="term ${classA}" id="conv-term-A">
+                (<span class="sign">${signA}</span><span class="abs-val">${absA}</span>)
+            </span>
+            <span class="operator" style="color: #e11d48; font-weight: 900;">＋</span>
+            <span class="term ${classConvB}" id="conv-term-B">
+                (<span class="sign">${signConvB}</span><span class="abs-val">${absB}</span>)
+            </span>
+        `;
+    }
+
+    // 視覚オブジェクトの描画
+    function renderVisuals() {
+        // Aのビジュアル
+        const containerA = document.getElementById('visual-A');
+        containerA.innerHTML = '';
+        const absA = Math.abs(numA);
+        const typeA = numA > 0 ? 'plus' : 'minus';
+        for (let i = 0; i < absA; i++) {
+            const circle = document.createElement('div');
+            circle.className = `circle ${typeA}`;
+            containerA.appendChild(circle);
+        }
+
+        // Bのビジュアル
+        const labelB = document.getElementById('label-B');
+        const containerB = document.getElementById('visual-B');
+        containerB.innerHTML = '';
+        
+        labelB.textContent = "数Bの大きさ";
+
+        const absB = Math.abs(numB);
+        const typeB = numB > 0 ? 'plus' : 'minus';
+        for (let i = 0; i < absB; i++) {
+            const circle = document.createElement('div');
+            circle.className = `circle ${typeB}`;
+            containerB.appendChild(circle);
+        }
+
+        document.getElementById('visual-Ans').innerHTML = '';
+    }
+
+    // 差の計算モードのBの視覚変化
+    function updateVisualBForAddition() {
+        const labelB = document.getElementById('label-B');
+        const containerB = document.getElementById('visual-B');
+        containerB.innerHTML = '';
+
+        labelB.textContent = "変換後の数Bの大きさ";
+        
+        const convertedB = -numB;
+        const absB = Math.abs(convertedB);
+        const typeB = convertedB > 0 ? 'plus' : 'minus';
+        for (let i = 0; i < absB; i++) {
+            const circle = document.createElement('div');
+            circle.className = `circle ${typeB}`;
+            containerB.appendChild(circle);
+        }
+    }
+
+    // 各モードごとにステップタイトルを設定
+    function setupStepTitles() {
+        const s1Title = document.getElementById('step1-title');
+        const s2Title = document.getElementById('step2-title');
+        const s3Title = document.getElementById('step3-title');
+
+        if (mode === 1) {
+            s1Title.textContent = "【絶対値の比較】大ー小を計算する";
+            s2Title.textContent = "【符号の決定】絶対値が大きい方の符号にする";
+            s3Title.textContent = "【答えの表示】符号と絶対値を合わせる";
+        } else {
+            s1Title.textContent = "【加法への変換】引き算を足し算に変換する";
+            s2Title.textContent = "【絶対値の比較】変換後の2数の絶対値を比べる";
+            s3Title.textContent = "【答えと符号】変換後の符号を決定し、答えを導く";
+        }
+    }
+
+    // 各ステップのロジックと解説テキスト生成
+    function calculateSteps() {
+        const step1Desc = document.getElementById('step1-desc');
+        const step2Desc = document.getElementById('step2-desc');
+        const step3Desc = document.getElementById('step3-desc');
+
+        const absA = Math.abs(numA);
+        const absB = Math.abs(numB);
+
+        if (mode === 1) {
+            let s1Text = "";
+            if ((numA > 0 && numB > 0) || (numA < 0 && numB < 0)) {
+                s1Text = `数A(${numA > 0 ? '+' : '-'}${absA}) と 数B(${numB > 0 ? '+' : '-'}${absB}) は<b>同じ符号同士</b>です。<br>
+                同じ符号のときは、絶対値を<b>たし算</b>します。<br>
+                <div class="step-calc">${absA} ＋ ${absB} ＝ ${absA + absB}</div>`;
+            } else {
+                const large = Math.max(absA, absB);
+                const small = Math.min(absA, absB);
+                s1Text = `数A(${numA > 0 ? '+' : '-'}${absA}) と 数B(${numB > 0 ? '+' : '-'}${absB}) は<b>違う符号同士</b>です。<br>
+                違う符号のときは、絶対値の<b>「大きい方」から「小さい方」を引き算</b>します。<br>
+                <div class="step-calc">${large} － ${small} ＝ ${large - small}</div>`;
+            }
+            step1Desc.innerHTML = s1Text;
+
+            let s2Text = "";
+            if (absA === absB) {
+                s2Text = `絶対値が同じ（${absA}）なので、打ち消し合って符号はなくなります（答えは0）。`;
+            } else {
+                const isALarger = absA > absB;
+                const targetNum = isALarger ? numA : numB;
+                const targetName = isALarger ? "数A" : "数B";
+                const targetSign = targetNum > 0 ? "＋ (緑)" : "－ (赤)";
+                
+                s2Text = `絶対値を比べると、<b>${targetName}</b>の方が大きいです（${absA} ${isALarger ? '＞' : '＜'} ${absB}）。<br>
+                答えの符号は、絶対値が大きい方の符号 <b>「 ${targetSign} 」</b> に決まります！`;
+            }
+            step2Desc.innerHTML = s2Text;
+
+            const ans = numA + numB;
+            const signAns = ans > 0 ? '＋' : (ans < 0 ? '－' : '');
+            step3Desc.innerHTML = `決定した符号と計算した絶対値を合体させます。<br>
+            <div class="step-calc">答え ＝ ${signAns}${Math.abs(ans)}</div>`;
+
+        } else {
+            // --- モード2 (差) ---
+            const convertedB = -numB;
+            const signB = numB > 0 ? '+' : '-';
+            const signConvB = convertedB > 0 ? '+' : '-';
+            
+            let s1Text = `引き算「 <b>－</b> (${signB}${absB}) 」を、引く数の符号を反対にした「 <b>＋</b> (${signConvB}${absB}) 」を<b>足す計算（加法）に変換</b>します。<br>
+            これにより、引き算を<b>足し算と同じステップ</b>で計算できるようになります。<br>
+            <div class="step-calc">等式: (${numA > 0 ? '+' : '-'}${absA}) － (${signB}${absB}) ＝ (${numA > 0 ? '+' : '-'}${absA}) ＋ (${signConvB}${absB})</div>`;
+            step1Desc.innerHTML = s1Text;
+
+            let s2Text = `変換後の式 ➔ <b>(${numA > 0 ? '+' : '-'}${absA}) ＋ (${signConvB}${absB})</b> で絶対値を比較します。<br>`;
+            if ((numA > 0 && convertedB > 0) || (numA < 0 && convertedB < 0)) {
+                s2Text += `２つの数は<b>同じ符号同士</b>です。絶対値を<b>たし算</b>します。<br>
+                <div class="step-calc">${absA} ＋ ${absB} ＝ ${absA + absB}</div>`;
+            } else {
+                const large = Math.max(absA, absB);
+                const small = Math.min(absA, absB);
+                s2Text += `２つの数は<b>違う符号同士</b>です。絶対値の<b>「大きい方」から「小さい方」を引き算</b>します。<br>
+                <div class="step-calc">${large} － ${small} ＝ ${large - small}</div>`;
+            }
+            step2Desc.innerHTML = s2Text;
+
+            const ans = numA + convertedB;
+            let s3Text = `変換後の式 <b>(${numA > 0 ? '+' : '-'}${absA}) ＋ (${signConvB}${absB})</b> の符号を決定します。<br>`;
+            if (absA === absB) {
+                s3Text += `絶対値が等しいため、符号はなくなり答えは0になります。`;
+            } else {
+                const isALarger = absA > absB;
+                const targetNum = isALarger ? numA : convertedB;
+                const targetName = isALarger ? "数A" : "変換後の数B";
+                const targetSign = targetNum > 0 ? "＋ (緑)" : "－ (赤)";
+                
+                s3Text += `絶対値は <b>${targetName}</b> の方が大きい（${absA} ${isALarger ? '＞' : '＜'} ${absB}）ので、<br>
+                答えの符号は大きい側の符号 <b>「 ${targetSign} 」</b> になります。<br>
+                <div class="step-calc">答え ＝ ${ans > 0 ? '＋' : '－'}${Math.abs(ans)}</div>`;
+            }
+            step3Desc.innerHTML = s3Text;
+        }
+    }
+
+    // インタラクティブなステップクリック処理
+    function clickStep(stepNum) {
+        document.querySelectorAll('.step-card').forEach((card, index) => {
+            if (index + 1 === stepNum) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+
+        activeStep = stepNum;
+        clearFocus();
+
+        if (mode === 1) {
+            if (stepNum === 1) {
+                document.getElementById('term-A').classList.add('focus-abs');
+                document.getElementById('term-B').classList.add('focus-abs');
+            } else if (stepNum === 2) {
+                document.getElementById('term-A').classList.add('focus-sign');
+                document.getElementById('term-B').classList.add('focus-sign');
+            } else if (stepNum === 3) {
+                showAnswer();
+            }
+        } else {
+            // --- モード2 (差) インタラクション ---
+            if (stepNum === 1) {
+                // 元の式の「－」記号と「数B」をハイライトして変換をアピール
+                document.getElementById('operator-main').classList.add('focus-transform');
+                document.getElementById('term-B').classList.add('focus-transform');
+                
+                // 変換後の式を「＝」付きで表示
+                prepareConvertedExpression();
+                const convExpr = document.getElementById('converted-expr');
+                convExpr.classList.add('show');
+
+                updateVisualBForAddition();
+
+            } else if (stepNum === 2) {
+                // 変換後の式を表示
+                prepareConvertedExpression();
+                const convExpr = document.getElementById('converted-expr');
+                convExpr.classList.add('show');
+                
+                // 【重要修正】フォーカス先を「元の式」ではなく、「変換後の式」の要素にする
+                document.getElementById('conv-term-A').classList.add('focus-abs');
+                document.getElementById('conv-term-B').classList.add('focus-abs');
+
+                updateVisualBForAddition();
+
+            } else if (stepNum === 3) {
+                prepareConvertedExpression();
+                const convExpr = document.getElementById('converted-expr');
+                convExpr.classList.add('show');
+
+                // 【重要修正】フォーカス先を「変換後の式」の符号にする
+                document.getElementById('conv-term-A').classList.add('focus-sign');
+                document.getElementById('conv-term-B').classList.add('focus-sign');
+                
+                updateVisualBForAddition();
+                showAnswer();
+            }
+        }
+    }
+
+    function clearFocus() {
+        const terms = ['term-A', 'term-B', 'conv-term-A', 'conv-term-B'];
+        terms.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('focus-abs', 'focus-sign', 'focus-transform');
+        });
+        const opMain = document.getElementById('operator-main');
+        if (opMain) opMain.classList.remove('focus-transform');
+    }
+
+    // 答えの表示
+    function showAnswer() {
+        const ansTerm = document.getElementById('term-Ans');
+        ansTerm.classList.add('show');
+
+        const containerAns = document.getElementById('visual-Ans');
+        containerAns.innerHTML = '';
+
+        const ans = mode === 1 ? (numA + numB) : (numA - numB);
+        const absAns = Math.abs(ans);
+        const typeAns = ans > 0 ? 'plus' : 'minus';
+
+        for (let i = 0; i < absAns; i++) {
+            const circle = document.createElement('div');
+            circle.className = `circle ${typeAns}`;
+            circle.style.animationDelay = `${i * 0.05}s`;
+            containerAns.appendChild(circle);
+        }
+    }
+
+    function toggleUnwrap() {
+        const area = document.getElementById('unwrap-area');
+        if (area.style.display === 'none' || area.style.display === '') {
+            area.style.display = 'block';
+        } else {
+            area.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
