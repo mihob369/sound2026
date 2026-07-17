@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英単語・品詞グリッドバトル！極</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1e272e;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            text-align: center;
+            max-width: 1200px;
+            width: 95%;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin: 5px 0;
+            color: #0be881;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* モード選択と開始UI */
+        #setup-area {
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .mode-btn, .toggle-btn {
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #fff;
+            background: #57606f;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: #ff5e57;
+            border-color: #fff;
+        }
+
+        /* トグル設定ボタン */
+        .toggle-btn {
+            background: #1e272e;
+            border: 2px solid #747d8c;
+        }
+        .toggle-btn.active {
+            background: #ffa801;
+            border-color: #fff;
+            color: #1e272e;
+        }
+        /* ハイレベル用の特別色 */
+        .toggle-btn.high-level-active {
+            background: #9b59b6;
+            border-color: #fff;
+            color: #fff;
+        }
+
+        #start-btn {
+            padding: 10px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-top: 10px;
+        }
+
+        /* タイム表示 */
+        #timer-bar-container {
+            width: 100%;
+            height: 10px;
+            background: #747d8c;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            display: none;
+        }
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background: #ffdd59;
+            transition: width 0.1s linear;
+        }
+
+        /* プレイエリア全体 */
+        #battle-field {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        /* プレイヤーごとのまとまり */
+        .player-area-block {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 15px;
+            flex: 1;
+            min-width: 420px;
+            max-width: 580px;
+            transition: opacity 0.3s;
+        }
+
+        .player-area-block.shared-center {
+            max-width: 780px;
+            flex: 0 1 720px;
+            margin: 0 auto;
+        }
+
+        .side-panel {
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            min-width: 120px;
+            flex: 0 0 130px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .p1-color { color: #54a0ff; }
+        .p2-color { color: #ff6b6b; }
+
+        .score-val {
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .status-val {
+            font-size: 0.9rem;
+            background: rgba(0,0,0,0.2);
+            padding: 8px;
+            border-radius: 8px;
+            line-height: 1.4;
+        }
+
+        /* 品詞カラー凡例用のスタイル */
+        .legend-area {
+            margin-top: 10px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .legend-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #ffd32a;
+            margin-bottom: 6px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+            margin-bottom: 5px;
+        }
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+        .legend-color-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        /* グリッドコンテナ */
+        .grid-container {
+            position: relative;
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            flex: 1;
+            aspect-ratio: 1;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #1e272e;
+            padding: 10px;
+            border-radius: 10px;
+            position: relative;
+            height: calc(100% - 20px);
+        }
+
+        /* マス目（穴） */
+        .hole {
+            background: #2f3542;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.6);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 固定キーテキスト表示 */
+        .fixed-key-label {
+            position: absolute;
+            font-size: 0.75rem;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+            z-index: 2;
+        }
+        .fixed-key-label.p1-pos {
+            bottom: 2px;
+            left: 6px;
+            color: #54a0ff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        .fixed-key-label.p2-pos {
+            bottom: 2px;
+            right: 6px;
+            color: #ff6b6b;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        /* 非表示用 */
+        .hide-keys .fixed-key-label {
+            opacity: 0 !important;
+        }
+
+        /* 単語ノード */
+        .number-node {
+            width: 88%;
+            height: 88%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            font-weight: bold;
+            cursor: pointer;
+            transform: scale(0);
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, box-shadow 0.2s;
+            position: relative;
+            z-index: 3;
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+
+        /* 長い単語用調整 */
+        .long-word {
+            font-size: 0.8rem !important; /* 高3の長い単語がはみ出ないよう少し縮小 */
+        }
+
+        .number-node.default-node {
+            background: linear-gradient(135deg, #a4b0be, #747d8c);
+        }
+
+        .number-node.active {
+            transform: scale(1);
+        }
+
+        /* 出現時（初期段階）のデザイン */
+        .p1-node { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+        .p2-node { background: linear-gradient(135deg, #ff8282, #e17055); }
+
+        /* ロック時の品詞別カラー */
+        .locked-noun {
+            background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
+            box-shadow: 0 0 12px #2ecc71;
+            transform: scale(1) !important;
+        }
+        .locked-verb {
+            background: linear-gradient(135deg, #ff4d4d, #ff3838) !important;
+            box-shadow: 0 0 12px #ff4d4d;
+            transform: scale(1) !important;
+        }
+        .locked-adj {
+            background: linear-gradient(135deg, #fffa65, #fff200) !important;
+            box-shadow: 0 0 12px #fffa65;
+            color: #1e272e !important;
+            transform: scale(1) !important;
+        }
+        .locked-pron {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad) !important;
+            box-shadow: 0 0 12px #9b59b6;
+            transform: scale(1) !important;
+        }
+
+        .miss-flash {
+            animation: shake 0.25s ease-in-out;
+            background-color: #ff4d4d !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+
+        .grid-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #result-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        #result-box {
+            background: #2f3542;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        #result-title {
+            font-size: 2rem;
+            color: #ffd32a;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>英単語・品詞グリッドバトル！極</h1>
+    
+    <!-- 設定エリア -->
+    <div id="setup-area">
+        <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
+        <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
+        <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
+        <br>
+        <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
+        <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">スピード: 標準</button>
+        <button id="toggle-level" class="toggle-btn" onclick="toggleHighLevelMode()">ハイレベル: OFF</button>
+        <br>
+        <button id="start-btn" onclick="startGame()">バトル開始！(制限時間30秒)</button>
+    </div>
+
+    <!-- タイムリミット表示 -->
+    <div id="timer-bar-container">
+        <div id="timer-bar"></div>
+    </div>
+
+    <!-- メインプレイ画面 -->
+    <div id="battle-field">
+        <!-- プレイヤー1の区画 -->
+        <div id="p1-block" class="player-area-block">
+            <div id="p1-side" class="side-panel">
+                <div>
+                    <h3 class="p1-color" style="margin: 5px 0;">PLAYER 1</h3>
+                    <div id="p1-score" class="score-val p1-color">0</div>
+                    <div id="p1-status" class="status-val">🔒 0 / 3<br><span style="font-size:0.75rem; opacity:0.8;">品詞: 未選択</span></div>
+                </div>
+
+                <!-- 品詞凡例 -->
+                <div class="legend-area">
+                    <div class="legend-title">品詞カラー凡例</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #2ecc71;"></div>名詞</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #ff4d4d;"></div>動詞</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #fffa65;"></div>形容詞</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #9b59b6;"></div>代名詞</div>
+                </div>
+            </div>
+            
+            <div class="grid-container">
+                <div id="main-grid" class="grid">
+                    <canvas id="main-canvas" class="grid-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- プレイヤー2の区画 -->
+        <div id="p2-block" class="player-area-block" style="display: none;">
+            <div class="grid-container">
+                <div id="p2-grid" class="grid">
+                    <canvas id="p2-canvas" class="grid-canvas"></canvas>
+                </div>
+            </div>
+
+            <div id="p2-side" class="side-panel">
+                <div>
+                    <h3 class="p2-color" style="margin: 5px 0;">PLAYER 2</h3>
+                    <div id="p2-score" class="score-val p2-color">0</div>
+                    <div id="p2-status" class="status-val">🔒 0 / 3<br><span style="font-size:0.75rem; opacity:0.8;">品詞: 未選択</span></div>
+                </div>
+
+                <!-- 品詞凡例 -->
+                <div class="legend-area">
+                    <div class="legend-title">品詞カラー凡例</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #2ecc71;"></div>名詞</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #ff4d4d;"></div>動詞</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #fffa65;"></div>形容詞</div>
+                    <div class="legend-item"><div class="legend-color-box" style="background: #9b59b6;"></div>代名詞</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 結果表示用モーダル -->
+<div id="result-modal">
+    <div id="result-box">
+        <div id="result-title">RESULT</div>
+        <div id="result-details" style="font-size: 1.2rem; margin-bottom: 20px;"></div>
+        <button onclick="closeResult()">閉じる</button>
+    </div>
+</div>
+
+<script>
+    const P1_KEYS = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
+    const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l',';','m',',','.','/'];
+
+    // 【標準】中学1年生レベルの英単語データベース
+    const NORMAL_WORD_BANK = {
+        "名詞": [
+            "apple", "book", "desk", "pen", "student", "teacher", "school", "friend", 
+            "family", "dog", "cat", "bird", "soccer", "baseball", "tennis", "piano", 
+            "guitar", "water", "milk", "bread", "house", "room", "bag", "clock", 
+            "country", "station", "park", "hospital", "store", "library"
+        ],
+        "動詞": [
+            "play", "like", "have", "want", "study", "go", "come", "run", 
+            "swim", "sing", "dance", "read", "write", "speak", "listen", "watch", 
+            "cook", "eat", "drink", "sleep", "make", "take", "buy", "see", 
+            "know", "use", "open", "close", "help", "wash"
+        ],
+        "形容詞": [
+            "happy", "sad", "angry", "good", "bad", "hot", "cold", "big", 
+            "small", "tall", "short", "long", "new", "old", "fast", "slow", 
+            "easy", "hard", "busy", "cute", "nice", "fine", "great", "cool", 
+            "young", "warm", "beautiful", "hungry", "tired", "famous"
+        ],
+        "代名詞": [
+            "I", "my", "me", "mine", "you", "your", "yours", "he", 
+            "his", "him", "she", "her", "hers", "it", "its", "we", 
+            "our", "us", "ours", "they", "their", "them", "theirs", "this", 
+            "that", "these", "those", "who", "what", "which"
+        ]
+    };
+
+    // 【新設・ハイレベル】高校3年生〜大学受験レベルの難関英単語データベース
+    const HIGH_LEVEL_WORD_BANK = {
+        "名詞": [
+            "consequence", "perspective", "hypothesis", "significance", "prosperity",
+            "legislation", "biodiversity", "philosophy", "coexistence", "dilemma",
+            "jurisdiction", "infrastructure", "prejudice", "vulnerability", "breakthrough",
+            "democratization", "subconscious", "extinction", "implication", "globalization",
+            "sovereignty", "sustainability", "psychology", "discrepancy", "controversy"
+        ],
+        "動詞": [
+            "emphasize", "accomplish", "exaggerate", "distinguish", "contribute",
+            "compromise", "deteriorate", "accumulate", "accelerate", "eliminate",
+            "manipulate", "anticipate", "correlate", "speculate", "demonstrate",
+            "implement", "cooperate", "interfere", "underestimate", "consolidate",
+            "encounter", "negotiate", "jeopardize", "advocate", "fluctuate"
+        ],
+        "形容詞": [
+            "vulnerable", "inevitable", "sophisticated", "compulsory", "simultaneous",
+            "prospective", "ambiguous", "superficial", "prevalent", "autonomous",
+            "conspicuous", "contradictory", "indispensable", "compatible", "profound",
+            "skeptical", "formidable", "aesthetic", "optimistic", "pessimistic",
+            "temporary", "consistent", "innovative", "redundant", "cognitive"
+        ],
+        "代名詞": [
+            "whoever", "whichever", "whatever", "ourselves", "themselves",
+            "yourselves", "one another", "each other", "someone", "anybody",
+            "nobody", "whomever", "myself", "himself", "herself"
+        ]
+    };
+
+    const PARTS_OF_SPEECH = ["名詞", "動詞", "形容詞", "代名詞"];
+
+    let gameMode = 'single';
+    let isPlaying = false;
+    let showKeys = true;
+    let isHighSpeed = false; 
+    let isHighLevel = false; // ハイレベル切り替えフラグ
+    
+    let gameTimer = null;
+    let numberTimer = null; 
+    let lastRefreshTime = 0; 
+    let spawnInterval = null; 
+    let timeLeft = 30;
+
+    const players = {
+        p1: { score: 0, locked: [], currentPart: null, keys: P1_KEYS },
+        p2: { score: 0, locked: [], currentPart: null, keys: P2_KEYS }
+    };
+
+    function getLockClass(part) {
+        if (part === "名詞") return "locked-noun";
+        if (part === "動詞") return "locked-verb";
+        if (part === "形容詞") return "locked-adj";
+        if (part === "代名詞") return "locked-pron";
+        return "";
+    }
+
+    const ALL_LOCK_CLASSES = ["locked-noun", "locked-verb", "locked-adj", "locked-pron"];
+
+    function toggleKeyDisplay() {
+        showKeys = !showKeys;
+        const btn = document.getElementById('toggle-key-display');
+        const bf = document.getElementById('battle-field');
+        if (showKeys) {
+            btn.innerText = "キー表示: ON";
+            btn.classList.add('active');
+            bf.classList.remove('hide-keys');
+        } else {
+            btn.innerText = "キー表示: OFF";
+            btn.classList.remove('active');
+            bf.classList.add('hide-keys');
+        }
+    }
+
+    function toggleSpeedMode() {
+        if (isPlaying) return;
+        isHighSpeed = !isHighSpeed;
+        const btn = document.getElementById('toggle-speed');
+        if (isHighSpeed) {
+            btn.innerText = "スピード: ハイスピード";
+            btn.classList.add('active');
+        } else {
+            btn.innerText = "スピード: 標準";
+            btn.classList.remove('active');
+        }
+    }
+
+    // ハイレベルボタンの切り替え
+    function toggleHighLevelMode() {
+        if (isPlaying) return;
+        isHighLevel = !isHighLevel;
+        const btn = document.getElementById('toggle-level');
+        if (isHighLevel) {
+            btn.innerText = "ハイレベル: ON";
+            btn.classList.add('high-level-active');
+        } else {
+            btn.innerText = "ハイレベル: OFF";
+            btn.classList.remove('high-level-active');
+        }
+    }
+
+    // フラグに応じて参照するデータベースを分岐
+    function generateRandomWordData() {
+        const activeBank = isHighLevel ? HIGH_LEVEL_WORD_BANK : NORMAL_WORD_BANK;
+        const part = PARTS_OF_SPEECH[Math.floor(Math.random() * PARTS_OF_SPEECH.length)];
+        const wordList = activeBank[part];
+        const word = wordList[Math.floor(Math.random() * wordList.length)];
+        return { word: word, part: part };
+    }
+
+    function setMode(mode) {
+        if (isPlaying) return;
+        gameMode = mode;
+
+        document.getElementById('mode-single').classList.toggle('active', mode === 'single');
+        document.getElementById('mode-vs-split').classList.toggle('active', mode === 'vs-split');
+        document.getElementById('mode-vs-share').classList.toggle('active', mode === 'vs-share');
+
+        const p1Block = document.getElementById('p1-block');
+        const p2Block = document.getElementById('p2-block');
+        const p2Side = document.getElementById('p2-side');
+
+        if (mode === 'single') {
+            p2Block.style.display = 'none';
+            p1Block.classList.remove('shared-center');
+            p1Block.style.display = 'flex';
+        } else if (mode === 'vs-split') {
+            p1Block.classList.remove('shared-center');
+            p2Block.style.display = 'flex';
+            p1Block.style.display = 'flex';
+            p2Side.style.opacity = '1.0';
+        } else if (mode === 'vs-share') {
+            p2Block.style.display = 'none';
+            p1Block.classList.add('shared-center');
+            p1Block.appendChild(p2Side);
+            p2Side.style.opacity = '1.0';
+        }
+
+        if (mode !== 'vs-share') {
+            p2Block.appendChild(p2Side);
+        }
+
+        buildGrids();
+    }
+
+    function buildGrids() {
+        const mainGrid = document.getElementById('main-grid');
+        mainGrid.querySelectorAll('.hole').forEach(el => el.remove());
+
+        for (let i = 0; i < 16; i++) {
+            const hole = document.createElement('div');
+            hole.className = 'hole';
+
+            const p1Label = document.createElement('div');
+            p1Label.className = 'fixed-key-label p1-pos';
+            p1Label.innerText = P1_KEYS[i].toUpperCase();
+            hole.appendChild(p1Label);
+
+            if (gameMode === 'vs-share') {
+                const p2Label = document.createElement('div');
+                p2Label.className = 'fixed-key-label p2-pos';
+                p2Label.innerText = P2_KEYS[i].toUpperCase();
+                hole.appendChild(p2Label);
+            }
+
+            const node = document.createElement('div');
+            const baseClass = gameMode === 'vs-share' ? 'default-node' : 'p1-node';
+            node.className = `number-node ${baseClass}`;
+            node.dataset.index = i;
+            node.dataset.row = Math.floor(i / 4);
+            node.dataset.col = i % 4;
+
+            const wordSpan = document.createElement('span');
+            wordSpan.className = 'num-val'; 
+            node.appendChild(wordSpan);
+
+            node.addEventListener('click', () => {
+                if (isPlaying) {
+                    if (gameMode === 'vs-share') {
+                        triggerShareNode('p1', i);
+                    } else {
+                        triggerSplitNode('p1', i);
+                    }
+                }
+            });
+
+            hole.appendChild(node);
+            mainGrid.appendChild(hole);
+        }
+
+        if (gameMode === 'vs-split') {
+            const p2Grid = document.getElementById('p2-grid');
+            p2Grid.querySelectorAll('.hole').forEach(el => el.remove());
+
+            for (let i = 0; i < 16; i++) {
+                const hole = document.createElement('div');
+                hole.className = 'hole';
+
+                const p2Label = document.createElement('div');
+                p2Label.className = 'fixed-key-label p2-pos';
+                p2Label.innerText = P2_KEYS[i].toUpperCase();
+                hole.appendChild(p2Label);
+
+                const node = document.createElement('div');
+                node.className = 'number-node p2-node';
+                node.dataset.index = i;
+                node.dataset.row = Math.floor(i / 4);
+                node.dataset.col = i % 4;
+
+                const wordSpan = document.createElement('span');
+                wordSpan.className = 'num-val';
+                node.appendChild(wordSpan);
+
+                hole.appendChild(node);
+                p2Grid.appendChild(hole);
+            }
+        }
+
+        setTimeout(resizeCanvases, 50);
+    }
+
+    function resizeCanvases() {
+        const mainCanvas = document.getElementById('main-canvas');
+        const mainGrid = document.getElementById('main-grid');
+        if (mainCanvas && mainGrid) {
+            mainCanvas.width = mainGrid.clientWidth;
+            mainCanvas.height = mainGrid.clientHeight;
+        }
+
+        const p2Canvas = document.getElementById('p2-canvas');
+        const p2Grid = document.getElementById('p2-grid');
+        if (p2Canvas && p2Grid) {
+            p2Canvas.width = p2Grid.clientWidth;
+            p2Canvas.height = p2Grid.clientHeight;
+        }
+    }
+
+    function startGame() {
+        if (isPlaying) return;
+        isPlaying = true;
+        timeLeft = 30;
+
+        ['p1', 'p2'].forEach(pId => {
+            players[pId].score = 0;
+            players[pId].locked = [];
+            players[pId].currentPart = null;
+            document.getElementById(`${pId}-score`).innerText = '0';
+            updateStatusUI(pId);
+        });
+
+        const mainCtx = document.getElementById('main-canvas').getContext('2d');
+        mainCtx.clearRect(0, 0, mainCtx.canvas.width, mainCtx.canvas.height);
+        if (gameMode === 'vs-split') {
+            const p2Ctx = document.getElementById('p2-canvas').getContext('2d');
+            p2Ctx.clearRect(0, 0, p2Ctx.canvas.width, p2Ctx.canvas.height);
+        }
+
+        buildGrids();
+        document.getElementById('timer-bar-container').style.display = 'block';
+        document.getElementById('timer-bar').style.width = '100%';
+
+        if (!isHighSpeed) {
+            refreshAllActiveNodesWithAnim(true); 
+            lastRefreshTime = Date.now();
+            if (numberTimer) clearInterval(numberTimer);
+            numberTimer = setInterval(handleStandardModeLogic, 100);
+        } else {
+            if (spawnInterval) clearInterval(spawnInterval);
+            spawnInterval = setInterval(updateWordsHighSpeed, 1000);
+        }
+
+        if (gameTimer) clearInterval(gameTimer);
+        const startTime = Date.now();
+        gameTimer = setInterval(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const remaining = Math.max(0, 30 - elapsed);
+            document.getElementById('timer-bar').style.width = `${(remaining / 30) * 100}%`;
+
+            if (remaining <= 0) {
+                endGame();
+            }
+        }, 100);
+    }
+
+    function handleStandardModeLogic() {
+        const now = Date.now();
+        if (now - lastRefreshTime >= 5000) {
+            refreshAllActiveNodesWithAnim(false); 
+            lastRefreshTime = now;
+        }
+    }
+
+    function refreshAllActiveNodesWithAnim(isTotalForce) {
+        const animateGrid = (gridId) => {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            const nodes = grid.querySelectorAll('.number-node');
+
+            nodes.forEach(node => {
+                const hasLock = ALL_LOCK_CLASSES.some(cls => node.classList.contains(cls));
+                if (hasLock && !isTotalForce) return; 
+
+                node.classList.remove('active');
+                node.style.color = ""; 
+                ALL_LOCK_CLASSES.forEach(cls => node.classList.remove(cls));
+
+                setTimeout(() => {
+                    if (!isPlaying) return; 
+                    
+                    const data = generateRandomWordData();
+                    node.querySelector('.num-val').innerText = data.word;
+                    node.dataset.part = data.part;
+
+                    // 高校英単語はスペルが長い（8文字以上）ため、縮小表示用クラスを付与
+                    if (data.word.length >= 8) {
+                        node.classList.add('long-word');
+                    } else {
+                        node.classList.remove('long-word');
+                    }
+                    
+                    node.classList.add('active'); 
+                }, 150);
+            });
+        };
+
+        if (gameMode === 'vs-split') {
+            animateGrid('main-grid');
+            animateGrid('p2-grid');
+        } else {
+            animateGrid('main-grid');
+        }
+    }
+
+    function updateWordsHighSpeed() {
+        const updateGrid = (gridId) => {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            const nodes = grid.querySelectorAll('.number-node');
+            nodes.forEach(node => {
+                const hasLock = ALL_LOCK_CLASSES.some(cls => node.classList.contains(cls));
+                if (hasLock) return;
+
+                if (Math.random() < 0.45) {
+                    if (node.classList.contains('active')) {
+                        node.classList.remove('active');
+                    } else {
+                        const data = generateRandomWordData();
+                        node.querySelector('.num-val').innerText = data.word;
+                        node.dataset.part = data.part;
+                        node.style.color = ""; 
+
+                        if (data.word.length >= 8) {
+                            node.classList.add('long-word');
+                        } else {
+                            node.classList.remove('long-word');
+                        }
+                        
+                        node.classList.add('active');
+                    }
+                }
+            });
+        };
+        if (gameMode === 'vs-split') {
+            updateGrid('main-grid');
+            updateGrid('p2-grid');
+        } else {
+            updateGrid('main-grid');
+        }
+    }
+
+    function updateStatusUI(pId) {
+        const lockedCount = players[pId].locked.length;
+        const currentPart = players[pId].currentPart ? players[pId].currentPart : "未選択";
+        document.getElementById(`${pId}-status`).innerHTML = `🔒 ${lockedCount} / 3<br><span style="font-size:0.75rem; opacity:0.8;">選択中の品詞: <b>${currentPart}</b></span>`;
+    }
+
+    function triggerSplitNode(pId, index) {
+        const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
+        const gridEl = document.getElementById(gridId);
+        const node = gridEl.querySelectorAll('.number-node')[index];
+
+        const hasLock = ALL_LOCK_CLASSES.some(cls => node.classList.contains(cls));
+        if (!node || !node.classList.contains('active') || hasLock) return;
+
+        const part = node.dataset.part;
+
+        if (players[pId].currentPart === null || players[pId].currentPart === part) {
+            players[pId].currentPart = part;
+            
+            node.classList.add(getLockClass(part));
+
+            const rect = node.getBoundingClientRect();
+            const gridRect = gridEl.getBoundingClientRect();
+            const x = (rect.left + rect.width / 2) - gridRect.left;
+            const y = (rect.top + rect.height / 2) - gridRect.top;
+
+            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y, index: index });
+            updateStatusUI(pId);
+
+            if (players[pId].locked.length === 3) {
+                calculateSplitArea(pId);
+            }
+        } else {
+            node.classList.add('miss-flash');
+            players[pId].score = Math.max(0, players[pId].score - 30);
+            document.getElementById(`${pId}-score`).innerText = players[pId].score;
+            setTimeout(() => {
+                node.classList.remove('miss-flash');
+                if (isHighSpeed) node.classList.remove('active');
+            }, 250);
+        }
+    }
+
+    function triggerShareNode(pId, index) {
+        const gridEl = document.getElementById('main-grid');
+        const node = gridEl.querySelectorAll('.number-node')[index];
+
+        const hasLock = ALL_LOCK_CLASSES.some(cls => node.classList.contains(cls));
+        if (!node || !node.classList.contains('active') || hasLock) return;
+
+        const part = node.dataset.part;
+
+        if (players[pId].currentPart === null || players[pId].currentPart === part) {
+            players[pId].currentPart = part;
+            
+            node.classList.add(getLockClass(part));
+
+            const rect = node.getBoundingClientRect();
+            const gridRect = gridEl.getBoundingClientRect();
+            const x = (rect.left + rect.width / 2) - gridRect.left;
+            const y = (rect.top + rect.height / 2) - gridRect.top;
+
+            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y, index: index });
+            updateStatusUI(pId);
+
+            if (players[pId].locked.length === 3) {
+                calculateShareArea(pId);
+            }
+        } else {
+            node.classList.add('miss-flash');
+            players[pId].score = Math.max(0, players[pId].score - 30);
+            document.getElementById(`${pId}-score`).innerText = players[pId].score;
+            setTimeout(() => {
+                node.classList.remove('miss-flash');
+                if (isHighSpeed) node.classList.remove('active');
+            }, 250);
+        }
+    }
+
+    function calculateSplitArea(pId) {
+        const p = players[pId].locked;
+        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
+        let addedScore = Math.round(area * 100);
+        if (addedScore === 0) addedScore = 50;
+
+        players[pId].score += addedScore;
+        document.getElementById(`${pId}-score`).innerText = players[pId].score;
+
+        const canvasId = pId === 'p1' ? 'main-canvas' : 'p2-canvas';
+        drawTriangle(canvasId, pId, p[0], p[1], p[2]);
+
+        const currentLocked = [...p];
+        players[pId].locked = [];
+        players[pId].currentPart = null;
+
+        if (!isHighSpeed) {
+            setTimeout(() => {
+                const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
+                refreshSpecificGridWithAnim(gridId);
+                updateStatusUI(pId);
+                const canvas = document.getElementById(canvasId);
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                lastRefreshTime = Date.now(); 
+            }, 500);
+        } else {
+            setTimeout(() => {
+                currentLocked.forEach(node => {
+                    ALL_LOCK_CLASSES.forEach(cls => node.element.classList.remove(cls));
+                    node.element.style.color = "";
+                    node.element.classList.remove('active');
+                });
+                updateStatusUI(pId);
+                const canvas = document.getElementById(canvasId);
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            }, 700);
+        }
+    }
+
+    function calculateShareArea(pId) {
+        const p = players[pId].locked;
+        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
+        let addedScore = Math.round(area * 100);
+        if (addedScore === 0) addedScore = 50;
+
+        players[pId].score += addedScore;
+        document.getElementById(`${pId}-score`).innerText = players[pId].score;
+
+        drawTriangle('main-canvas', pId, p[0], p[1], p[2]);
+
+        const currentLocked = [...p];
+        players[pId].locked = [];
+        players[pId].currentPart = null;
+
+        if (!isHighSpeed) {
+            setTimeout(() => {
+                refreshSpecificGridWithAnim('main-grid');
+                reapplyOpponentLocks(pId);
+                updateStatusUI(pId);
+                const canvas = document.getElementById('main-canvas');
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                lastRefreshTime = Date.now();
+            }, 500);
+        } else {
+            setTimeout(() => {
+                currentLocked.forEach(node => {
+                    ALL_LOCK_CLASSES.forEach(cls => node.element.classList.remove(cls));
+                    node.element.style.color = "";
+                    node.element.classList.remove('active');
+                });
+                updateStatusUI(pId);
+                const canvas = document.getElementById('main-canvas');
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            }, 700);
+        }
+    }
+
+    function refreshSpecificGridWithAnim(gridId) {
+        const grid = document.getElementById(gridId);
+        const nodes = grid.querySelectorAll('.number-node');
+        nodes.forEach(node => {
+            node.classList.remove('active');
+            node.style.color = "";
+            ALL_LOCK_CLASSES.forEach(cls => node.classList.remove(cls));
+            
+            setTimeout(() => {
+                if (!isPlaying) return;
+                
+                const data = generateRandomWordData();
+                node.querySelector('.num-val').innerText = data.word;
+                node.dataset.part = data.part;
+
+                if (data.word.length >= 8) {
+                    node.classList.add('long-word');
+                } else {
+                    node.classList.remove('long-word');
+                }
+                
+                node.classList.add('active');
+            }, 150);
+        });
+    }
+
+    function reapplyOpponentLocks(currentId) {
+        const oppId = currentId === 'p1' ? 'p2' : 'p1';
+        const opp = players[oppId];
+        const grid = document.getElementById('main-grid');
+        const nodes = grid.querySelectorAll('.number-node');
+        
+        opp.locked.forEach(lock => {
+            const node = nodes[lock.index];
+            if(node) {
+                const part = node.dataset.part;
+                setTimeout(() => {
+                    if (isPlaying) {
+                        node.classList.add(getLockClass(part));
+                    }
+                }, 180);
+            }
+        });
+    }
+
+    function drawTriangle(canvasId, pId, p1, p2, p3) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = pId === 'p1' ? '#0be881' : '#ffd32a';
+        ctx.lineWidth = 4;
+        ctx.fillStyle = pId === 'p1' ? 'rgba(11, 232, 129, 0.25)' : 'rgba(255, 211, 42, 0.25)';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (!isPlaying) return;
+        const key = e.key.toLowerCase();
+
+        if (gameMode === 'vs-share') {
+            const p1Index = P1_KEYS.indexOf(key);
+            if (p1Index !== -1) { triggerShareNode('p1', p1Index); return; }
+            const p2Index = P2_KEYS.indexOf(key);
+            if (p2Index !== -1) { triggerShareNode('p2', p2Index); return; }
+        } else {
+            const p1Index = P1_KEYS.indexOf(key);
+            if (p1Index !== -1) { triggerSplitNode('p1', p1Index); return; }
+            if (gameMode === 'vs-split') {
+                const p2Index = P2_KEYS.indexOf(key);
+                if (p2Index !== -1) { triggerSplitNode('p2', p2Index); return; }
+            }
+        }
+    });
+
+    function endGame() {
+        isPlaying = false;
+        if (gameTimer) clearInterval(gameTimer);
+        if (numberTimer) clearInterval(numberTimer);
+        if (spawnInterval) clearInterval(spawnInterval);
+
+        const p1Final = players.p1.score;
+        const p2Final = players.p2.score;
+        let detailsText = "";
+
+        if (gameMode === 'single') {
+            detailsText = `あなたのスコア: <b>${p1Final} pts</b>`;
+        } else {
+            if (p1Final > p2Final) {
+                detailsText = `🏆 <b class="p1-color">PLAYER 1 の勝利！</b><br><br>P1: ${p1Final} pts vs P2: ${p2Final} pts`;
+            } else if (p2Final > p1Final) {
+                detailsText = `🏆 <b class="p2-color">PLAYER 2 の勝利！</b><br><br>P1: ${p1Final} pts vs P2: ${p2Final} pts`;
+            } else {
+                detailsText = `🤝 <b>引き分け！</b><br><br>両者: ${p1Final} pts`;
+            }
+        }
+
+        document.getElementById('result-details').innerHTML = detailsText;
+        document.getElementById('result-modal').style.display = 'flex';
+    }
+
+    function closeResult() {
+        document.getElementById('result-modal').style.display = 'none';
+        document.getElementById('timer-bar-container').style.display = 'none';
+        document.getElementById('start-btn').style.display = 'inline-block';
+    }
+
+    buildGrids();
+    window.addEventListener('resize', resizeCanvases);
+</script>
+
+</body>
+</html>
