@@ -70,6 +70,12 @@
             border-color: #fff;
             color: #1e272e;
         }
+        /* ハイレベル用の特別色 */
+        .toggle-btn.high-level-active {
+            background: #9b59b6;
+            border-color: #fff;
+            color: #fff;
+        }
 
         #start-btn {
             padding: 10px 25px;
@@ -234,6 +240,11 @@
             z-index: 3;
         }
 
+        /* 3桁表示の時に少しフォントを小さくしてはみ出しを防ぐ */
+        .number-node.digit-3 {
+            font-size: 1.15rem;
+        }
+
         .number-node.default-node {
             background: linear-gradient(135deg, #a4b0be, #747d8c);
         }
@@ -313,7 +324,8 @@
         <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
         <br>
         <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
-        <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">モード: 標準</button>
+        <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">スピード: 標準</button>
+        <button id="toggle-level" class="toggle-btn" onclick="toggleHighLevelMode()">ハイレベル: OFF</button>
         <br>
         <button id="start-btn" onclick="startGame()">バトル開始！(制限時間30秒)</button>
     </div>
@@ -370,10 +382,17 @@
     const P1_KEYS = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
     const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l',';','m',',','.','/'];
 
+    // 2桁までの主要素数リスト
+    const PRIMES_2DIGIT = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+    
+    // 3桁の主要な素数リスト（抜粋）
+    const PRIMES_3DIGIT = [101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997];
+
     let gameMode = 'single';
     let isPlaying = false;
     let showKeys = true;
     let isHighSpeed = false; 
+    let isHighLevel = false; // ハイレベルモードフラグ
     
     let gameTimer = null;
     let numberTimer = null; 
@@ -414,12 +433,52 @@
         isHighSpeed = !isHighSpeed;
         const btn = document.getElementById('toggle-speed');
         if (isHighSpeed) {
-            btn.innerText = "モード: ハイスピード";
+            btn.innerText = "スピード: ハイスピード";
             btn.classList.add('active');
         } else {
-            btn.innerText = "モード: 標準";
+            btn.innerText = "スピード: 標準";
             btn.classList.remove('active');
         }
+    }
+
+    function toggleHighLevelMode() {
+        if (isPlaying) return;
+        isHighLevel = !isHighLevel;
+        const btn = document.getElementById('toggle-level');
+        if (isHighLevel) {
+            btn.innerText = "ハイレベル: ON";
+            btn.classList.add('high-level-active');
+        } else {
+            btn.innerText = "ハイレベル: OFF";
+            btn.classList.remove('high-level-active');
+        }
+    }
+
+    // ランダムな数値を生成する共通ロジック
+    function generateRandomNumber() {
+        let num;
+        if (isHighLevel) {
+            // ハイレベルモード：2桁〜3桁の数字を生成
+            if (Math.random() < 0.5) {
+                // 素数枠（2桁または3桁の素数からランダム）
+                if (Math.random() < 0.6) {
+                    num = PRIMES_3DIGIT[Math.floor(Math.random() * PRIMES_3DIGIT.length)];
+                } else {
+                    num = PRIMES_2DIGIT[Math.floor(Math.random() * PRIMES_2DIGIT.length)];
+                }
+            } else {
+                // 合成数枠（10〜999のランダム）
+                num = Math.floor(Math.random() * 989) + 10;
+            }
+        } else {
+            // 通常モード：2桁までの数字
+            if (Math.random() < 0.5) {
+                num = PRIMES_2DIGIT[Math.floor(Math.random() * PRIMES_2DIGIT.length)];
+            } else {
+                num = Math.floor(Math.random() * 89) + 10;
+            }
+        }
+        return num;
     }
 
     function setMode(mode) {
@@ -573,7 +632,6 @@
         document.getElementById('timer-bar').style.width = '100%';
 
         if (!isHighSpeed) {
-            // 表示なしから有へ、シュッと出現させる（全面強制入れ替え）
             refreshAllActiveNodesWithAnim(true); 
             lastRefreshTime = Date.now();
             if (numberTimer) clearInterval(numberTimer);
@@ -599,13 +657,11 @@
     function handleStandardModeLogic() {
         const now = Date.now();
         if (now - lastRefreshTime >= 5000) {
-            // 5秒経った時点での入れ替え（ホールド中のマス以外をモグラアニメーションで入れ替え）
             refreshAllActiveNodesWithAnim(false); 
             lastRefreshTime = now;
         }
     }
 
-    // 【修正箇所】もぐらたたき風の「引っ込んでから出る」アニメーション付きリフレッシュ関数
     function refreshAllActiveNodesWithAnim(isTotalForce) {
         const animateGrid = (gridId) => {
             const grid = document.getElementById(gridId);
@@ -614,24 +670,25 @@
 
             nodes.forEach(node => {
                 const hasLock = node.classList.contains('locked-p1') || node.classList.contains('locked-p2');
-                if (hasLock && !isTotalForce) return; // ホールド対象はアニメーションさせず維持
+                if (hasLock && !isTotalForce) return; 
 
-                // 1. いったん縮ませて画面から消す（もぐらが穴に潜る表現）
                 node.classList.remove('active');
                 node.classList.remove('locked-p1', 'locked-p2');
 
-                // 2. 引っ込みきったタイミング（150ms後）に数字をすり替えて、再ポップアップ（もぐらが出る表現）
                 setTimeout(() => {
-                    if (!isPlaying) return; // ゲームが終了していたら処理しない
-                    let num;
-                    if (Math.random() < 0.5) {
-                        const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-                        num = primes[Math.floor(Math.random() * primes.length)];
-                    } else {
-                        num = Math.floor(Math.random() * 89) + 10;
-                    }
+                    if (!isPlaying) return; 
+                    
+                    const num = generateRandomNumber();
                     node.querySelector('.num-val').innerText = num;
-                    node.classList.add('active'); // ポンッと飛び出す
+                    
+                    // 3桁のときはフォントサイズを小さくするスタイルを適用
+                    if (num >= 100) {
+                        node.classList.add('digit-3');
+                    } else {
+                        node.classList.remove('digit-3');
+                    }
+                    
+                    node.classList.add('active'); 
                 }, 150);
             });
         };
@@ -655,14 +712,15 @@
                     if (node.classList.contains('active')) {
                         node.classList.remove('active');
                     } else {
-                        let num;
-                        if (Math.random() < 0.5) {
-                            const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-                            num = primes[Math.floor(Math.random() * primes.length)];
-                        } else {
-                            num = Math.floor(Math.random() * 89) + 10;
-                        }
+                        const num = generateRandomNumber();
                         node.querySelector('.num-val').innerText = num;
+                        
+                        if (num >= 100) {
+                            node.classList.add('digit-3');
+                        } else {
+                            node.classList.remove('digit-3');
+                        }
+                        
                         node.classList.add('active');
                     }
                 }
@@ -761,7 +819,6 @@
         players[pId].locked = [];
 
         if (!isHighSpeed) {
-            // 標準モード：得点後にアニメーションを伴ってその盤面を即座に総入れ替え
             setTimeout(() => {
                 const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
                 refreshSpecificGridWithAnim(gridId);
@@ -798,7 +855,6 @@
         players[pId].locked = [];
 
         if (!isHighSpeed) {
-            // 標準モード（共有盤面）：得点後、アニメーションを伴って即座に総入れ替え
             setTimeout(() => {
                 refreshSpecificGridWithAnim('main-grid');
                 reapplyOpponentLocks(pId);
@@ -820,7 +876,6 @@
         }
     }
 
-    // 特定のグリッド全体をアニメーション付きで全リフレッシュする関数
     function refreshSpecificGridWithAnim(gridId) {
         const grid = document.getElementById(gridId);
         const nodes = grid.querySelectorAll('.number-node');
@@ -830,14 +885,16 @@
             
             setTimeout(() => {
                 if (!isPlaying) return;
-                let num;
-                if (Math.random() < 0.5) {
-                    const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-                    num = primes[Math.floor(Math.random() * primes.length)];
-                } else {
-                    num = Math.floor(Math.random() * 89) + 10;
-                }
+                
+                const num = generateRandomNumber();
                 node.querySelector('.num-val').innerText = num;
+                
+                if (num >= 100) {
+                    node.classList.add('digit-3');
+                } else {
+                    node.classList.remove('digit-3');
+                }
+                
                 node.classList.add('active');
             }, 150);
         });
@@ -852,7 +909,6 @@
         opp.locked.forEach(lock => {
             const node = nodes[lock.index];
             if(node) {
-                // すり替え用タイマーの後に上書きロックされるのを防ぐため、少し遅らせて再ロックを確実に適用
                 setTimeout(() => {
                     if (isPlaying) node.classList.add(oppId === 'p1' ? 'locked-p1' : 'locked-p2');
                 }, 180);
