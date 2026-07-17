@@ -60,7 +60,7 @@
             border-color: #fff;
         }
 
-        /* キー表示設定ボタン */
+        /* トグル設定ボタン */
         .toggle-btn {
             background: #1e272e;
             border: 2px solid #747d8c;
@@ -189,7 +189,7 @@
             justify-content: center;
         }
 
-        /* 常時固定のキーテキスト表示 */
+        /* 固定キーテキスト表示 */
         .fixed-key-label {
             position: absolute;
             font-size: 0.75rem;
@@ -199,14 +199,12 @@
             transition: opacity 0.2s ease;
             z-index: 2;
         }
-        /* 左下配置 (P1キー) */
         .fixed-key-label.p1-pos {
             bottom: 2px;
             left: 6px;
             color: #54a0ff;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         }
-        /* 右下配置 (P2キー) */
         .fixed-key-label.p2-pos {
             bottom: 2px;
             right: 6px;
@@ -214,11 +212,12 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         }
 
-        /* 非表示クラスが適用されたら見えなくする */
+        /* 非表示用 */
         .hide-keys .fixed-key-label {
             opacity: 0 !important;
         }
 
+        /* 数字ノード（もぐらアニメーション） */
         .number-node {
             width: 85%;
             height: 85%;
@@ -230,7 +229,7 @@
             font-weight: bold;
             cursor: pointer;
             transform: scale(0);
-            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
             position: relative;
             z-index: 3;
         }
@@ -312,7 +311,9 @@
         <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
         <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
         <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
+        <br>
         <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
+        <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">モード: 標準</button>
         <br>
         <button id="start-btn" onclick="startGame()">バトル開始！(制限時間30秒)</button>
     </div>
@@ -366,15 +367,18 @@
 </div>
 
 <script>
-    // キー配列定義 (P2の「+」キーを「;」キーに修正)
     const P1_KEYS = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
     const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l',';','m',',','.','/'];
 
     let gameMode = 'single';
     let isPlaying = false;
     let showKeys = true;
+    let isHighSpeed = false; 
+    
     let gameTimer = null;
-    let spawnInterval = null;
+    let numberTimer = null; 
+    let lastRefreshTime = 0; 
+    let spawnInterval = null; 
     let timeLeft = 30;
 
     const players = {
@@ -390,12 +394,10 @@
         return true;
     }
 
-    // キー表示のON/OFF切り替え
     function toggleKeyDisplay() {
         showKeys = !showKeys;
         const btn = document.getElementById('toggle-key-display');
         const bf = document.getElementById('battle-field');
-        
         if (showKeys) {
             btn.innerText = "キー表示: ON";
             btn.classList.add('active');
@@ -407,7 +409,19 @@
         }
     }
 
-    // ゲームモード切り替え
+    function toggleSpeedMode() {
+        if (isPlaying) return;
+        isHighSpeed = !isHighSpeed;
+        const btn = document.getElementById('toggle-speed');
+        if (isHighSpeed) {
+            btn.innerText = "モード: ハイスピード";
+            btn.classList.add('active');
+        } else {
+            btn.innerText = "モード: 標準";
+            btn.classList.remove('active');
+        }
+    }
+
     function setMode(mode) {
         if (isPlaying) return;
         gameMode = mode;
@@ -443,7 +457,6 @@
         buildGrids();
     }
 
-    // 盤面の構築
     function buildGrids() {
         const mainGrid = document.getElementById('main-grid');
         mainGrid.querySelectorAll('.hole').forEach(el => el.remove());
@@ -452,13 +465,11 @@
             const hole = document.createElement('div');
             hole.className = 'hole';
 
-            // P1のキー表示（1人プレイ、個別P1、取り合いバトルで表示）
             const p1Label = document.createElement('div');
             p1Label.className = 'fixed-key-label p1-pos';
             p1Label.innerText = P1_KEYS[i].toUpperCase();
             hole.appendChild(p1Label);
 
-            // P2のキー表示（取り合いバトルの時のみP1盤面にも並べて表示）
             if (gameMode === 'vs-share') {
                 const p2Label = document.createElement('div');
                 p2Label.className = 'fixed-key-label p2-pos';
@@ -499,7 +510,6 @@
                 const hole = document.createElement('div');
                 hole.className = 'hole';
 
-                // P2個別盤面：P2のキーラベルのみを表示（左下側を空けて右下側に綺麗に配置）
                 const p2Label = document.createElement('div');
                 p2Label.className = 'fixed-key-label p2-pos';
                 p2Label.innerText = P2_KEYS[i].toUpperCase();
@@ -562,8 +572,16 @@
         document.getElementById('timer-bar-container').style.display = 'block';
         document.getElementById('timer-bar').style.width = '100%';
 
-        if (spawnInterval) clearInterval(spawnInterval);
-        spawnInterval = setInterval(updateNumbers, 1000);
+        if (!isHighSpeed) {
+            // 表示なしから有へ、シュッと出現させる（全面強制入れ替え）
+            refreshAllActiveNodesWithAnim(true); 
+            lastRefreshTime = Date.now();
+            if (numberTimer) clearInterval(numberTimer);
+            numberTimer = setInterval(handleStandardModeLogic, 100);
+        } else {
+            if (spawnInterval) clearInterval(spawnInterval);
+            spawnInterval = setInterval(updateNumbersHighSpeed, 1000);
+        }
 
         if (gameTimer) clearInterval(gameTimer);
         const startTime = Date.now();
@@ -578,27 +596,33 @@
         }, 100);
     }
 
-    function updateNumbers() {
-        if (gameMode === 'vs-split') {
-            updateGridNumbers('main-grid');
-            updateGridNumbers('p2-grid');
-        } else {
-            updateGridNumbers('main-grid');
+    function handleStandardModeLogic() {
+        const now = Date.now();
+        if (now - lastRefreshTime >= 5000) {
+            // 5秒経った時点での入れ替え（ホールド中のマス以外をモグラアニメーションで入れ替え）
+            refreshAllActiveNodesWithAnim(false); 
+            lastRefreshTime = now;
         }
     }
 
-    function updateGridNumbers(gridId) {
-        const grid = document.getElementById(gridId);
-        if (!grid) return;
-        const nodes = grid.querySelectorAll('.number-node');
+    // 【修正箇所】もぐらたたき風の「引っ込んでから出る」アニメーション付きリフレッシュ関数
+    function refreshAllActiveNodesWithAnim(isTotalForce) {
+        const animateGrid = (gridId) => {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            const nodes = grid.querySelectorAll('.number-node');
 
-        nodes.forEach(node => {
-            if (node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+            nodes.forEach(node => {
+                const hasLock = node.classList.contains('locked-p1') || node.classList.contains('locked-p2');
+                if (hasLock && !isTotalForce) return; // ホールド対象はアニメーションさせず維持
 
-            if (Math.random() < 0.45) {
-                if (node.classList.contains('active')) {
-                    node.classList.remove('active');
-                } else {
+                // 1. いったん縮ませて画面から消す（もぐらが穴に潜る表現）
+                node.classList.remove('active');
+                node.classList.remove('locked-p1', 'locked-p2');
+
+                // 2. 引っ込みきったタイミング（150ms後）に数字をすり替えて、再ポップアップ（もぐらが出る表現）
+                setTimeout(() => {
+                    if (!isPlaying) return; // ゲームが終了していたら処理しない
                     let num;
                     if (Math.random() < 0.5) {
                         const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
@@ -607,10 +631,49 @@
                         num = Math.floor(Math.random() * 89) + 10;
                     }
                     node.querySelector('.num-val').innerText = num;
-                    node.classList.add('active');
+                    node.classList.add('active'); // ポンッと飛び出す
+                }, 150);
+            });
+        };
+
+        if (gameMode === 'vs-split') {
+            animateGrid('main-grid');
+            animateGrid('p2-grid');
+        } else {
+            animateGrid('main-grid');
+        }
+    }
+
+    function updateNumbersHighSpeed() {
+        const updateGrid = (gridId) => {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            const nodes = grid.querySelectorAll('.number-node');
+            nodes.forEach(node => {
+                if (node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+                if (Math.random() < 0.45) {
+                    if (node.classList.contains('active')) {
+                        node.classList.remove('active');
+                    } else {
+                        let num;
+                        if (Math.random() < 0.5) {
+                            const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+                            num = primes[Math.floor(Math.random() * primes.length)];
+                        } else {
+                            num = Math.floor(Math.random() * 89) + 10;
+                        }
+                        node.querySelector('.num-val').innerText = num;
+                        node.classList.add('active');
+                    }
                 }
-            }
-        });
+            });
+        };
+        if (gameMode === 'vs-split') {
+            updateGrid('main-grid');
+            updateGrid('p2-grid');
+        } else {
+            updateGrid('main-grid');
+        }
     }
 
     function triggerSplitNode(pId, index) {
@@ -631,7 +694,7 @@
             const x = (rect.left + rect.width / 2) - gridRect.left;
             const y = (rect.top + rect.height / 2) - gridRect.top;
 
-            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y });
+            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y, index: index });
             document.getElementById(`${pId}-status`).innerText = `🔒 ${players[pId].locked.length} / 3`;
 
             if (players[pId].locked.length === 3) {
@@ -643,7 +706,7 @@
             document.getElementById(`${pId}-score`).innerText = players[pId].score;
             setTimeout(() => {
                 node.classList.remove('miss-flash');
-                node.classList.remove('active');
+                if (isHighSpeed) node.classList.remove('active');
             }, 250);
         }
     }
@@ -665,7 +728,7 @@
             const x = (rect.left + rect.width / 2) - gridRect.left;
             const y = (rect.top + rect.height / 2) - gridRect.top;
 
-            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y });
+            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y, index: index });
             document.getElementById(`${pId}-status`).innerText = `🔒 ${players[pId].locked.length} / 3`;
 
             if (players[pId].locked.length === 3) {
@@ -677,7 +740,7 @@
             document.getElementById(`${pId}-score`).innerText = players[pId].score;
             setTimeout(() => {
                 node.classList.remove('miss-flash');
-                node.classList.remove('active');
+                if (isHighSpeed) node.classList.remove('active');
             }, 250);
         }
     }
@@ -697,15 +760,27 @@
         const currentLocked = [...p];
         players[pId].locked = [];
 
-        setTimeout(() => {
-            currentLocked.forEach(node => {
-                node.element.classList.remove('locked-p1', 'locked-p2');
-                node.element.classList.remove('active');
-            });
-            document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
-            const canvas = document.getElementById(canvasId);
-            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-        }, 700);
+        if (!isHighSpeed) {
+            // 標準モード：得点後にアニメーションを伴ってその盤面を即座に総入れ替え
+            setTimeout(() => {
+                const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
+                refreshSpecificGridWithAnim(gridId);
+                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
+                const canvas = document.getElementById(canvasId);
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                lastRefreshTime = Date.now(); 
+            }, 500);
+        } else {
+            setTimeout(() => {
+                currentLocked.forEach(node => {
+                    node.element.classList.remove('locked-p1', 'locked-p2');
+                    node.element.classList.remove('active');
+                });
+                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
+                const canvas = document.getElementById(canvasId);
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            }, 700);
+        }
     }
 
     function calculateShareArea(pId) {
@@ -722,15 +797,67 @@
         const currentLocked = [...p];
         players[pId].locked = [];
 
-        setTimeout(() => {
-            currentLocked.forEach(node => {
-                node.element.classList.remove('locked-p1', 'locked-p2');
-                node.element.classList.remove('active');
-            });
-            document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
-            const canvas = document.getElementById('main-canvas');
-            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-        }, 700);
+        if (!isHighSpeed) {
+            // 標準モード（共有盤面）：得点後、アニメーションを伴って即座に総入れ替え
+            setTimeout(() => {
+                refreshSpecificGridWithAnim('main-grid');
+                reapplyOpponentLocks(pId);
+                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
+                const canvas = document.getElementById('main-canvas');
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                lastRefreshTime = Date.now();
+            }, 500);
+        } else {
+            setTimeout(() => {
+                currentLocked.forEach(node => {
+                    node.element.classList.remove('locked-p1', 'locked-p2');
+                    node.element.classList.remove('active');
+                });
+                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
+                const canvas = document.getElementById('main-canvas');
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            }, 700);
+        }
+    }
+
+    // 特定のグリッド全体をアニメーション付きで全リフレッシュする関数
+    function refreshSpecificGridWithAnim(gridId) {
+        const grid = document.getElementById(gridId);
+        const nodes = grid.querySelectorAll('.number-node');
+        nodes.forEach(node => {
+            node.classList.remove('active');
+            node.classList.remove('locked-p1', 'locked-p2');
+            
+            setTimeout(() => {
+                if (!isPlaying) return;
+                let num;
+                if (Math.random() < 0.5) {
+                    const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+                    num = primes[Math.floor(Math.random() * primes.length)];
+                } else {
+                    num = Math.floor(Math.random() * 89) + 10;
+                }
+                node.querySelector('.num-val').innerText = num;
+                node.classList.add('active');
+            }, 150);
+        });
+    }
+
+    function reapplyOpponentLocks(currentId) {
+        const oppId = currentId === 'p1' ? 'p2' : 'p1';
+        const opp = players[oppId];
+        const grid = document.getElementById('main-grid');
+        const nodes = grid.querySelectorAll('.number-node');
+        
+        opp.locked.forEach(lock => {
+            const node = nodes[lock.index];
+            if(node) {
+                // すり替え用タイマーの後に上書きロックされるのを防ぐため、少し遅らせて再ロックを確実に適用
+                setTimeout(() => {
+                    if (isPlaying) node.classList.add(oppId === 'p1' ? 'locked-p1' : 'locked-p2');
+                }, 180);
+            }
+        });
     }
 
     function drawTriangle(canvasId, pId, p1, p2, p3) {
@@ -758,35 +885,24 @@
 
         if (gameMode === 'vs-share') {
             const p1Index = P1_KEYS.indexOf(key);
-            if (p1Index !== -1) {
-                triggerShareNode('p1', p1Index);
-                return;
-            }
+            if (p1Index !== -1) { triggerShareNode('p1', p1Index); return; }
             const p2Index = P2_KEYS.indexOf(key);
-            if (p2Index !== -1) {
-                triggerShareNode('p2', p2Index);
-                return;
-            }
+            if (p2Index !== -1) { triggerShareNode('p2', p2Index); return; }
         } else {
             const p1Index = P1_KEYS.indexOf(key);
-            if (p1Index !== -1) {
-                triggerSplitNode('p1', p1Index);
-                return;
-            }
+            if (p1Index !== -1) { triggerSplitNode('p1', p1Index); return; }
             if (gameMode === 'vs-split') {
                 const p2Index = P2_KEYS.indexOf(key);
-                if (p2Index !== -1) {
-                    triggerSplitNode('p2', p2Index);
-                    return;
-                }
+                if (p2Index !== -1) { triggerSplitNode('p2', p2Index); return; }
             }
         }
     });
 
     function endGame() {
         isPlaying = false;
-        clearInterval(gameTimer);
-        clearInterval(spawnInterval);
+        if (gameTimer) clearInterval(gameTimer);
+        if (numberTimer) clearInterval(numberTimer);
+        if (spawnInterval) clearInterval(spawnInterval);
 
         const p1Final = players.p1.score;
         const p2Final = players.p2.score;
