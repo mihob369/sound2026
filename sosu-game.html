@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>素数グリッドバトル！極</title>
     <style>
         body {
@@ -354,6 +354,100 @@
             color: #ffd32a;
             margin-bottom: 15px;
         }
+
+        /* タップの反応遅延・誤ズームを防止（全モード共通） */
+        .number-node, .mode-btn, .toggle-btn, #start-btn, #reset-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ==============================================
+           レスポンシブ対応（1人プレイモードの時のみ適用）
+           2人対戦は物理キーボードでの同時操作を前提とする
+           ため、レイアウトは崩さず、1人プレイのみスマホ幅
+           に最適化する。
+           ============================================== */
+        @media (max-width: 700px) {
+            body.single-player-active #game-container {
+                width: 100%;
+                padding: 0 8px;
+                box-sizing: border-box;
+            }
+            body.single-player-active h1 {
+                font-size: 1.3rem;
+                margin: 8px 0;
+            }
+            body.single-player-active #setup-area {
+                padding: 10px;
+            }
+            body.single-player-active .mode-btn,
+            body.single-player-active .toggle-btn {
+                font-size: 0.75rem;
+                padding: 8px 10px;
+                margin: 3px;
+            }
+            body.single-player-active #start-btn,
+            body.single-player-active #reset-btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 1rem;
+            }
+            body.single-player-active .player-area-block {
+                flex-direction: column;
+                align-items: center;
+                min-width: unset;
+                max-width: 420px;
+                margin: 0 auto;
+                gap: 10px;
+            }
+            body.single-player-active .side-panel {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                min-width: unset;
+                flex: none;
+                text-align: left;
+                gap: 10px;
+                padding: 10px;
+            }
+            body.single-player-active .legend-area {
+                margin-top: 0;
+                flex: 1;
+                max-width: 220px;
+            }
+            body.single-player-active .legend-text {
+                font-size: 0.68rem;
+            }
+            body.single-player-active .grid-container {
+                width: 100%;
+                max-width: 420px;
+                padding: 10px;
+            }
+            body.single-player-active .number-node {
+                font-size: 1.2rem;
+            }
+            body.single-player-active .fixed-key-label {
+                font-size: 0.62rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            body.single-player-active .side-panel {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            body.single-player-active .legend-area {
+                max-width: none;
+            }
+            body.single-player-active .score-val {
+                font-size: 1.3rem;
+            }
+            body.single-player-active .number-node {
+                font-size: 1.05rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -543,6 +637,9 @@
         document.getElementById('mode-single').classList.toggle('active', mode === 'single');
         document.getElementById('mode-vs-split').classList.toggle('active', mode === 'vs-split');
         document.getElementById('mode-vs-share').classList.toggle('active', mode === 'vs-share');
+
+        // 1人プレイの時だけモバイル向けレスポンシブレイアウトを適用
+        document.body.classList.toggle('single-player-active', mode === 'single');
 
         const p1Block = document.getElementById('p1-block');
         const p2Block = document.getElementById('p2-block');
@@ -1190,8 +1287,15 @@
         toggleSettingsLock(false);
     }
 
+    // 初期状態は1人プレイなので、レスポンシブ用クラスを最初から付与しておく
+    document.body.classList.add('single-player-active');
+
     buildGrids();
-    window.addEventListener('resize', resizeCanvases);
+    window.addEventListener('resize', () => {
+        resizeCanvases();
+        // リサイズ/画面回転時、キャンバスに残っている演出座標は古いサイズ基準のままズレるため破棄する
+        activeEffects = [];
+    });
 </script>
 
 </body>
