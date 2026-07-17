@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>素数グリッド・バトル！極</title>
+    <title>素数グリッドバトル！極</title>
     <style>
         body {
             margin: 0;
@@ -70,14 +70,17 @@
             border-color: #fff;
             color: #1e272e;
         }
-        /* ハイレベル用の特別色 */
-        .toggle-btn.high-level-active {
-            background: #9b59b6;
+        .toggle-btn.time-3min-active {
+            background: #0984e3;
             border-color: #fff;
             color: #fff;
         }
 
-        #start-btn {
+        #action-btn-container {
+            margin-top: 10px;
+        }
+
+        #start-btn, #reset-btn {
             padding: 10px 25px;
             font-size: 1.1rem;
             font-weight: bold;
@@ -85,12 +88,27 @@
             border: none;
             border-radius: 20px;
             cursor: pointer;
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        #reset-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            display: none;
         }
 
         /* タイム表示 */
+        #timer-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffdd59;
+            margin-bottom: 5px;
+            display: none;
+        }
         #timer-bar-container {
             width: 100%;
             height: 10px;
@@ -111,7 +129,7 @@
         #battle-field {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             gap: 20px;
             flex-wrap: wrap;
             width: 100%;
@@ -121,17 +139,17 @@
         .player-area-block {
             display: flex;
             flex-direction: row;
-            align-items: center;
+            align-items: flex-start;
             gap: 15px;
             flex: 1;
-            min-width: 400px;
-            max-width: 550px;
+            min-width: 420px;
+            max-width: 580px;
             transition: opacity 0.3s;
         }
 
         .player-area-block.shared-center {
-            max-width: 750px;
-            flex: 0 1 700px;
+            max-width: 780px;
+            flex: 0 1 720px;
             margin: 0 auto;
         }
 
@@ -140,9 +158,12 @@
             padding: 15px;
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            min-width: 100px;
-            flex: 0 0 110px;
+            min-width: 120px;
+            flex: 0 0 130px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .p1-color { color: #54a0ff; }
@@ -151,14 +172,37 @@
         .score-val {
             font-size: 1.6rem;
             font-weight: bold;
-            margin: 8px 0;
+            margin: 5px 0;
         }
 
         .status-val {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             background: rgba(0,0,0,0.2);
-            padding: 5px;
+            padding: 8px;
             border-radius: 8px;
+            line-height: 1.4;
+        }
+
+        .legend-area {
+            margin-top: 10px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .legend-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #ffd32a;
+            margin-bottom: 6px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+        }
+        .legend-text {
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #a4b0be;
         }
 
         /* グリッドコンテナ */
@@ -223,26 +267,23 @@
             opacity: 0 !important;
         }
 
-        /* 数字ノード（もぐらアニメーション） */
+        /* 数字ノード */
         .number-node {
-            width: 85%;
-            height: 85%;
+            width: 88%;
+            height: 88%;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: bold;
             cursor: pointer;
             transform: scale(0);
-            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s, box-shadow 0.2s;
             position: relative;
             z-index: 3;
-        }
-
-        /* 3桁表示の時に少しフォントを小さくしてはみ出しを防ぐ */
-        .number-node.digit-3 {
-            font-size: 1.15rem;
+            text-align: center;
+            box-sizing: border-box;
         }
 
         .number-node.default-node {
@@ -256,20 +297,23 @@
         .p1-node { background: linear-gradient(135deg, #74b9ff, #0984e3); }
         .p2-node { background: linear-gradient(135deg, #ff8282, #e17055); }
 
-        .locked-p1 {
-            background: linear-gradient(135deg, #00d2d3, #01a3a4) !important;
-            box-shadow: 0 0 12px #00d2d3;
+        /* 【追加修正】プレイヤー別のロック（ホールド）カラー */
+        .locked-node-p1 {
+            background: linear-gradient(135deg, #54a0ff, #00d2d3) !important;
+            box-shadow: 0 0 14px #54a0ff;
             transform: scale(1) !important;
         }
-        .locked-p2 {
-            background: linear-gradient(135deg, #feca57, #ff9f43) !important;
-            box-shadow: 0 0 12px #feca57;
+
+        .locked-node-p2 {
+            background: linear-gradient(135deg, #ff6b6b, #ff4757) !important;
+            box-shadow: 0 0 14px #ff6b6b;
             transform: scale(1) !important;
         }
 
         .miss-flash {
             animation: shake 0.25s ease-in-out;
-            background-color: #ff4d4d !important;
+            background: linear-gradient(135deg, #ff4d4d, #ff3838) !important;
+            box-shadow: 0 0 12px #ff4d4d !important;
         }
 
         @keyframes shake {
@@ -315,22 +359,27 @@
 <body>
 
 <div id="game-container">
-    <h1>素数グリッド・バトル！極</h1>
+    <h1>素数グリッドバトル！極</h1>
     
-    <!-- モード選択・設定エリア -->
+    <!-- 設定エリア -->
     <div id="setup-area">
-        <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
-        <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
-        <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
-        <br>
-        <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
-        <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">スピード: 標準</button>
-        <button id="toggle-level" class="toggle-btn" onclick="toggleHighLevelMode()">ハイレベル: OFF</button>
-        <br>
-        <button id="start-btn" onclick="startGame()">バトル開始！(制限時間30秒)</button>
+        <div id="settings-controls">
+            <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
+            <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
+            <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
+            <br>
+            <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
+            <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">スピード: 標準</button>
+            <button id="toggle-time" class="toggle-btn" onclick="toggleTimeMode()">制限時間: 1分</button>
+        </div>
+        <div id="action-btn-container">
+            <button id="start-btn" onclick="startGame()">バトル開始！</button>
+            <button id="reset-btn" onclick="resetGame()">リセット（中断）</button>
+        </div>
     </div>
 
     <!-- タイムリミット表示 -->
+    <div id="timer-text">残り時間: -- 秒</div>
     <div id="timer-bar-container">
         <div id="timer-bar"></div>
     </div>
@@ -340,9 +389,22 @@
         <!-- プレイヤー1の区画 -->
         <div id="p1-block" class="player-area-block">
             <div id="p1-side" class="side-panel">
-                <h3 class="p1-color">PLAYER 1</h3>
-                <div id="p1-score" class="score-val p1-color">0</div>
-                <div id="p1-status" class="status-val">🔒 0 / 3</div>
+                <div>
+                    <h3 class="p1-color" style="margin: 5px 0;">PLAYER 1</h3>
+                    <div id="p1-score" class="score-val p1-color">0</div>
+                    <div id="p1-status" class="status-val">🔒 0 / 3</div>
+                </div>
+
+                <!-- 遊び方・ルール説明 -->
+                <div class="legend-area">
+                    <div class="legend-title">ルール</div>
+                    <div class="legend-text">
+                        <b>1.</b> 素数のみを3つ選択！<br>
+                        <b>2.</b> 三角形が完成するとコンボ！<br>
+                        <b>3.</b> 得点: 3つの素数の和 ＋ (サイズS × 10)<br>
+                        <b>4.</b> 誤答時はタップした「数字」そのまま減点！
+                    </div>
+                </div>
             </div>
             
             <div class="grid-container">
@@ -352,7 +414,7 @@
             </div>
         </div>
 
-        <!-- プレイヤー2の区画（個別盤面バトル用） -->
+        <!-- プレイヤー2の区画 -->
         <div id="p2-block" class="player-area-block" style="display: none;">
             <div class="grid-container">
                 <div id="p2-grid" class="grid">
@@ -361,9 +423,21 @@
             </div>
 
             <div id="p2-side" class="side-panel">
-                <h3 class="p2-color">PLAYER 2</h3>
-                <div id="p2-score" class="score-val p2-color">0</div>
-                <div id="p2-status" class="status-val">🔒 0 / 3</div>
+                <div>
+                    <h3 class="p2-color" style="margin: 5px 0;">PLAYER 2</h3>
+                    <div id="p2-score" class="score-val p2-color">0</div>
+                    <div id="p2-status" class="status-val">🔒 0 / 3</div>
+                </div>
+
+                <div class="legend-area">
+                    <div class="legend-title">ルール</div>
+                    <div class="legend-text">
+                        <b>1.</b> 素数のみを3つ選択！<br>
+                        <b>2.</b> 三角形が完成するとコンボ！<br>
+                        <b>3.</b> 得点: 3つの素数の和 ＋ (サイズS × 10)<br>
+                        <b>4.</b> 誤答時はタップした「数字」そのまま減点！
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -382,23 +456,26 @@
     const P1_KEYS = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
     const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l',';','m',',','.','/'];
 
-    // 2桁までの主要素数リスト
-    const PRIMES_2DIGIT = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
-    
-    // 3桁の主要な素数リスト（抜粋）
-    const PRIMES_3DIGIT = [101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997];
+    const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+    const COMPOSITES = [
+        4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 22, 24, 25, 26, 27, 28, 30, 
+        32, 33, 34, 35, 36, 38, 39, 40, 42, 44, 45, 46, 48, 49, 50, 51, 52, 54, 
+        55, 56, 57, 58, 60, 62, 63, 64, 65, 66, 68, 69, 70, 72, 74, 75, 76, 77, 
+        78, 80, 81, 82, 84, 85, 86, 87, 88, 90, 91, 92, 93, 94, 95, 96, 98, 99
+    ];
 
     let gameMode = 'single';
     let isPlaying = false;
     let showKeys = true;
     let isHighSpeed = false; 
-    let isHighLevel = false; // ハイレベルモードフラグ
-    
+    let maxGameTime = 60; 
+
     let gameTimer = null;
     let numberTimer = null; 
     let lastRefreshTime = 0; 
     let spawnInterval = null; 
-    let timeLeft = 30;
+
+    let activeEffects = [];
 
     const players = {
         p1: { score: 0, locked: [], keys: P1_KEYS },
@@ -406,11 +483,7 @@
     };
 
     function isPrime(num) {
-        if (num <= 1) return false;
-        for (let i = 2; i <= Math.sqrt(num); i++) {
-            if (num % i === 0) return false;
-        }
-        return true;
+        return PRIMES.includes(num);
     }
 
     function toggleKeyDisplay() {
@@ -441,44 +514,26 @@
         }
     }
 
-    function toggleHighLevelMode() {
+    function toggleTimeMode() {
         if (isPlaying) return;
-        isHighLevel = !isHighLevel;
-        const btn = document.getElementById('toggle-level');
-        if (isHighLevel) {
-            btn.innerText = "ハイレベル: ON";
-            btn.classList.add('high-level-active');
+        const btn = document.getElementById('toggle-time');
+        if (maxGameTime === 60) {
+            maxGameTime = 180;
+            btn.innerText = "制限時間: 3分";
+            btn.classList.add('time-3min-active');
         } else {
-            btn.innerText = "ハイレベル: OFF";
-            btn.classList.remove('high-level-active');
+            maxGameTime = 60;
+            btn.innerText = "制限時間: 1分";
+            btn.classList.remove('time-3min-active');
         }
     }
 
-    // ランダムな数値を生成する共通ロジック
-    function generateRandomNumber() {
-        let num;
-        if (isHighLevel) {
-            // ハイレベルモード：2桁〜3桁の数字を生成
-            if (Math.random() < 0.5) {
-                // 素数枠（2桁または3桁の素数からランダム）
-                if (Math.random() < 0.6) {
-                    num = PRIMES_3DIGIT[Math.floor(Math.random() * PRIMES_3DIGIT.length)];
-                } else {
-                    num = PRIMES_2DIGIT[Math.floor(Math.random() * PRIMES_2DIGIT.length)];
-                }
-            } else {
-                // 合成数枠（10〜999のランダム）
-                num = Math.floor(Math.random() * 989) + 10;
-            }
+    function getRandomNumber() {
+        if (Math.random() < 0.35) {
+            return PRIMES[Math.floor(Math.random() * PRIMES.length)];
         } else {
-            // 通常モード：2桁までの数字
-            if (Math.random() < 0.5) {
-                num = PRIMES_2DIGIT[Math.floor(Math.random() * PRIMES_2DIGIT.length)];
-            } else {
-                num = Math.floor(Math.random() * 89) + 10;
-            }
+            return COMPOSITES[Math.floor(Math.random() * COMPOSITES.length)];
         }
-        return num;
     }
 
     function setMode(mode) {
@@ -543,9 +598,9 @@
             node.dataset.row = Math.floor(i / 4);
             node.dataset.col = i % 4;
 
-            const numSpan = document.createElement('span');
-            numSpan.className = 'num-val';
-            node.appendChild(numSpan);
+            const valSpan = document.createElement('span');
+            valSpan.className = 'num-val'; 
+            node.appendChild(valSpan);
 
             node.addEventListener('click', () => {
                 if (isPlaying) {
@@ -580,9 +635,15 @@
                 node.dataset.row = Math.floor(i / 4);
                 node.dataset.col = i % 4;
 
-                const numSpan = document.createElement('span');
-                numSpan.className = 'num-val';
-                node.appendChild(numSpan);
+                const valSpan = document.createElement('span');
+                valSpan.className = 'num-val';
+                node.appendChild(valSpan);
+
+                node.addEventListener('click', () => {
+                    if (isPlaying) {
+                        triggerSplitNode('p2', i);
+                    }
+                });
 
                 hole.appendChild(node);
                 p2Grid.appendChild(hole);
@@ -611,23 +672,23 @@
     function startGame() {
         if (isPlaying) return;
         isPlaying = true;
-        timeLeft = 30;
+        activeEffects = [];
+
+        document.getElementById('start-btn').style.display = 'none';
+        document.getElementById('reset-btn').style.display = 'inline-block';
+        toggleSettingsLock(true);
 
         ['p1', 'p2'].forEach(pId => {
             players[pId].score = 0;
             players[pId].locked = [];
             document.getElementById(`${pId}-score`).innerText = '0';
-            document.getElementById(`${pId}-status`).innerText = '🔒 0 / 3';
+            updateStatusUI(pId);
         });
 
-        const mainCtx = document.getElementById('main-canvas').getContext('2d');
-        mainCtx.clearRect(0, 0, mainCtx.canvas.width, mainCtx.canvas.height);
-        if (gameMode === 'vs-split') {
-            const p2Ctx = document.getElementById('p2-canvas').getContext('2d');
-            p2Ctx.clearRect(0, 0, p2Ctx.canvas.width, p2Ctx.canvas.height);
-        }
-
+        clearAllCanvases();
         buildGrids();
+        
+        document.getElementById('timer-text').style.display = 'block';
         document.getElementById('timer-bar-container').style.display = 'block';
         document.getElementById('timer-bar').style.width = '100%';
 
@@ -638,20 +699,70 @@
             numberTimer = setInterval(handleStandardModeLogic, 100);
         } else {
             if (spawnInterval) clearInterval(spawnInterval);
-            spawnInterval = setInterval(updateNumbersHighSpeed, 1000);
+            spawnInterval = setInterval(updateWordsHighSpeed, 1000);
         }
 
         if (gameTimer) clearInterval(gameTimer);
         const startTime = Date.now();
         gameTimer = setInterval(() => {
             const elapsed = (Date.now() - startTime) / 1000;
-            const remaining = Math.max(0, 30 - elapsed);
-            document.getElementById('timer-bar').style.width = `${(remaining / 30) * 100}%`;
+            const remaining = Math.max(0, maxGameTime - elapsed);
+            
+            document.getElementById('timer-text').innerText = `残り時間: ${Math.ceil(remaining)} 秒`;
+            document.getElementById('timer-bar').style.width = `${(remaining / maxGameTime) * 100}%`;
+
+            updateCanvasAnimations();
 
             if (remaining <= 0) {
                 endGame();
             }
-        }, 100);
+        }, 33);
+    }
+
+    function resetGame() {
+        isPlaying = false;
+        activeEffects = [];
+        if (gameTimer) clearInterval(gameTimer);
+        if (numberTimer) clearInterval(numberTimer);
+        if (spawnInterval) clearInterval(spawnInterval);
+
+        clearAllCanvases();
+        buildGrids();
+
+        document.getElementById('timer-text').style.display = 'none';
+        document.getElementById('timer-bar-container').style.display = 'none';
+        document.getElementById('start-btn').style.display = 'inline-block';
+        document.getElementById('reset-btn').style.display = 'none';
+        toggleSettingsLock(false);
+
+        ['p1', 'p2'].forEach(pId => {
+            players[pId].score = 0;
+            players[pId].locked = [];
+            document.getElementById(`${pId}-score`).innerText = '0';
+            updateStatusUI(pId);
+        });
+    }
+
+    function toggleSettingsLock(lock) {
+        const btns = document.querySelectorAll('#settings-controls button');
+        btns.forEach(btn => {
+            btn.disabled = lock;
+            btn.style.opacity = lock ? "0.5" : "1.0";
+            btn.style.cursor = lock ? "not-allowed" : "pointer";
+        });
+    }
+
+    function clearAllCanvases() {
+        const mainCanvas = document.getElementById('main-canvas');
+        if(mainCanvas) {
+            const mainCtx = mainCanvas.getContext('2d');
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        }
+        const p2Canvas = document.getElementById('p2-canvas');
+        if (p2Canvas) {
+            const p2Ctx = p2Canvas.getContext('2d');
+            p2Ctx.clearRect(0, 0, p2Canvas.width, p2Canvas.height);
+        }
     }
 
     function handleStandardModeLogic() {
@@ -669,25 +780,19 @@
             const nodes = grid.querySelectorAll('.number-node');
 
             nodes.forEach(node => {
-                const hasLock = node.classList.contains('locked-p1') || node.classList.contains('locked-p2');
+                // ロッククラス（p1 / p2 用）のどちらかを持っていればスルー
+                const hasLock = node.classList.contains('locked-node-p1') || node.classList.contains('locked-node-p2');
                 if (hasLock && !isTotalForce) return; 
 
-                node.classList.remove('active');
-                node.classList.remove('locked-p1', 'locked-p2');
+                node.classList.remove('active', 'locked-node-p1', 'locked-node-p2');
+                node.style.color = ""; 
 
                 setTimeout(() => {
                     if (!isPlaying) return; 
                     
-                    const num = generateRandomNumber();
+                    const num = getRandomNumber();
                     node.querySelector('.num-val').innerText = num;
-                    
-                    // 3桁のときはフォントサイズを小さくするスタイルを適用
-                    if (num >= 100) {
-                        node.classList.add('digit-3');
-                    } else {
-                        node.classList.remove('digit-3');
-                    }
-                    
+                    node.dataset.value = num;
                     node.classList.add('active'); 
                 }, 150);
             });
@@ -701,26 +806,23 @@
         }
     }
 
-    function updateNumbersHighSpeed() {
+    function updateWordsHighSpeed() {
         const updateGrid = (gridId) => {
             const grid = document.getElementById(gridId);
             if (!grid) return;
             const nodes = grid.querySelectorAll('.number-node');
             nodes.forEach(node => {
-                if (node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+                const hasLock = node.classList.contains('locked-node-p1') || node.classList.contains('locked-node-p2');
+                if (hasLock) return;
+
                 if (Math.random() < 0.45) {
                     if (node.classList.contains('active')) {
                         node.classList.remove('active');
                     } else {
-                        const num = generateRandomNumber();
+                        const num = getRandomNumber();
                         node.querySelector('.num-val').innerText = num;
-                        
-                        if (num >= 100) {
-                            node.classList.add('digit-3');
-                        } else {
-                            node.classList.remove('digit-3');
-                        }
-                        
+                        node.dataset.value = num;
+                        node.style.color = ""; 
                         node.classList.add('active');
                     }
                 }
@@ -734,17 +836,25 @@
         }
     }
 
+    function updateStatusUI(pId) {
+        const lockedCount = players[pId].locked.length;
+        document.getElementById(`${pId}-status`).innerHTML = `🔒 ${lockedCount} / 3`;
+    }
+
+    // 🔑 個別盤面での選択ロジック
     function triggerSplitNode(pId, index) {
         const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
         const gridEl = document.getElementById(gridId);
         const node = gridEl.querySelectorAll('.number-node')[index];
 
-        if (!node || !node.classList.contains('active') || node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+        const hasLock = node.classList.contains('locked-node-p1') || node.classList.contains('locked-node-p2');
+        if (!node || !node.classList.contains('active') || hasLock) return;
 
-        const num = parseInt(node.querySelector('.num-val').innerText);
+        const val = parseInt(node.dataset.value);
 
-        if (isPrime(num)) {
-            const lockClass = pId === 'p1' ? 'locked-p1' : 'locked-p2';
+        if (isPrime(val)) {
+            // P1なら青、P2なら赤のホールド色に変更
+            const lockClass = pId === 'p1' ? 'locked-node-p1' : 'locked-node-p2';
             node.classList.add(lockClass);
 
             const rect = node.getBoundingClientRect();
@@ -752,33 +862,43 @@
             const x = (rect.left + rect.width / 2) - gridRect.left;
             const y = (rect.top + rect.height / 2) - gridRect.top;
 
-            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y, index: index });
-            document.getElementById(`${pId}-status`).innerText = `🔒 ${players[pId].locked.length} / 3`;
+            players[pId].locked.push({ 
+                element: node, 
+                row: parseInt(node.dataset.row), 
+                col: parseInt(node.dataset.col), 
+                x: x, 
+                y: y, 
+                index: index,
+                value: val 
+            });
+            updateStatusUI(pId);
 
             if (players[pId].locked.length === 3) {
                 calculateSplitArea(pId);
             }
         } else {
-            node.classList.add('miss-flash');
-            players[pId].score = Math.max(0, players[pId].score - 30);
-            document.getElementById(`${pId}-score`).innerText = players[pId].score;
-            setTimeout(() => {
-                node.classList.remove('miss-flash');
-                if (isHighSpeed) node.classList.remove('active');
-            }, 250);
+            const penalty = val;
+            triggerPenaltyEffect(pId, gridEl, node, penalty);
         }
     }
 
+    // 🔑 取り合いバトル（共有盤面）での選択ロジック
     function triggerShareNode(pId, index) {
         const gridEl = document.getElementById('main-grid');
         const node = gridEl.querySelectorAll('.number-node')[index];
 
-        if (!node || !node.classList.contains('active') || node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+        // 相手がホールド中、またはどちらかのホールド色になっていたら選択不可
+        const opponentId = pId === 'p1' ? 'p2' : 'p1';
+        const isHeldByOpponent = players[opponentId].locked.some(lock => lock.index === index);
+        const hasLock = node.classList.contains('locked-node-p1') || node.classList.contains('locked-node-p2');
 
-        const num = parseInt(node.querySelector('.num-val').innerText);
+        if (!node || !node.classList.contains('active') || hasLock || isHeldByOpponent) return;
 
-        if (isPrime(num)) {
-            const lockClass = pId === 'p1' ? 'locked-p1' : 'locked-p2';
+        const val = parseInt(node.dataset.value);
+
+        if (isPrime(val)) {
+            // P1なら青、P2なら赤のロック色を付与
+            const lockClass = pId === 'p1' ? 'locked-node-p1' : 'locked-node-p2';
             node.classList.add(lockClass);
 
             const rect = node.getBoundingClientRect();
@@ -786,34 +906,74 @@
             const x = (rect.left + rect.width / 2) - gridRect.left;
             const y = (rect.top + rect.height / 2) - gridRect.top;
 
-            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y, index: index });
-            document.getElementById(`${pId}-status`).innerText = `🔒 ${players[pId].locked.length} / 3`;
+            players[pId].locked.push({ 
+                element: node, 
+                row: parseInt(node.dataset.row), 
+                col: parseInt(node.dataset.col), 
+                x: x, 
+                y: y, 
+                index: index,
+                value: val 
+            });
+            updateStatusUI(pId);
 
             if (players[pId].locked.length === 3) {
                 calculateShareArea(pId);
             }
         } else {
-            node.classList.add('miss-flash');
-            players[pId].score = Math.max(0, players[pId].score - 30);
-            document.getElementById(`${pId}-score`).innerText = players[pId].score;
-            setTimeout(() => {
-                node.classList.remove('miss-flash');
-                if (isHighSpeed) node.classList.remove('active');
-            }, 250);
+            const penalty = val;
+            triggerPenaltyEffect(pId, gridEl, node, penalty);
         }
+    }
+
+    function triggerPenaltyEffect(pId, gridEl, node, penalty) {
+        node.classList.add('miss-flash');
+        players[pId].score = Math.max(0, players[pId].score - penalty);
+        document.getElementById(`${pId}-score`).innerText = players[pId].score;
+
+        const rect = node.getBoundingClientRect();
+        const gridRect = gridEl.getBoundingClientRect();
+        const x = (rect.left + rect.width / 2) - gridRect.left;
+        const y = (rect.top + rect.height / 2) - gridRect.top;
+
+        const canvasId = (gameMode === 'vs-split' && pId === 'p2') ? 'p2-canvas' : 'main-canvas';
+        activeEffects.push({
+            canvasId: canvasId,
+            type: 'penalty',
+            pId: pId,
+            x: x,
+            y: y,
+            score: -penalty,
+            alpha: 1.0,
+            scale: 0.8,
+            createdAt: Date.now()
+        });
+
+        setTimeout(() => {
+            node.classList.remove('miss-flash');
+            if (isHighSpeed) node.classList.remove('active');
+        }, 250);
+    }
+
+    function getPrimeFormulaScore(p) {
+        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
+        const S = area / 0.5; 
+        
+        const sumOfPrimes = p[0].value + p[1].value + p[2].value; 
+        const sizeBonus = Math.round(S * 10);
+        
+        return sumOfPrimes + sizeBonus;
     }
 
     function calculateSplitArea(pId) {
         const p = players[pId].locked;
-        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
-        let addedScore = Math.round(area * 100);
-        if (addedScore === 0) addedScore = 50;
+        const addedScore = getPrimeFormulaScore(p);
 
         players[pId].score += addedScore;
         document.getElementById(`${pId}-score`).innerText = players[pId].score;
 
         const canvasId = pId === 'p1' ? 'main-canvas' : 'p2-canvas';
-        drawTriangle(canvasId, pId, p[0], p[1], p[2]);
+        drawTriangle(canvasId, pId, p[0], p[1], p[2], addedScore);
 
         const currentLocked = [...p];
         players[pId].locked = [];
@@ -822,117 +982,158 @@
             setTimeout(() => {
                 const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
                 refreshSpecificGridWithAnim(gridId);
-                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
-                const canvas = document.getElementById(canvasId);
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                updateStatusUI(pId);
                 lastRefreshTime = Date.now(); 
             }, 500);
         } else {
             setTimeout(() => {
                 currentLocked.forEach(node => {
-                    node.element.classList.remove('locked-p1', 'locked-p2');
+                    node.element.classList.remove('locked-node-p1', 'locked-node-p2');
+                    node.element.style.color = "";
                     node.element.classList.remove('active');
                 });
-                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
-                const canvas = document.getElementById(canvasId);
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                updateStatusUI(pId);
             }, 700);
         }
     }
 
     function calculateShareArea(pId) {
         const p = players[pId].locked;
-        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
-        let addedScore = Math.round(area * 100);
-        if (addedScore === 0) addedScore = 50;
+        const addedScore = getPrimeFormulaScore(p);
 
         players[pId].score += addedScore;
         document.getElementById(`${pId}-score`).innerText = players[pId].score;
 
-        drawTriangle('main-canvas', pId, p[0], p[1], p[2]);
+        drawTriangle('main-canvas', pId, p[0], p[1], p[2], addedScore);
+
+        const oppId = pId === 'p1' ? 'p2' : 'p1';
+        players[oppId].locked.forEach(lock => {
+            lock.element.classList.remove('locked-node-p1', 'locked-node-p2');
+        });
+        players[oppId].locked = [];
+        updateStatusUI(oppId);
 
         const currentLocked = [...p];
         players[pId].locked = [];
 
-        if (!isHighSpeed) {
-            setTimeout(() => {
-                refreshSpecificGridWithAnim('main-grid');
-                reapplyOpponentLocks(pId);
-                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
-                const canvas = document.getElementById('main-canvas');
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-                lastRefreshTime = Date.now();
-            }, 500);
-        } else {
-            setTimeout(() => {
-                currentLocked.forEach(node => {
-                    node.element.classList.remove('locked-p1', 'locked-p2');
-                    node.element.classList.remove('active');
-                });
-                document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
-                const canvas = document.getElementById('main-canvas');
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-            }, 700);
-        }
+        setTimeout(() => {
+            refreshSpecificGridWithAnim('main-grid');
+            updateStatusUI(pId);
+            lastRefreshTime = Date.now();
+        }, 500);
     }
 
     function refreshSpecificGridWithAnim(gridId) {
         const grid = document.getElementById(gridId);
         const nodes = grid.querySelectorAll('.number-node');
         nodes.forEach(node => {
-            node.classList.remove('active');
-            node.classList.remove('locked-p1', 'locked-p2');
+            node.classList.remove('active', 'locked-node-p1', 'locked-node-p2');
+            node.style.color = "";
             
             setTimeout(() => {
                 if (!isPlaying) return;
                 
-                const num = generateRandomNumber();
+                const num = getRandomNumber();
                 node.querySelector('.num-val').innerText = num;
-                
-                if (num >= 100) {
-                    node.classList.add('digit-3');
-                } else {
-                    node.classList.remove('digit-3');
-                }
-                
+                node.dataset.value = num;
                 node.classList.add('active');
             }, 150);
         });
     }
 
-    function reapplyOpponentLocks(currentId) {
-        const oppId = currentId === 'p1' ? 'p2' : 'p1';
-        const opp = players[oppId];
-        const grid = document.getElementById('main-grid');
-        const nodes = grid.querySelectorAll('.number-node');
-        
-        opp.locked.forEach(lock => {
-            const node = nodes[lock.index];
-            if(node) {
-                setTimeout(() => {
-                    if (isPlaying) node.classList.add(oppId === 'p1' ? 'locked-p1' : 'locked-p2');
-                }, 180);
-            }
+    function drawTriangle(canvasId, pId, p1, p2, p3, addedScore) {
+        const centerX = (p1.x + p2.x + p3.x) / 3;
+        const centerY = (p1.y + p2.y + p3.y) / 3;
+
+        activeEffects.push({
+            canvasId: canvasId,
+            type: 'triangle',
+            pId: pId,
+            p1: p1,
+            p2: p2,
+            p3: p3,
+            centerX: centerX,
+            centerY: centerY,
+            score: addedScore,
+            alpha: 1.0,
+            scale: 0.7,
+            createdAt: Date.now()
         });
     }
 
-    function drawTriangle(canvasId, pId, p1, p2, p3) {
-        const canvas = document.getElementById(canvasId);
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function updateCanvasAnimations() {
+        const now = Date.now();
 
-        ctx.strokeStyle = pId === 'p1' ? '#0be881' : '#ffd32a';
-        ctx.lineWidth = 4;
-        ctx.fillStyle = pId === 'p1' ? 'rgba(11, 232, 129, 0.25)' : 'rgba(255, 211, 42, 0.25)';
-        ctx.lineJoin = 'round';
+        const clearAndDraw = (canvasId) => {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.lineTo(p3.x, p3.y);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.fill();
+            const effects = activeEffects.filter(ef => ef.canvasId === canvasId);
+
+            effects.forEach(ef => {
+                const elapsed = now - ef.createdAt;
+                if (elapsed > 1000) return;
+
+                ef.alpha = 1.0 - (elapsed / 1000);
+                ef.scale = 0.7 + (elapsed / 1000) * 0.6;
+                const driftY = (elapsed / 1000) * -30;
+
+                if (ef.type === 'triangle') {
+                    ctx.strokeStyle = ef.pId === 'p1' ? `rgba(84, 160, 255, ${ef.alpha})` : `rgba(255, 107, 107, ${ef.alpha})`;
+                    ctx.lineWidth = 4;
+                    ctx.fillStyle = ef.pId === 'p1' ? `rgba(84, 160, 255, ${ef.alpha * 0.25})` : `rgba(255, 107, 107, ${ef.alpha * 0.25})`;
+                    ctx.lineJoin = 'round';
+
+                    ctx.beginPath();
+                    ctx.moveTo(ef.p1.x, ef.p1.y);
+                    ctx.lineTo(ef.p2.x, ef.p2.y);
+                    ctx.lineTo(ef.p3.x, ef.p3.y);
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.fill();
+
+                    ctx.save();
+                    ctx.translate(ef.centerX, ef.centerY + driftY);
+                    ctx.scale(ef.scale, ef.scale);
+                    
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                    ctx.shadowBlur = 6;
+                    
+                    ctx.font = 'bold 26px Arial, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = ef.pId === 'p1' ? `rgba(84, 160, 255, ${ef.alpha})` : `rgba(255, 107, 107, ${ef.alpha})`;
+                    
+                    ctx.fillText(`+${ef.score} pts`, 0, 0);
+                    ctx.restore();
+
+                } else if (ef.type === 'penalty') {
+                    ctx.save();
+                    ctx.translate(ef.x, ef.y + driftY * 1.5);
+                    ctx.scale(ef.scale, ef.scale);
+
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                    ctx.shadowBlur = 6;
+
+                    ctx.font = 'bold 28px Arial, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = `rgba(255, 77, 77, ${ef.alpha})`; 
+                    
+                    ctx.fillText(`${ef.score} pts`, 0, 0);
+                    ctx.restore();
+                }
+            });
+        };
+
+        clearAndDraw('main-canvas');
+        if (gameMode === 'vs-split') {
+            clearAndDraw('p2-canvas');
+        }
+
+        activeEffects = activeEffects.filter(ef => now - ef.createdAt <= 1000);
     }
 
     window.addEventListener('keydown', (e) => {
@@ -983,7 +1184,10 @@
     function closeResult() {
         document.getElementById('result-modal').style.display = 'none';
         document.getElementById('timer-bar-container').style.display = 'none';
+        document.getElementById('timer-text').style.display = 'none';
         document.getElementById('start-btn').style.display = 'inline-block';
+        document.getElementById('reset-btn').style.display = 'none';
+        toggleSettingsLock(false);
     }
 
     buildGrids();
