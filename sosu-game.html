@@ -42,7 +42,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        .mode-btn {
+        .mode-btn, .toggle-btn {
             padding: 10px 15px;
             font-size: 0.95rem;
             font-weight: bold;
@@ -58,6 +58,17 @@
         .mode-btn.active {
             background: #ff5e57;
             border-color: #fff;
+        }
+
+        /* キー表示設定ボタン */
+        .toggle-btn {
+            background: #1e272e;
+            border: 2px solid #747d8c;
+        }
+        .toggle-btn.active {
+            background: #ffa801;
+            border-color: #fff;
+            color: #1e272e;
         }
 
         #start-btn {
@@ -100,21 +111,20 @@
             width: 100%;
         }
 
-        /* プレイヤーごとのまとまり（ここを等倍かつ十分なサイズに担保） */
+        /* プレイヤーごとのまとまり */
         .player-area-block {
             display: flex;
             flex-direction: row;
             align-items: center;
             gap: 15px;
             flex: 1;
-            min-width: 400px; /* 小さく潰れるのを徹底防止 */
+            min-width: 400px;
             max-width: 550px;
             transition: opacity 0.3s;
         }
 
-        /* 【重要】取り合いバトル（共有盤面）時に幅が狭まらないようにする特別設定 */
         .player-area-block.shared-center {
-            max-width: 750px; /* 1人プレイ時と同等以上の最大横幅を確保 */
+            max-width: 750px;
             flex: 0 1 700px;
             margin: 0 auto;
         }
@@ -145,7 +155,7 @@
             border-radius: 8px;
         }
 
-        /* グリッドコンテナ（1人プレイ時の大きさを基準に正方形を維持） */
+        /* グリッドコンテナ */
         .grid-container {
             position: relative;
             background: #2f3542;
@@ -153,7 +163,7 @@
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.4);
             flex: 1;
-            aspect-ratio: 1; /* 正方形を維持 */
+            aspect-ratio: 1;
         }
 
         .grid {
@@ -167,6 +177,7 @@
             height: calc(100% - 20px);
         }
 
+        /* マス目（穴） */
         .hole {
             background: #2f3542;
             aspect-ratio: 1;
@@ -176,7 +187,36 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+        }
+
+        /* 常時固定のキーテキスト表示 */
+        .fixed-key-label {
+            position: absolute;
+            font-size: 0.75rem;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+            z-index: 2;
+        }
+        /* 左下配置 (P1キー) */
+        .fixed-key-label.p1-pos {
+            bottom: 2px;
+            left: 6px;
+            color: #54a0ff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        /* 右下配置 (P2キー) */
+        .fixed-key-label.p2-pos {
+            bottom: 2px;
+            right: 6px;
+            color: #ff6b6b;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        /* 非表示クラスが適用されたら見えなくする */
+        .hide-keys .fixed-key-label {
+            opacity: 0 !important;
         }
 
         .number-node {
@@ -184,18 +224,17 @@
             height: 85%;
             border-radius: 50%;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem; /* 数字を見やすく少し大きく */
+            font-size: 1.4rem;
             font-weight: bold;
             cursor: pointer;
             transform: scale(0);
             transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
+            z-index: 3;
         }
 
-        /* 未所有時の共有カラー */
         .number-node.default-node {
             background: linear-gradient(135deg, #a4b0be, #747d8c);
         }
@@ -204,11 +243,9 @@
             transform: scale(1);
         }
 
-        /* 個別盤面時のカラー */
         .p1-node { background: linear-gradient(135deg, #74b9ff, #0984e3); }
         .p2-node { background: linear-gradient(135deg, #ff8282, #e17055); }
 
-        /* ロック状態（共有・個別共通） */
         .locked-p1 {
             background: linear-gradient(135deg, #00d2d3, #01a3a4) !important;
             box-shadow: 0 0 12px #00d2d3;
@@ -220,28 +257,6 @@
             transform: scale(1) !important;
         }
 
-        /* キーガイド表示 */
-        .key-guides-container {
-            display: flex;
-            justify-content: space-around;
-            width: 90%;
-            font-size: 0.65rem;
-            margin-top: 2px;
-        }
-        .p1-key-label {
-            background: rgba(84, 160, 255, 0.3);
-            padding: 1px 4px;
-            border-radius: 3px;
-            color: #54a0ff;
-        }
-        .p2-key-label {
-            background: rgba(255, 107, 107, 0.3);
-            padding: 1px 4px;
-            border-radius: 3px;
-            color: #ff6b6b;
-        }
-
-        /* ミスエフェクト */
         .miss-flash {
             animation: shake 0.25s ease-in-out;
             background-color: #ff4d4d !important;
@@ -292,11 +307,12 @@
 <div id="game-container">
     <h1>素数グリッド・バトル！極</h1>
     
-    <!-- モード選択エリア -->
+    <!-- モード選択・設定エリア -->
     <div id="setup-area">
         <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
         <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
         <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
+        <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
         <br>
         <button id="start-btn" onclick="startGame()">バトル開始！(制限時間30秒)</button>
     </div>
@@ -323,7 +339,7 @@
             </div>
         </div>
 
-        <!-- プレイヤー2の区画（個別盤面バトル時のみ出現） -->
+        <!-- プレイヤー2の区画（個別盤面バトル用） -->
         <div id="p2-block" class="player-area-block" style="display: none;">
             <div class="grid-container">
                 <div id="p2-grid" class="grid">
@@ -350,12 +366,13 @@
 </div>
 
 <script>
-    // キー配列定義
+    // キー配列定義 (P2の「+」キーを「;」キーに修正)
     const P1_KEYS = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
-    const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l','+','m',',','.','/'];
+    const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l',';','m',',','.','/'];
 
     let gameMode = 'single';
     let isPlaying = false;
+    let showKeys = true;
     let gameTimer = null;
     let spawnInterval = null;
     let timeLeft = 30;
@@ -371,6 +388,23 @@
             if (num % i === 0) return false;
         }
         return true;
+    }
+
+    // キー表示のON/OFF切り替え
+    function toggleKeyDisplay() {
+        showKeys = !showKeys;
+        const btn = document.getElementById('toggle-key-display');
+        const bf = document.getElementById('battle-field');
+        
+        if (showKeys) {
+            btn.innerText = "キー表示: ON";
+            btn.classList.add('active');
+            bf.classList.remove('hide-keys');
+        } else {
+            btn.innerText = "キー表示: OFF";
+            btn.classList.remove('active');
+            bf.classList.add('hide-keys');
+        }
     }
 
     // ゲームモード切り替え
@@ -398,7 +432,6 @@
         } else if (mode === 'vs-share') {
             p2Block.style.display = 'none';
             p1Block.classList.add('shared-center');
-            // P1ブロック（共通の大盤面）のすぐ右隣にP2スコアパネルを並べる
             p1Block.appendChild(p2Side);
             p2Side.style.opacity = '1.0';
         }
@@ -419,6 +452,20 @@
             const hole = document.createElement('div');
             hole.className = 'hole';
 
+            // P1のキー表示（1人プレイ、個別P1、取り合いバトルで表示）
+            const p1Label = document.createElement('div');
+            p1Label.className = 'fixed-key-label p1-pos';
+            p1Label.innerText = P1_KEYS[i].toUpperCase();
+            hole.appendChild(p1Label);
+
+            // P2のキー表示（取り合いバトルの時のみP1盤面にも並べて表示）
+            if (gameMode === 'vs-share') {
+                const p2Label = document.createElement('div');
+                p2Label.className = 'fixed-key-label p2-pos';
+                p2Label.innerText = P2_KEYS[i].toUpperCase();
+                hole.appendChild(p2Label);
+            }
+
             const node = document.createElement('div');
             const baseClass = gameMode === 'vs-share' ? 'default-node' : 'p1-node';
             node.className = `number-node ${baseClass}`;
@@ -429,23 +476,6 @@
             const numSpan = document.createElement('span');
             numSpan.className = 'num-val';
             node.appendChild(numSpan);
-
-            const guideContainer = document.createElement('div');
-            guideContainer.className = 'key-guides-container';
-
-            const p1Label = document.createElement('span');
-            p1Label.className = 'p1-key-label';
-            p1Label.innerText = P1_KEYS[i].toUpperCase();
-            guideContainer.appendChild(p1Label);
-
-            if (gameMode === 'vs-share') {
-                const p2Label = document.createElement('span');
-                p2Label.className = 'p2-key-label';
-                p2Label.innerText = P2_KEYS[i].toUpperCase();
-                guideContainer.appendChild(p2Label);
-            }
-
-            node.appendChild(guideContainer);
 
             node.addEventListener('click', () => {
                 if (isPlaying) {
@@ -469,6 +499,12 @@
                 const hole = document.createElement('div');
                 hole.className = 'hole';
 
+                // P2個別盤面：P2のキーラベルのみを表示（左下側を空けて右下側に綺麗に配置）
+                const p2Label = document.createElement('div');
+                p2Label.className = 'fixed-key-label p2-pos';
+                p2Label.innerText = P2_KEYS[i].toUpperCase();
+                hole.appendChild(p2Label);
+
                 const node = document.createElement('div');
                 node.className = 'number-node p2-node';
                 node.dataset.index = i;
@@ -479,15 +515,6 @@
                 numSpan.className = 'num-val';
                 node.appendChild(numSpan);
 
-                const guideContainer = document.createElement('div');
-                guideContainer.className = 'key-guides-container';
-
-                const p2Label = document.createElement('span');
-                p2Label.className = 'p2-key-label';
-                p2Label.innerText = P2_KEYS[i].toUpperCase();
-                guideContainer.appendChild(p2Label);
-
-                node.appendChild(guideContainer);
                 hole.appendChild(node);
                 p2Grid.appendChild(hole);
             }
