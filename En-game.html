@@ -70,14 +70,23 @@
             border-color: #fff;
             color: #1e272e;
         }
-        /* ハイレベル用の特別色 */
+        /* ハイレベル・3分用の特別色 */
         .toggle-btn.high-level-active {
             background: #9b59b6;
             border-color: #fff;
             color: #fff;
         }
+        .toggle-btn.time-3min-active {
+            background: #0984e3;
+            border-color: #fff;
+            color: #fff;
+        }
 
-        #start-btn {
+        #action-btn-container {
+            margin-top: 10px;
+        }
+
+        #start-btn, #reset-btn {
             padding: 10px 25px;
             font-size: 1.1rem;
             font-weight: bold;
@@ -85,12 +94,27 @@
             border: none;
             border-radius: 20px;
             cursor: pointer;
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        #reset-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            display: none; /* 初期は非表示 */
         }
 
         /* タイム表示 */
+        #timer-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffdd59;
+            margin-bottom: 5px;
+            display: none;
+        }
         #timer-bar-container {
             width: 100%;
             height: 10px;
@@ -269,7 +293,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
             transform: scale(0);
@@ -283,7 +307,7 @@
 
         /* 長い単語用調整 */
         .long-word {
-            font-size: 0.8rem !important; /* 高3の長い単語がはみ出ないよう少し縮小 */
+            font-size: 0.8rem !important;
         }
 
         .number-node.default-node {
@@ -319,6 +343,12 @@
             background: linear-gradient(135deg, #9b59b6, #8e44ad) !important;
             box-shadow: 0 0 12px #9b59b6;
             transform: scale(1) !important;
+        }
+
+        /* 相手に取られたマスのための非アクティブスタイル (取り合い用) */
+        .taken-by-opponent {
+            cursor: not-allowed !important;
+            opacity: 0.85;
         }
 
         .miss-flash {
@@ -373,18 +403,24 @@
     
     <!-- 設定エリア -->
     <div id="setup-area">
-        <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
-        <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
-        <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
-        <br>
-        <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
-        <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">スピード: 標準</button>
-        <button id="toggle-level" class="toggle-btn" onclick="toggleHighLevelMode()">ハイレベル: OFF</button>
-        <br>
-        <button id="start-btn" onclick="startGame()">バトル開始！(制限時間30秒)</button>
+        <div id="settings-controls">
+            <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
+            <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
+            <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
+            <br>
+            <button id="toggle-key-display" class="toggle-btn active" onclick="toggleKeyDisplay()">キー表示: ON</button>
+            <button id="toggle-speed" class="toggle-btn" onclick="toggleSpeedMode()">スピード: 標準</button>
+            <button id="toggle-time" class="toggle-btn" onclick="toggleTimeMode()">制限時間: 1分</button>
+            <button id="toggle-level" class="toggle-btn" onclick="toggleHighLevelMode()">ハイレベル(高1): OFF</button>
+        </div>
+        <div id="action-btn-container">
+            <button id="start-btn" onclick="startGame()">バトル開始！</button>
+            <button id="reset-btn" onclick="resetGame()">リセット（中断）</button>
+        </div>
     </div>
 
     <!-- タイムリミット表示 -->
+    <div id="timer-text">残り時間: -- 秒</div>
     <div id="timer-bar-container">
         <div id="timer-bar"></div>
     </div>
@@ -458,61 +494,38 @@
     const P1_KEYS = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
     const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l',';','m',',','.','/'];
 
-    // 【標準】中学1年生レベルの英単語データベース
+    // 【標準】中学1年生レベルの英単語
     const NORMAL_WORD_BANK = {
-        "名詞": [
-            "apple", "book", "desk", "pen", "student", "teacher", "school", "friend", 
-            "family", "dog", "cat", "bird", "soccer", "baseball", "tennis", "piano", 
-            "guitar", "water", "milk", "bread", "house", "room", "bag", "clock", 
-            "country", "station", "park", "hospital", "store", "library"
-        ],
-        "動詞": [
-            "play", "like", "have", "want", "study", "go", "come", "run", 
-            "swim", "sing", "dance", "read", "write", "speak", "listen", "watch", 
-            "cook", "eat", "drink", "sleep", "make", "take", "buy", "see", 
-            "know", "use", "open", "close", "help", "wash"
-        ],
-        "形容詞": [
-            "happy", "sad", "angry", "good", "bad", "hot", "cold", "big", 
-            "small", "tall", "short", "long", "new", "old", "fast", "slow", 
-            "easy", "hard", "busy", "cute", "nice", "fine", "great", "cool", 
-            "young", "warm", "beautiful", "hungry", "tired", "famous"
-        ],
-        "代名詞": [
-            "I", "my", "me", "mine", "you", "your", "yours", "he", 
-            "his", "him", "she", "her", "hers", "it", "its", "we", 
-            "our", "us", "ours", "they", "their", "them", "theirs", "this", 
-            "that", "these", "those", "who", "what", "which"
-        ]
+        "名詞": ["apple", "book", "desk", "pen", "student", "teacher", "school", "friend", "dog", "cat", "soccer", "piano", "water", "milk", "house", "station", "park", "bag", "clock", "library"],
+        "動詞": ["play", "like", "have", "want", "study", "go", "come", "run", "swim", "sing", "read", "write", "cook", "eat", "drink", "sleep", "make", "buy", "see", "know"],
+        "形容詞": ["happy", "sad", "good", "bad", "hot", "cold", "big", "small", "tall", "short", "long", "new", "old", "fast", "slow", "easy", "hard", "busy", "cute", "fine"],
+        "代名詞": ["I", "my", "me", "mine", "you", "your", "yours", "he", "his", "him", "she", "her", "it", "we", "our", "us", "they", "them", "this", "that"]
     };
 
-    // 【新設・ハイレベル】高校3年生〜大学受験レベルの難関英単語データベース
+    // 【調整版・ハイレベル】日本の高校1年生レベルの英単語（英検3級〜準2級基礎）
     const HIGH_LEVEL_WORD_BANK = {
         "名詞": [
-            "consequence", "perspective", "hypothesis", "significance", "prosperity",
-            "legislation", "biodiversity", "philosophy", "coexistence", "dilemma",
-            "jurisdiction", "infrastructure", "prejudice", "vulnerability", "breakthrough",
-            "democratization", "subconscious", "extinction", "implication", "globalization",
-            "sovereignty", "sustainability", "psychology", "discrepancy", "controversy"
+            "environment", "government", "technology", "century", "culture",
+            "society", "population", "industry", "activity", "creature",
+            "education", "experience", "situation", "opportunity", "passenger",
+            "volunteer", "foreigner", "atmosphere", "distance", "garbage"
         ],
         "動詞": [
-            "emphasize", "accomplish", "exaggerate", "distinguish", "contribute",
-            "compromise", "deteriorate", "accumulate", "accelerate", "eliminate",
-            "manipulate", "anticipate", "correlate", "speculate", "demonstrate",
-            "implement", "cooperate", "interfere", "underestimate", "consolidate",
-            "encounter", "negotiate", "jeopardize", "advocate", "fluctuate"
+            "discover", "produce", "improve", "protect", "increase",
+            "decrease", "destroy", "imagine", "develop", "express",
+            "support", "receive", "achieve", "prevent", "prepare",
+            "continue", "compare", "complain", "accept", "refuse"
         ],
         "形容詞": [
-            "vulnerable", "inevitable", "sophisticated", "compulsory", "simultaneous",
-            "prospective", "ambiguous", "superficial", "prevalent", "autonomous",
-            "conspicuous", "contradictory", "indispensable", "compatible", "profound",
-            "skeptical", "formidable", "aesthetic", "optimistic", "pessimistic",
-            "temporary", "consistent", "innovative", "redundant", "cognitive"
+            "convenient", "necessary", "scientific", "traditional", "international",
+            "pleasant", "valuable", "perfect", "common", "natural",
+            "serious", "difficult", "various", "general", "similar",
+            "chemical", "official", "electric", "expensive", "comfortable"
         ],
         "代名詞": [
-            "whoever", "whichever", "whatever", "ourselves", "themselves",
-            "yourselves", "one another", "each other", "someone", "anybody",
-            "nobody", "whomever", "myself", "himself", "herself"
+            "myself", "yourself", "himself", "herself", "itself",
+            "ourselves", "themselves", "someone", "anyone", "everyone",
+            "something", "anything", "everything", "nothing", "each other"
         ]
     };
 
@@ -522,13 +535,16 @@
     let isPlaying = false;
     let showKeys = true;
     let isHighSpeed = false; 
-    let isHighLevel = false; // ハイレベル切り替えフラグ
-    
+    let isHighLevel = false; 
+    let maxGameTime = 60; // 標準は1分(60秒)
+
     let gameTimer = null;
     let numberTimer = null; 
     let lastRefreshTime = 0; 
     let spawnInterval = null; 
-    let timeLeft = 30;
+
+    // ポップアップエフェクト追跡用
+    let activeEffects = [];
 
     const players = {
         p1: { score: 0, locked: [], currentPart: null, keys: P1_KEYS },
@@ -573,21 +589,33 @@
         }
     }
 
-    // ハイレベルボタンの切り替え
+    function toggleTimeMode() {
+        if (isPlaying) return;
+        const btn = document.getElementById('toggle-time');
+        if (maxGameTime === 60) {
+            maxGameTime = 180;
+            btn.innerText = "制限時間: 3分";
+            btn.classList.add('time-3min-active');
+        } else {
+            maxGameTime = 60;
+            btn.innerText = "制限時間: 1分";
+            btn.classList.remove('time-3min-active');
+        }
+    }
+
     function toggleHighLevelMode() {
         if (isPlaying) return;
         isHighLevel = !isHighLevel;
         const btn = document.getElementById('toggle-level');
         if (isHighLevel) {
-            btn.innerText = "ハイレベル: ON";
+            btn.innerText = "ハイレベル(高1): ON";
             btn.classList.add('high-level-active');
         } else {
-            btn.innerText = "ハイレベル: OFF";
+            btn.innerText = "ハイレベル(高1): OFF";
             btn.classList.remove('high-level-active');
         }
     }
 
-    // フラグに応じて参照するデータベースを分岐
     function generateRandomWordData() {
         const activeBank = isHighLevel ? HIGH_LEVEL_WORD_BANK : NORMAL_WORD_BANK;
         const part = PARTS_OF_SPEECH[Math.floor(Math.random() * PARTS_OF_SPEECH.length)];
@@ -699,6 +727,13 @@
                 wordSpan.className = 'num-val';
                 node.appendChild(wordSpan);
 
+                // マウスクリック対応
+                node.addEventListener('click', () => {
+                    if (isPlaying) {
+                        triggerSplitNode('p2', i);
+                    }
+                });
+
                 hole.appendChild(node);
                 p2Grid.appendChild(hole);
             }
@@ -726,7 +761,12 @@
     function startGame() {
         if (isPlaying) return;
         isPlaying = true;
-        timeLeft = 30;
+        activeEffects = [];
+
+        // UI表示の切り替え (❶リセットボタン表示、設定ロック)
+        document.getElementById('start-btn').style.display = 'none';
+        document.getElementById('reset-btn').style.display = 'inline-block';
+        toggleSettingsLock(true);
 
         ['p1', 'p2'].forEach(pId => {
             players[pId].score = 0;
@@ -736,14 +776,10 @@
             updateStatusUI(pId);
         });
 
-        const mainCtx = document.getElementById('main-canvas').getContext('2d');
-        mainCtx.clearRect(0, 0, mainCtx.canvas.width, mainCtx.canvas.height);
-        if (gameMode === 'vs-split') {
-            const p2Ctx = document.getElementById('p2-canvas').getContext('2d');
-            p2Ctx.clearRect(0, 0, p2Ctx.canvas.width, p2Ctx.canvas.height);
-        }
-
+        clearAllCanvases();
         buildGrids();
+        
+        document.getElementById('timer-text').style.display = 'block';
         document.getElementById('timer-bar-container').style.display = 'block';
         document.getElementById('timer-bar').style.width = '100%';
 
@@ -761,13 +797,67 @@
         const startTime = Date.now();
         gameTimer = setInterval(() => {
             const elapsed = (Date.now() - startTime) / 1000;
-            const remaining = Math.max(0, 30 - elapsed);
-            document.getElementById('timer-bar').style.width = `${(remaining / 30) * 100}%`;
+            const remaining = Math.max(0, maxGameTime - elapsed);
+            
+            document.getElementById('timer-text').innerText = `残り時間: ${Math.ceil(remaining)} 秒`;
+            document.getElementById('timer-bar').style.width = `${(remaining / maxGameTime) * 100}%`;
+
+            // ポップアップアニメーション用更新処理
+            updateCanvasAnimations();
 
             if (remaining <= 0) {
                 endGame();
             }
-        }, 100);
+        }, 33); // アニメーション滑らかさ向上のため頻度調整
+    }
+
+    // ❶リセット処理（途中で中断）
+    function resetGame() {
+        isPlaying = false;
+        activeEffects = [];
+        if (gameTimer) clearInterval(gameTimer);
+        if (numberTimer) clearInterval(numberTimer);
+        if (spawnInterval) clearInterval(spawnInterval);
+
+        clearAllCanvases();
+        buildGrids();
+
+        // UI表示を元に戻す
+        document.getElementById('timer-text').style.display = 'none';
+        document.getElementById('timer-bar-container').style.display = 'none';
+        document.getElementById('start-btn').style.display = 'inline-block';
+        document.getElementById('reset-btn').style.display = 'none';
+        toggleSettingsLock(false);
+
+        ['p1', 'p2'].forEach(pId => {
+            players[pId].score = 0;
+            players[pId].locked = [];
+            players[pId].currentPart = null;
+            document.getElementById(`${pId}-score`).innerText = '0';
+            updateStatusUI(pId);
+        });
+    }
+
+    function toggleSettingsLock(lock) {
+        const btns = document.querySelectorAll('#settings-controls button');
+        btns.forEach(btn => {
+            btn.disabled = lock;
+            btn.style.opacity = lock ? "0.5" : "1.0";
+            btn.style.cursor = lock ? "not-allowed" : "pointer";
+        });
+    }
+
+    function clearAllCanvases() {
+        const mainCanvas = document.getElementById('main-canvas');
+        if(mainCanvas) {
+            const mainCtx = mainCanvas.getContext('2d');
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        }
+        const p2Canvas = document.getElementById('p2-canvas');
+        if (p2Canvas) {
+            const p2Ctx = p2Canvas.getContext('2d');
+            p2Ctx.clearRect(0, 0, p2Canvas.width, p2Canvas.height);
+        }
     }
 
     function handleStandardModeLogic() {
@@ -788,7 +878,7 @@
                 const hasLock = ALL_LOCK_CLASSES.some(cls => node.classList.contains(cls));
                 if (hasLock && !isTotalForce) return; 
 
-                node.classList.remove('active');
+                node.classList.remove('active', 'taken-by-opponent');
                 node.style.color = ""; 
                 ALL_LOCK_CLASSES.forEach(cls => node.classList.remove(cls));
 
@@ -799,7 +889,6 @@
                     node.querySelector('.num-val').innerText = data.word;
                     node.dataset.part = data.part;
 
-                    // 高校英単語はスペルが長い（8文字以上）ため、縮小表示用クラスを付与
                     if (data.word.length >= 8) {
                         node.classList.add('long-word');
                     } else {
@@ -836,6 +925,7 @@
                         node.querySelector('.num-val').innerText = data.word;
                         node.dataset.part = data.part;
                         node.style.color = ""; 
+                        node.classList.remove('taken-by-opponent');
 
                         if (data.word.length >= 8) {
                             node.classList.add('long-word');
@@ -859,7 +949,7 @@
     function updateStatusUI(pId) {
         const lockedCount = players[pId].locked.length;
         const currentPart = players[pId].currentPart ? players[pId].currentPart : "未選択";
-        document.getElementById(`${pId}-status`).innerHTML = `🔒 ${lockedCount} / 3<br><span style="font-size:0.75rem; opacity:0.8;">選択中の品詞: <b>${currentPart}</b></span>`;
+        document.getElementById(`${pId}-status`).innerHTML = `🔒 ${lockedCount} / 3<br><span style="font-size:0.75rem; opacity:0.8;">選択中: <b>${currentPart}</b></span>`;
     }
 
     function triggerSplitNode(pId, index) {
@@ -899,12 +989,17 @@
         }
     }
 
+    // ❸ 取り合いバトル（共有盤面）専用のロジック
     function triggerShareNode(pId, index) {
         const gridEl = document.getElementById('main-grid');
         const node = gridEl.querySelectorAll('.number-node')[index];
 
+        // ❸ 相手がすでに確保（ホールド・コンボ含む）しているマスはロックされ、ホールド不能にする
+        const opponentId = pId === 'p1' ? 'p2' : 'p1';
+        const isHeldByOpponent = players[opponentId].locked.some(lock => lock.index === index);
         const hasLock = ALL_LOCK_CLASSES.some(cls => node.classList.contains(cls));
-        if (!node || !node.classList.contains('active') || hasLock) return;
+
+        if (!node || !node.classList.contains('active') || hasLock || isHeldByOpponent) return;
 
         const part = node.dataset.part;
 
@@ -935,17 +1030,24 @@
         }
     }
 
+    // ポイント計算ロジック：基本100 ＋ S(面積比) × 10
+    function getFormulaScore(p) {
+        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
+        const S = area / 0.5; // 最小の直角二等辺三角形をS=1とする
+        let finalScore = 100 + Math.round(S * 10);
+        if (S === 0) finalScore = 100; // 同一直線の救済
+        return finalScore;
+    }
+
     function calculateSplitArea(pId) {
         const p = players[pId].locked;
-        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
-        let addedScore = Math.round(area * 100);
-        if (addedScore === 0) addedScore = 50;
+        const addedScore = getFormulaScore(p);
 
         players[pId].score += addedScore;
         document.getElementById(`${pId}-score`).innerText = players[pId].score;
 
         const canvasId = pId === 'p1' ? 'main-canvas' : 'p2-canvas';
-        drawTriangle(canvasId, pId, p[0], p[1], p[2]);
+        drawTriangle(canvasId, pId, p[0], p[1], p[2], addedScore);
 
         const currentLocked = [...p];
         players[pId].locked = [];
@@ -956,8 +1058,6 @@
                 const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
                 refreshSpecificGridWithAnim(gridId);
                 updateStatusUI(pId);
-                const canvas = document.getElementById(canvasId);
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
                 lastRefreshTime = Date.now(); 
             }, 500);
         } else {
@@ -968,55 +1068,47 @@
                     node.element.classList.remove('active');
                 });
                 updateStatusUI(pId);
-                const canvas = document.getElementById(canvasId);
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
             }, 700);
         }
     }
 
+    // ❸取り合いコンボ（三角形完成）時の処理
     function calculateShareArea(pId) {
         const p = players[pId].locked;
-        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
-        let addedScore = Math.round(area * 100);
-        if (addedScore === 0) addedScore = 50;
+        const addedScore = getFormulaScore(p);
 
         players[pId].score += addedScore;
         document.getElementById(`${pId}-score`).innerText = players[pId].score;
 
-        drawTriangle('main-canvas', pId, p[0], p[1], p[2]);
+        // ❷ 三角形完成時のエフェクト描画
+        drawTriangle('main-canvas', pId, p[0], p[1], p[2], addedScore);
+
+        // ❸ 片方がコンボ達成した時、相手のホールド中（1〜2個選択中）のロックも強制解除
+        const oppId = pId === 'p1' ? 'p2' : 'p1';
+        players[oppId].locked.forEach(lock => {
+            ALL_LOCK_CLASSES.forEach(cls => lock.element.classList.remove(cls));
+        });
+        players[oppId].locked = [];
+        players[oppId].currentPart = null;
+        updateStatusUI(oppId);
 
         const currentLocked = [...p];
         players[pId].locked = [];
         players[pId].currentPart = null;
 
-        if (!isHighSpeed) {
-            setTimeout(() => {
-                refreshSpecificGridWithAnim('main-grid');
-                reapplyOpponentLocks(pId);
-                updateStatusUI(pId);
-                const canvas = document.getElementById('main-canvas');
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-                lastRefreshTime = Date.now();
-            }, 500);
-        } else {
-            setTimeout(() => {
-                currentLocked.forEach(node => {
-                    ALL_LOCK_CLASSES.forEach(cls => node.element.classList.remove(cls));
-                    node.element.style.color = "";
-                    node.element.classList.remove('active');
-                });
-                updateStatusUI(pId);
-                const canvas = document.getElementById('main-canvas');
-                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-            }, 700);
-        }
+        // ❸ コンボ達成時に単語を【総入れ替え】
+        setTimeout(() => {
+            refreshSpecificGridWithAnim('main-grid');
+            updateStatusUI(pId);
+            lastRefreshTime = Date.now();
+        }, 500);
     }
 
     function refreshSpecificGridWithAnim(gridId) {
         const grid = document.getElementById(gridId);
         const nodes = grid.querySelectorAll('.number-node');
         nodes.forEach(node => {
-            node.classList.remove('active');
+            node.classList.remove('active', 'taken-by-opponent');
             node.style.color = "";
             ALL_LOCK_CLASSES.forEach(cls => node.classList.remove(cls));
             
@@ -1038,42 +1130,91 @@
         });
     }
 
-    function reapplyOpponentLocks(currentId) {
-        const oppId = currentId === 'p1' ? 'p2' : 'p1';
-        const opp = players[oppId];
-        const grid = document.getElementById('main-grid');
-        const nodes = grid.querySelectorAll('.number-node');
-        
-        opp.locked.forEach(lock => {
-            const node = nodes[lock.index];
-            if(node) {
-                const part = node.dataset.part;
-                setTimeout(() => {
-                    if (isPlaying) {
-                        node.classList.add(getLockClass(part));
-                    }
-                }, 180);
-            }
+    // ❷ 三角形描画とスコア表示エフェクトの登録
+    function drawTriangle(canvasId, pId, p1, p2, p3, addedScore) {
+        // 重心（三角形の真ん中の座標）を計算
+        const centerX = (p1.x + p2.x + p3.x) / 3;
+        const centerY = (p1.y + p2.y + p3.y) / 3;
+
+        // エフェクトリストにプッシュ（寿命約1秒）
+        activeEffects.push({
+            canvasId: canvasId,
+            pId: pId,
+            p1: p1,
+            p2: p2,
+            p3: p3,
+            centerX: centerX,
+            centerY: centerY,
+            score: addedScore,
+            alpha: 1.0,
+            scale: 0.7,
+            createdAt: Date.now()
         });
     }
 
-    function drawTriangle(canvasId, pId, p1, p2, p3) {
-        const canvas = document.getElementById(canvasId);
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // キャンバス上のアニメーション更新＆再描画
+    function updateCanvasAnimations() {
+        const now = Date.now();
 
-        ctx.strokeStyle = pId === 'p1' ? '#0be881' : '#ffd32a';
-        ctx.lineWidth = 4;
-        ctx.fillStyle = pId === 'p1' ? 'rgba(11, 232, 129, 0.25)' : 'rgba(255, 211, 42, 0.25)';
-        ctx.lineJoin = 'round';
+        // Canvasのクリアと再描画
+        const clearAndDraw = (canvasId) => {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.lineTo(p3.x, p3.y);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.fill();
+            // このキャンバスに対応するエフェクトのみ抽出
+            const effects = activeEffects.filter(ef => ef.canvasId === canvasId);
+
+            effects.forEach(ef => {
+                const elapsed = now - ef.createdAt;
+                if (elapsed > 1000) return; // 寿命は1秒
+
+                // アニメーション進行度に応じた変化
+                ef.alpha = 1.0 - (elapsed / 1000); // 徐々に消える
+                ef.scale = 0.7 + (elapsed / 1000) * 0.6; // 徐々に大きくなる
+                const driftY = (elapsed / 1000) * -30; // 上にふわっと浮く
+
+                // 1. 三角形の描画
+                ctx.strokeStyle = ef.pId === 'p1' ? `rgba(11, 232, 129, ${ef.alpha})` : `rgba(255, 211, 42, ${ef.alpha})`;
+                ctx.lineWidth = 4;
+                ctx.fillStyle = ef.pId === 'p1' ? `rgba(11, 232, 129, ${ef.alpha * 0.25})` : `rgba(255, 211, 42, ${ef.alpha * 0.25})`;
+                ctx.lineJoin = 'round';
+
+                ctx.beginPath();
+                ctx.moveTo(ef.p1.x, ef.p1.y);
+                ctx.lineTo(ef.p2.x, ef.p2.y);
+                ctx.lineTo(ef.p3.x, ef.p3.y);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+
+                // 2. ❷ 真ん中にゲットしたポイントを表示（一瞬ポップアップ）
+                ctx.save();
+                ctx.translate(ef.centerX, ef.centerY + driftY);
+                ctx.scale(ef.scale, ef.scale);
+                
+                // テキストの影（可読性向上）
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                ctx.shadowBlur = 6;
+                
+                ctx.font = 'bold 26px Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = ef.pId === 'p1' ? `rgba(11, 232, 129, ${ef.alpha})` : `rgba(255, 211, 42, ${ef.alpha})`;
+                
+                ctx.fillText(`+${ef.score} pts`, 0, 0);
+                ctx.restore();
+            });
+        };
+
+        clearAndDraw('main-canvas');
+        if (gameMode === 'vs-split') {
+            clearAndDraw('p2-canvas');
+        }
+
+        // 期限切れエフェクトの掃除
+        activeEffects = activeEffects.filter(ef => now - ef.createdAt <= 1000);
     }
 
     window.addEventListener('keydown', (e) => {
@@ -1124,7 +1265,10 @@
     function closeResult() {
         document.getElementById('result-modal').style.display = 'none';
         document.getElementById('timer-bar-container').style.display = 'none';
+        document.getElementById('timer-text').style.display = 'none';
         document.getElementById('start-btn').style.display = 'inline-block';
+        document.getElementById('reset-btn').style.display = 'none';
+        toggleSettingsLock(false);
     }
 
     buildGrids();
