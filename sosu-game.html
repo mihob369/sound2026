@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>素数グリッド・バトル！極</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1e272e;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            text-align: center;
+            max-width: 1200px;
+            width: 95%;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin: 5px 0;
+            color: #0be881;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* モード選択と開始UI */
+        #setup-area {
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .mode-btn {
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #fff;
+            background: #57606f;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: #ff5e57;
+            border-color: #fff;
+        }
+
+        #start-btn {
+            padding: 10px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-top: 10px;
+        }
+
+        /* タイム表示 */
+        #timer-bar-container {
+            width: 100%;
+            height: 10px;
+            background: #747d8c;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            display: none;
+        }
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background: #ffdd59;
+            transition: width 0.1s linear;
+        }
+
+        /* プレイエリア全体 */
+        #battle-field {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        /* プレイヤーごとのまとまり（ここを等倍かつ十分なサイズに担保） */
+        .player-area-block {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            min-width: 400px; /* 小さく潰れるのを徹底防止 */
+            max-width: 550px;
+            transition: opacity 0.3s;
+        }
+
+        /* 【重要】取り合いバトル（共有盤面）時に幅が狭まらないようにする特別設定 */
+        .player-area-block.shared-center {
+            max-width: 750px; /* 1人プレイ時と同等以上の最大横幅を確保 */
+            flex: 0 1 700px;
+            margin: 0 auto;
+        }
+
+        .side-panel {
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            min-width: 100px;
+            flex: 0 0 110px;
+            text-align: center;
+        }
+
+        .p1-color { color: #54a0ff; }
+        .p2-color { color: #ff6b6b; }
+
+        .score-val {
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .status-val {
+            font-size: 0.95rem;
+            background: rgba(0,0,0,0.2);
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        /* グリッドコンテナ（1人プレイ時の大きさを基準に正方形を維持） */
+        .grid-container {
+            position: relative;
+            background: #2f3542;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            flex: 1;
+            aspect-ratio: 1; /* 正方形を維持 */
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #1e272e;
+            padding: 10px;
+            border-radius: 10px;
+            position: relative;
+            height: calc(100% - 20px);
+        }
+
+        .hole {
+            background: #2f3542;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.6);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .number-node {
+            width: 85%;
+            height: 85%;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem; /* 数字を見やすく少し大きく */
+            font-weight: bold;
+            cursor: pointer;
+            transform: scale(0);
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        /* 未所有時の共有カラー */
+        .number-node.default-node {
+            background: linear-gradient(135deg, #a4b0be, #747d8c);
+        }
+
+        .number-node.active {
+            transform: scale(1);
+        }
+
+        /* 個別盤面時のカラー */
+        .p1-node { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+        .p2-node { background: linear-gradient(135deg, #ff8282, #e17055); }
+
+        /* ロック状態（共有・個別共通） */
+        .locked-p1 {
+            background: linear-gradient(135deg, #00d2d3, #01a3a4) !important;
+            box-shadow: 0 0 12px #00d2d3;
+            transform: scale(1) !important;
+        }
+        .locked-p2 {
+            background: linear-gradient(135deg, #feca57, #ff9f43) !important;
+            box-shadow: 0 0 12px #feca57;
+            transform: scale(1) !important;
+        }
+
+        /* キーガイド表示 */
+        .key-guides-container {
+            display: flex;
+            justify-content: space-around;
+            width: 90%;
+            font-size: 0.65rem;
+            margin-top: 2px;
+        }
+        .p1-key-label {
+            background: rgba(84, 160, 255, 0.3);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #54a0ff;
+        }
+        .p2-key-label {
+            background: rgba(255, 107, 107, 0.3);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #ff6b6b;
+        }
+
+        /* ミスエフェクト */
+        .miss-flash {
+            animation: shake 0.25s ease-in-out;
+            background-color: #ff4d4d !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+
+        .grid-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #result-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        #result-box {
+            background: #2f3542;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        #result-title {
+            font-size: 2rem;
+            color: #ffd32a;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>素数グリッド・バトル！極</h1>
+    
+    <!-- モード選択エリア -->
+    <div id="setup-area">
+        <button id="mode-single" class="mode-btn active" onclick="setMode('single')">1人プレイ (キー/マウス)</button>
+        <button id="mode-vs-split" class="mode-btn" onclick="setMode('vs-split')">個別盤面バトル！ (2枚の盤面)</button>
+        <button id="mode-vs-share" class="mode-btn" onclick="setMode('vs-share')">直接対決！取り合いバトル (1枚の盤面)</button>
+        <br>
+        <button id="start-btn" onclick="startGame()">バトル開始！(制限時間30秒)</button>
+    </div>
+
+    <!-- タイムリミット表示 -->
+    <div id="timer-bar-container">
+        <div id="timer-bar"></div>
+    </div>
+
+    <!-- メインプレイ画面 -->
+    <div id="battle-field">
+        <!-- プレイヤー1の区画 -->
+        <div id="p1-block" class="player-area-block">
+            <div id="p1-side" class="side-panel">
+                <h3 class="p1-color">PLAYER 1</h3>
+                <div id="p1-score" class="score-val p1-color">0</div>
+                <div id="p1-status" class="status-val">🔒 0 / 3</div>
+            </div>
+            
+            <div class="grid-container">
+                <div id="main-grid" class="grid">
+                    <canvas id="main-canvas" class="grid-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- プレイヤー2の区画（個別盤面バトル時のみ出現） -->
+        <div id="p2-block" class="player-area-block" style="display: none;">
+            <div class="grid-container">
+                <div id="p2-grid" class="grid">
+                    <canvas id="p2-canvas" class="grid-canvas"></canvas>
+                </div>
+            </div>
+
+            <div id="p2-side" class="side-panel">
+                <h3 class="p2-color">PLAYER 2</h3>
+                <div id="p2-score" class="score-val p2-color">0</div>
+                <div id="p2-status" class="status-val">🔒 0 / 3</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 結果表示用モーダル -->
+<div id="result-modal">
+    <div id="result-box">
+        <div id="result-title">RESULT</div>
+        <div id="result-details" style="font-size: 1.2rem; margin-bottom: 20px;"></div>
+        <button onclick="closeResult()">閉じる</button>
+    </div>
+</div>
+
+<script>
+    // キー配列定義
+    const P1_KEYS = ['1','2','3','4','q','w','e','r','a','s','d','f','z','x','c','v'];
+    const P2_KEYS = ['7','8','9','0','u','i','o','p','j','k','l','+','m',',','.','/'];
+
+    let gameMode = 'single';
+    let isPlaying = false;
+    let gameTimer = null;
+    let spawnInterval = null;
+    let timeLeft = 30;
+
+    const players = {
+        p1: { score: 0, locked: [], keys: P1_KEYS },
+        p2: { score: 0, locked: [], keys: P2_KEYS }
+    };
+
+    function isPrime(num) {
+        if (num <= 1) return false;
+        for (let i = 2; i <= Math.sqrt(num); i++) {
+            if (num % i === 0) return false;
+        }
+        return true;
+    }
+
+    // ゲームモード切り替え
+    function setMode(mode) {
+        if (isPlaying) return;
+        gameMode = mode;
+
+        document.getElementById('mode-single').classList.toggle('active', mode === 'single');
+        document.getElementById('mode-vs-split').classList.toggle('active', mode === 'vs-split');
+        document.getElementById('mode-vs-share').classList.toggle('active', mode === 'vs-share');
+
+        const p1Block = document.getElementById('p1-block');
+        const p2Block = document.getElementById('p2-block');
+        const p2Side = document.getElementById('p2-side');
+
+        if (mode === 'single') {
+            p2Block.style.display = 'none';
+            p1Block.classList.remove('shared-center');
+            p1Block.style.display = 'flex';
+        } else if (mode === 'vs-split') {
+            p1Block.classList.remove('shared-center');
+            p2Block.style.display = 'flex';
+            p1Block.style.display = 'flex';
+            p2Side.style.opacity = '1.0';
+        } else if (mode === 'vs-share') {
+            p2Block.style.display = 'none';
+            p1Block.classList.add('shared-center');
+            // P1ブロック（共通の大盤面）のすぐ右隣にP2スコアパネルを並べる
+            p1Block.appendChild(p2Side);
+            p2Side.style.opacity = '1.0';
+        }
+
+        if (mode !== 'vs-share') {
+            p2Block.appendChild(p2Side);
+        }
+
+        buildGrids();
+    }
+
+    // 盤面の構築
+    function buildGrids() {
+        const mainGrid = document.getElementById('main-grid');
+        mainGrid.querySelectorAll('.hole').forEach(el => el.remove());
+
+        for (let i = 0; i < 16; i++) {
+            const hole = document.createElement('div');
+            hole.className = 'hole';
+
+            const node = document.createElement('div');
+            const baseClass = gameMode === 'vs-share' ? 'default-node' : 'p1-node';
+            node.className = `number-node ${baseClass}`;
+            node.dataset.index = i;
+            node.dataset.row = Math.floor(i / 4);
+            node.dataset.col = i % 4;
+
+            const numSpan = document.createElement('span');
+            numSpan.className = 'num-val';
+            node.appendChild(numSpan);
+
+            const guideContainer = document.createElement('div');
+            guideContainer.className = 'key-guides-container';
+
+            const p1Label = document.createElement('span');
+            p1Label.className = 'p1-key-label';
+            p1Label.innerText = P1_KEYS[i].toUpperCase();
+            guideContainer.appendChild(p1Label);
+
+            if (gameMode === 'vs-share') {
+                const p2Label = document.createElement('span');
+                p2Label.className = 'p2-key-label';
+                p2Label.innerText = P2_KEYS[i].toUpperCase();
+                guideContainer.appendChild(p2Label);
+            }
+
+            node.appendChild(guideContainer);
+
+            node.addEventListener('click', () => {
+                if (isPlaying) {
+                    if (gameMode === 'vs-share') {
+                        triggerShareNode('p1', i);
+                    } else {
+                        triggerSplitNode('p1', i);
+                    }
+                }
+            });
+
+            hole.appendChild(node);
+            mainGrid.appendChild(hole);
+        }
+
+        if (gameMode === 'vs-split') {
+            const p2Grid = document.getElementById('p2-grid');
+            p2Grid.querySelectorAll('.hole').forEach(el => el.remove());
+
+            for (let i = 0; i < 16; i++) {
+                const hole = document.createElement('div');
+                hole.className = 'hole';
+
+                const node = document.createElement('div');
+                node.className = 'number-node p2-node';
+                node.dataset.index = i;
+                node.dataset.row = Math.floor(i / 4);
+                node.dataset.col = i % 4;
+
+                const numSpan = document.createElement('span');
+                numSpan.className = 'num-val';
+                node.appendChild(numSpan);
+
+                const guideContainer = document.createElement('div');
+                guideContainer.className = 'key-guides-container';
+
+                const p2Label = document.createElement('span');
+                p2Label.className = 'p2-key-label';
+                p2Label.innerText = P2_KEYS[i].toUpperCase();
+                guideContainer.appendChild(p2Label);
+
+                node.appendChild(guideContainer);
+                hole.appendChild(node);
+                p2Grid.appendChild(hole);
+            }
+        }
+
+        setTimeout(resizeCanvases, 50);
+    }
+
+    function resizeCanvases() {
+        const mainCanvas = document.getElementById('main-canvas');
+        const mainGrid = document.getElementById('main-grid');
+        if (mainCanvas && mainGrid) {
+            mainCanvas.width = mainGrid.clientWidth;
+            mainCanvas.height = mainGrid.clientHeight;
+        }
+
+        const p2Canvas = document.getElementById('p2-canvas');
+        const p2Grid = document.getElementById('p2-grid');
+        if (p2Canvas && p2Grid) {
+            p2Canvas.width = p2Grid.clientWidth;
+            p2Canvas.height = p2Grid.clientHeight;
+        }
+    }
+
+    function startGame() {
+        if (isPlaying) return;
+        isPlaying = true;
+        timeLeft = 30;
+
+        ['p1', 'p2'].forEach(pId => {
+            players[pId].score = 0;
+            players[pId].locked = [];
+            document.getElementById(`${pId}-score`).innerText = '0';
+            document.getElementById(`${pId}-status`).innerText = '🔒 0 / 3';
+        });
+
+        const mainCtx = document.getElementById('main-canvas').getContext('2d');
+        mainCtx.clearRect(0, 0, mainCtx.canvas.width, mainCtx.canvas.height);
+        if (gameMode === 'vs-split') {
+            const p2Ctx = document.getElementById('p2-canvas').getContext('2d');
+            p2Ctx.clearRect(0, 0, p2Ctx.canvas.width, p2Ctx.canvas.height);
+        }
+
+        buildGrids();
+        document.getElementById('timer-bar-container').style.display = 'block';
+        document.getElementById('timer-bar').style.width = '100%';
+
+        if (spawnInterval) clearInterval(spawnInterval);
+        spawnInterval = setInterval(updateNumbers, 1000);
+
+        if (gameTimer) clearInterval(gameTimer);
+        const startTime = Date.now();
+        gameTimer = setInterval(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const remaining = Math.max(0, 30 - elapsed);
+            document.getElementById('timer-bar').style.width = `${(remaining / 30) * 100}%`;
+
+            if (remaining <= 0) {
+                endGame();
+            }
+        }, 100);
+    }
+
+    function updateNumbers() {
+        if (gameMode === 'vs-split') {
+            updateGridNumbers('main-grid');
+            updateGridNumbers('p2-grid');
+        } else {
+            updateGridNumbers('main-grid');
+        }
+    }
+
+    function updateGridNumbers(gridId) {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+        const nodes = grid.querySelectorAll('.number-node');
+
+        nodes.forEach(node => {
+            if (node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+
+            if (Math.random() < 0.45) {
+                if (node.classList.contains('active')) {
+                    node.classList.remove('active');
+                } else {
+                    let num;
+                    if (Math.random() < 0.5) {
+                        const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+                        num = primes[Math.floor(Math.random() * primes.length)];
+                    } else {
+                        num = Math.floor(Math.random() * 89) + 10;
+                    }
+                    node.querySelector('.num-val').innerText = num;
+                    node.classList.add('active');
+                }
+            }
+        });
+    }
+
+    function triggerSplitNode(pId, index) {
+        const gridId = pId === 'p1' ? 'main-grid' : 'p2-grid';
+        const gridEl = document.getElementById(gridId);
+        const node = gridEl.querySelectorAll('.number-node')[index];
+
+        if (!node || !node.classList.contains('active') || node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+
+        const num = parseInt(node.querySelector('.num-val').innerText);
+
+        if (isPrime(num)) {
+            const lockClass = pId === 'p1' ? 'locked-p1' : 'locked-p2';
+            node.classList.add(lockClass);
+
+            const rect = node.getBoundingClientRect();
+            const gridRect = gridEl.getBoundingClientRect();
+            const x = (rect.left + rect.width / 2) - gridRect.left;
+            const y = (rect.top + rect.height / 2) - gridRect.top;
+
+            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y });
+            document.getElementById(`${pId}-status`).innerText = `🔒 ${players[pId].locked.length} / 3`;
+
+            if (players[pId].locked.length === 3) {
+                calculateSplitArea(pId);
+            }
+        } else {
+            node.classList.add('miss-flash');
+            players[pId].score = Math.max(0, players[pId].score - 30);
+            document.getElementById(`${pId}-score`).innerText = players[pId].score;
+            setTimeout(() => {
+                node.classList.remove('miss-flash');
+                node.classList.remove('active');
+            }, 250);
+        }
+    }
+
+    function triggerShareNode(pId, index) {
+        const gridEl = document.getElementById('main-grid');
+        const node = gridEl.querySelectorAll('.number-node')[index];
+
+        if (!node || !node.classList.contains('active') || node.classList.contains('locked-p1') || node.classList.contains('locked-p2')) return;
+
+        const num = parseInt(node.querySelector('.num-val').innerText);
+
+        if (isPrime(num)) {
+            const lockClass = pId === 'p1' ? 'locked-p1' : 'locked-p2';
+            node.classList.add(lockClass);
+
+            const rect = node.getBoundingClientRect();
+            const gridRect = gridEl.getBoundingClientRect();
+            const x = (rect.left + rect.width / 2) - gridRect.left;
+            const y = (rect.top + rect.height / 2) - gridRect.top;
+
+            players[pId].locked.push({ element: node, row: parseInt(node.dataset.row), col: parseInt(node.dataset.col), x: x, y: y });
+            document.getElementById(`${pId}-status`).innerText = `🔒 ${players[pId].locked.length} / 3`;
+
+            if (players[pId].locked.length === 3) {
+                calculateShareArea(pId);
+            }
+        } else {
+            node.classList.add('miss-flash');
+            players[pId].score = Math.max(0, players[pId].score - 30);
+            document.getElementById(`${pId}-score`).innerText = players[pId].score;
+            setTimeout(() => {
+                node.classList.remove('miss-flash');
+                node.classList.remove('active');
+            }, 250);
+        }
+    }
+
+    function calculateSplitArea(pId) {
+        const p = players[pId].locked;
+        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
+        let addedScore = Math.round(area * 100);
+        if (addedScore === 0) addedScore = 50;
+
+        players[pId].score += addedScore;
+        document.getElementById(`${pId}-score`).innerText = players[pId].score;
+
+        const canvasId = pId === 'p1' ? 'main-canvas' : 'p2-canvas';
+        drawTriangle(canvasId, pId, p[0], p[1], p[2]);
+
+        const currentLocked = [...p];
+        players[pId].locked = [];
+
+        setTimeout(() => {
+            currentLocked.forEach(node => {
+                node.element.classList.remove('locked-p1', 'locked-p2');
+                node.element.classList.remove('active');
+            });
+            document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
+            const canvas = document.getElementById(canvasId);
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        }, 700);
+    }
+
+    function calculateShareArea(pId) {
+        const p = players[pId].locked;
+        const area = 0.5 * Math.abs(p[0].col * (p[1].row - p[2].row) + p[1].col * (p[2].row - p[0].row) + p[2].col * (p[0].row - p[1].row));
+        let addedScore = Math.round(area * 100);
+        if (addedScore === 0) addedScore = 50;
+
+        players[pId].score += addedScore;
+        document.getElementById(`${pId}-score`).innerText = players[pId].score;
+
+        drawTriangle('main-canvas', pId, p[0], p[1], p[2]);
+
+        const currentLocked = [...p];
+        players[pId].locked = [];
+
+        setTimeout(() => {
+            currentLocked.forEach(node => {
+                node.element.classList.remove('locked-p1', 'locked-p2');
+                node.element.classList.remove('active');
+            });
+            document.getElementById(`${pId}-status`).innerText = `🔒 0 / 3`;
+            const canvas = document.getElementById('main-canvas');
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        }, 700);
+    }
+
+    function drawTriangle(canvasId, pId, p1, p2, p3) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = pId === 'p1' ? '#0be881' : '#ffd32a';
+        ctx.lineWidth = 4;
+        ctx.fillStyle = pId === 'p1' ? 'rgba(11, 232, 129, 0.25)' : 'rgba(255, 211, 42, 0.25)';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (!isPlaying) return;
+        const key = e.key.toLowerCase();
+
+        if (gameMode === 'vs-share') {
+            const p1Index = P1_KEYS.indexOf(key);
+            if (p1Index !== -1) {
+                triggerShareNode('p1', p1Index);
+                return;
+            }
+            const p2Index = P2_KEYS.indexOf(key);
+            if (p2Index !== -1) {
+                triggerShareNode('p2', p2Index);
+                return;
+            }
+        } else {
+            const p1Index = P1_KEYS.indexOf(key);
+            if (p1Index !== -1) {
+                triggerSplitNode('p1', p1Index);
+                return;
+            }
+            if (gameMode === 'vs-split') {
+                const p2Index = P2_KEYS.indexOf(key);
+                if (p2Index !== -1) {
+                    triggerSplitNode('p2', p2Index);
+                    return;
+                }
+            }
+        }
+    });
+
+    function endGame() {
+        isPlaying = false;
+        clearInterval(gameTimer);
+        clearInterval(spawnInterval);
+
+        const p1Final = players.p1.score;
+        const p2Final = players.p2.score;
+        let detailsText = "";
+
+        if (gameMode === 'single') {
+            detailsText = `あなたのスコア: <b>${p1Final} pts</b>`;
+        } else {
+            if (p1Final > p2Final) {
+                detailsText = `🏆 <b class="p1-color">PLAYER 1 の勝利！</b><br><br>P1: ${p1Final} pts vs P2: ${p2Final} pts`;
+            } else if (p2Final > p1Final) {
+                detailsText = `🏆 <b class="p2-color">PLAYER 2 の勝利！</b><br><br>P1: ${p1Final} pts vs P2: ${p2Final} pts`;
+            } else {
+                detailsText = `🤝 <b>引き分け！</b><br><br>両者: ${p1Final} pts`;
+            }
+        }
+
+        document.getElementById('result-details').innerHTML = detailsText;
+        document.getElementById('result-modal').style.display = 'flex';
+    }
+
+    function closeResult() {
+        document.getElementById('result-modal').style.display = 'none';
+        document.getElementById('timer-bar-container').style.display = 'none';
+        document.getElementById('start-btn').style.display = 'inline-block';
+    }
+
+    buildGrids();
+    window.addEventListener('resize', resizeCanvases);
+</script>
+
+</body>
+</html>
