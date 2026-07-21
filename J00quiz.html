@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3択クイズ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-1: #faf6f0;
+    --bg-2: #f2eaf5;
+    --card-bg: #ffffff;
+    --ink: #4a4458;
+    --ink-soft: #7a7288;
+    --lavender: #a78bda;
+    --lavender-deep: #8a6bc4;
+    --pink: #f0b9c6;
+    --pink-deep: #e39cae;
+    --sage: #8fbf9a;
+    --sage-bg: #eaf5ec;
+    --coral: #e2938f;
+    --coral-bg: #fbebea;
+    --line: #ece3ef;
+    --shadow: 0 8px 24px rgba(140, 110, 160, 0.10);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 16px 80px;
+    font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', sans-serif;
+    color: var(--ink);
+    background: linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%);
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'Shippori Mincho', serif;
+    text-align: center;
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 13px;
+    margin-bottom: 28px;
+    letter-spacing: 0.04em;
+  }
+
+  .panel {
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .row:last-child { margin-bottom: 0; }
+
+  label.field-label {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+
+  select {
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: #fdfbfb;
+    color: var(--ink);
+    font-family: inherit;
+  }
+
+  /* mode toggle */
+  .mode-toggle {
+    display: inline-flex;
+    background: var(--bg-2);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .mode-toggle button {
+    border: none;
+    background: transparent;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .mode-toggle button.active {
+    background: var(--lavender);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(138, 107, 196, 0.35);
+  }
+
+  .btn {
+    border: none;
+    padding: 11px 22px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    letter-spacing: 0.03em;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--lavender);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(138, 107, 196, 0.30);
+  }
+  .btn-primary:hover { background: var(--lavender-deep); }
+
+  .btn-secondary {
+    background: var(--pink);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(227, 156, 174, 0.30);
+  }
+  .btn-secondary:hover { background: var(--pink-deep); }
+
+  .status-line {
+    text-align: center;
+    font-size: 13px;
+    color: var(--ink-soft);
+    min-height: 18px;
+  }
+
+  #quizList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .q-card {
+    background: var(--card-bg);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 20px 22px;
+    border: 1.5px solid transparent;
+    transition: border-color 0.3s ease;
+  }
+
+  .q-card.active {
+    border-color: var(--lavender);
+  }
+
+  .q-num {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--lavender);
+    padding: 3px 11px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .q-text {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.6;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1.5px solid var(--line);
+    background: #fdfcfe;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 14.5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .choice-btn:hover:not(:disabled) {
+    border-color: var(--lavender);
+    background: #f7f2fb;
+  }
+
+  .choice-btn:disabled { cursor: default; }
+
+  .choice-btn .tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg-2);
+    color: var(--lavender-deep);
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .choice-btn.correct {
+    background: var(--sage-bg);
+    border-color: var(--sage);
+    color: #3f6b48;
+  }
+  .choice-btn.correct .tag { background: var(--sage); color: #fff; }
+
+  .choice-btn.wrong {
+    background: var(--coral-bg);
+    border-color: var(--coral);
+    color: #8a4440;
+  }
+  .choice-btn.wrong .tag { background: var(--coral); color: #fff; }
+
+  .choice-btn.dim {
+    opacity: 0.55;
+  }
+
+  .answer-note {
+    margin-top: 12px;
+    font-size: 13px;
+    padding: 9px 14px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .answer-note.ok {
+    background: var(--sage-bg);
+    color: #3f6b48;
+  }
+
+  .answer-note.ng {
+    background: var(--coral-bg);
+    color: #8a4440;
+  }
+
+  /* result */
+  #resultCard {
+    display: none;
+    text-align: center;
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 36px 24px;
+    margin-top: 24px;
+  }
+
+  .celebrate-emoji {
+    font-size: 44px;
+    margin-bottom: 10px;
+  }
+
+  .celebrate-msg {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+
+  .celebrate-sub {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+  }
+
+  .score-big {
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--lavender-deep);
+    letter-spacing: 0.02em;
+  }
+
+  .score-unit {
+    font-size: 16px;
+    color: var(--ink-soft);
+    margin-left: 4px;
+  }
+
+  .bar-outer {
+    width: 100%;
+    max-width: 320px;
+    margin: 18px auto 22px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--bg-2);
+    overflow: hidden;
+  }
+
+  .bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--lavender), var(--pink-deep));
+    border-radius: 999px;
+    transition: width 0.8s ease;
+    width: 0%;
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 23px; }
+    .panel { padding: 18px; }
+    .q-card { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>3択クイズ</h1>
+  <p class="subtitle">問題セットを選んで、じっくり挑戦してみましょう</p>
+
+  <div class="panel">
+    <div class="row">
+      <label class="field-label" for="sheetSelector">問題セット</label>
+      <select id="sheetSelector"></select>
+    </div>
+    <div class="row">
+      <label class="field-label">出題数</label>
+      <div class="mode-toggle">
+        <button type="button" id="mode10" class="active" onclick="setMode(10)">10問モード</button>
+        <button type="button" id="mode20" onclick="setMode(20)">20問モード</button>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn btn-secondary" onclick="loadSheet()">読み込み</button>
+      <button class="btn btn-primary" onclick="startQuiz()">クイズ開始</button>
+    </div>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <div id="quizList"></div>
+
+  <div id="resultCard">
+    <div class="celebrate-emoji" id="celebEmoji">🌸</div>
+    <div class="celebrate-msg" id="celebMsg"></div>
+    <div class="celebrate-sub" id="celebSub"></div>
+    <div><span class="score-big" id="scoreBig">0</span><span class="score-unit" id="scoreUnit">/ 10問 正解</span></div>
+    <div class="bar-outer"><div class="bar-inner" id="scoreBar"></div></div>
+    <button class="btn btn-primary" onclick="restartAll()">もう一度挑戦する</button>
+  </div>
+</div>
+
+<script>
+// 固定スプレッドシートID
+const SHEET_ID = "1CTpPXWgQKivHTVyQI5aTjY7H2ZcJk5158oD8ACo6J6A";
+
+// シート一覧（gidは各シートURLから取得）
+const SHEETS = [
+  { name: "問題A", gid: "0" },
+  { name: "問題B", gid: "880344344" },
+  { name: "問題C", gid: "829673232" },
+  { name: "問題D", gid: "1562289067" },
+  { name: "問題E", gid: "2036610256" }
+];
+
+let quizData = [];
+let quizSet = [];
+let current = 0;
+let correctCount = 0;
+let totalQuestions = 10;
+
+// セレクト初期化
+const selector = document.getElementById("sheetSelector");
+SHEETS.forEach(sheet => {
+    const option = document.createElement("option");
+    option.value = sheet.gid;
+    option.textContent = sheet.name;
+    selector.appendChild(option);
+});
+
+function setMode(n) {
+    totalQuestions = n;
+    document.getElementById("mode10").classList.toggle("active", n === 10);
+    document.getElementById("mode20").classList.toggle("active", n === 20);
+}
+
+function setStatus(msg) {
+    document.getElementById("statusLine").innerText = msg;
+}
+
+// 読み込み処理
+function loadSheet() {
+    const gid = document.getElementById("sheetSelector").value;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+
+    setStatus("読み込み中…");
+
+    fetch(url)
+        .then(res => res.text())
+        .then(text => {
+            const rows = text.split("\n").slice(1);
+
+            quizData = rows.map(row => {
+                const cols = row.split(",");
+                return {
+                    q: cols[0],
+                    A: cols[1],
+                    B: cols[2],
+                    C: cols[3],
+                    answer: cols[4] ? cols[4].trim() : ""
+                };
+            }).filter(x => x.q && x.q.trim());
+
+            setStatus(`読み込み完了：${quizData.length}問が利用可能です`);
+        })
+        .catch(err => {
+            console.error("エラー:", err);
+            setStatus("読み込みに失敗しました。スプレッドシートの公開設定をご確認ください。");
+        });
+}
+
+// クイズ開始
+function startQuiz() {
+    if (quizData.length === 0) {
+        setStatus("先に「読み込み」を行ってください");
+        return;
+    }
+    if (quizData.length < totalQuestions) {
+        setStatus(`この問題セットは${quizData.length}問しかありません。出題数を減らすか、別のセットをお試しください。`);
+        return;
+    }
+
+    const pool = [...quizData];
+    shuffleArray(pool);
+    quizSet = pool.slice(0, totalQuestions);
+
+    current = 0;
+    correctCount = 0;
+
+    document.getElementById("quizList").innerHTML = "";
+    document.getElementById("resultCard").style.display = "none";
+    setStatus("");
+
+    renderNextCard();
+}
+
+function renderNextCard() {
+    if (current >= quizSet.length) {
+        showResult();
+        return;
+    }
+
+    const q = quizSet[current];
+    const idx = current;
+
+    const card = document.createElement("div");
+    card.className = "q-card active";
+    card.id = "card-" + idx;
+
+    const num = document.createElement("div");
+    num.className = "q-num";
+    num.innerText = `第 ${idx + 1} 問 / ${quizSet.length}`;
+    card.appendChild(num);
+
+    const qText = document.createElement("div");
+    qText.className = "q-text";
+    qText.innerText = q.q;
+    card.appendChild(qText);
+
+    const choicesDiv = document.createElement("div");
+    choicesDiv.className = "choices";
+
+    ["A", "B", "C"].forEach(letter => {
+        const btn = document.createElement("button");
+        btn.className = "choice-btn";
+        btn.innerHTML = `<span class="tag">${letter}</span><span>${q[letter]}</span>`;
+        btn.onclick = () => selectAnswer(idx, letter, card, choicesDiv);
+        choicesDiv.appendChild(btn);
+    });
+
+    card.appendChild(choicesDiv);
+    document.getElementById("quizList").appendChild(card);
+
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function selectAnswer(idx, chosen, card, choicesDiv) {
+    const q = quizSet[idx];
+    const correct = q.answer;
+    const isCorrect = chosen === correct;
+
+    if (isCorrect) correctCount++;
+
+    [...choicesDiv.children].forEach(btn => {
+        const letter = btn.querySelector(".tag").innerText;
+        btn.disabled = true;
+        if (letter === correct) {
+            btn.classList.add("correct");
+        } else if (letter === chosen) {
+            btn.classList.add("wrong");
+        } else {
+            btn.classList.add("dim");
+        }
+    });
+
+    const note = document.createElement("div");
+    note.className = "answer-note " + (isCorrect ? "ok" : "ng");
+    note.innerText = isCorrect ? "正解です！" : `不正解… 正解は「${correct}」でした`;
+    card.appendChild(note);
+
+    card.classList.remove("active");
+
+    current++;
+    renderNextCard();
+}
+
+function showResult() {
+    const total = quizSet.length;
+    const pct = Math.round((correctCount / total) * 100);
+
+    document.getElementById("scoreBig").innerText = correctCount;
+    document.getElementById("scoreUnit").innerText = `/ ${total}問 正解（正答率 ${pct}%）`;
+
+    let emoji, msg, sub;
+    if (pct >= 90) {
+        emoji = "🎉";
+        msg = "見事です！ほぼ満点の輝かしい結果です";
+        sub = "この調子で、次のセットにも挑戦してみましょう。";
+    } else if (pct >= 70) {
+        emoji = "🌟";
+        msg = "とてもよくできました";
+        sub = "着実に力がついてきています。";
+    } else if (pct >= 50) {
+        emoji = "🌷";
+        msg = "よく頑張りました";
+        sub = "間違えた問題を見直すと、さらに伸びます。";
+    } else {
+        emoji = "🌱";
+        msg = "お疲れさまでした";
+        sub = "焦らずもう一度挑戦して、着実に力をつけていきましょう。";
+    }
+
+    document.getElementById("celebEmoji").innerText = emoji;
+    document.getElementById("celebMsg").innerText = msg;
+    document.getElementById("celebSub").innerText = sub;
+
+    document.getElementById("resultCard").style.display = "block";
+
+    setTimeout(() => {
+        document.getElementById("scoreBar").style.width = pct + "%";
+        document.getElementById("resultCard").scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+}
+
+function restartAll() {
+    document.getElementById("resultCard").style.display = "none";
+    document.getElementById("quizList").innerHTML = "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+</script>
+
+</body>
+</html>
