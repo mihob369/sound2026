@@ -343,6 +343,66 @@
     .panel { padding: 18px; }
     .q-card { padding: 16px; }
   }
+
+  .btn-outline {
+    background: #fff;
+    color: var(--lavender-deep);
+    border: 1.5px solid var(--lavender);
+    box-shadow: none;
+  }
+  .btn-outline:hover { background: var(--bg-2); }
+  .btn-outline.on {
+    background: var(--lavender);
+    color: #fff;
+  }
+
+  /* ===== スライド（全画面）モード ===== */
+  body.slide-mode {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+    height: 100vh;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  body.slide-mode .wrap {
+    max-width: 920px;
+  }
+
+  body.slide-mode .panel,
+  body.slide-mode .q-card,
+  body.slide-mode #resultCard {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  body.slide-mode .panel { padding: 40px 32px; }
+
+  body.slide-mode h1 { font-size: 42px; margin-bottom: 10px; }
+  body.slide-mode .subtitle { font-size: 16px; margin-bottom: 32px; }
+  body.slide-mode .field-label { font-size: 16px; }
+  body.slide-mode select { font-size: 17px; padding: 12px 16px; }
+  body.slide-mode .mode-toggle button { font-size: 16px; padding: 11px 24px; }
+  body.slide-mode .btn { font-size: 17px; padding: 14px 28px; }
+  body.slide-mode .status-line { font-size: 16px; margin-top: 8px; }
+
+  body.slide-mode .q-card { padding: 48px 40px; }
+  body.slide-mode .q-num { font-size: 16px; padding: 6px 18px; margin-bottom: 20px; }
+  body.slide-mode .q-text { font-size: 34px; line-height: 1.6; margin-bottom: 28px; }
+  body.slide-mode .choices { gap: 16px; }
+  body.slide-mode .choice-btn { font-size: 22px; padding: 20px 24px; border-radius: 16px; }
+  body.slide-mode .choice-btn .tag { width: 30px; height: 30px; font-size: 15px; }
+  body.slide-mode .answer-note { font-size: 18px; padding: 14px 18px; margin-top: 18px; }
+
+  body.slide-mode .celebrate-emoji { font-size: 64px; }
+  body.slide-mode .celebrate-msg { font-size: 30px; }
+  body.slide-mode .celebrate-sub { font-size: 16px; }
+  body.slide-mode .score-big { font-size: 56px; }
+  body.slide-mode .score-unit { font-size: 20px; }
 </style>
 </head>
 <body>
@@ -366,6 +426,7 @@
     <div class="row">
       <button class="btn btn-secondary" onclick="loadSheet()">読み込み</button>
       <button class="btn btn-primary" onclick="startQuiz()">クイズ開始</button>
+      <button class="btn btn-outline" id="fullscreenBtn" onclick="toggleFullscreen()">全画面表示：OFF</button>
     </div>
     <div class="status-line" id="statusLine"></div>
   </div>
@@ -589,6 +650,29 @@ function restartAll() {
     document.getElementById("quizList").innerHTML = "";
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+// 全画面（スライド）モード
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {
+            setStatus("全画面表示を開始できませんでした。ブラウザの設定をご確認ください。");
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+function updateFullscreenBtn(isFull) {
+    const btn = document.getElementById("fullscreenBtn");
+    btn.innerText = isFull ? "全画面表示：ON" : "全画面表示：OFF";
+    btn.classList.toggle("on", isFull);
+}
+
+document.addEventListener("fullscreenchange", () => {
+    const isFull = !!document.fullscreenElement;
+    document.body.classList.toggle("slide-mode", isFull);
+    updateFullscreenBtn(isFull);
+});
 
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
