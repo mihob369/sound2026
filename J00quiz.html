@@ -574,7 +574,12 @@ function renderNextCard() {
     card.appendChild(choicesDiv);
     document.getElementById("quizList").appendChild(card);
 
-    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    // 全画面（スライド）モードでは、回答直後に解答が見えなくならないよう
+    // 2問目以降は自動スクロールしない（ユーザーが手動でスクロールして次へ進む）。
+    // ただし1問目はクイズ開始直後に表示位置へ移動させる。
+    if (!document.body.classList.contains("slide-mode") || idx === 0) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 }
 
 function selectAnswer(idx, chosen, card, choicesDiv) {
