@@ -76,6 +76,16 @@
     .slider-panel.active {
       display: flex;
     }
+    .drag-instruction {
+      font-size: 0.9rem;
+      color: #27ae60;
+      font-weight: bold;
+      background: #e8f8f5;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #a3e4d7;
+      text-align: center;
+    }
     /* 3つの式を並べるエリア */
     .formula-card {
       background: #eef6fb;
@@ -121,6 +131,13 @@
       border: 1px solid #ccc;
       border-radius: 8px;
       background-color: #ffffff;
+      touch-action: none; /* スマホでのスクロール防止 */
+    }
+    canvas.drag-mode {
+      cursor: grab;
+    }
+    canvas.drag-mode:active {
+      cursor: grabbing;
     }
     blockquote {
       margin: 0;
@@ -145,6 +162,7 @@
           <option value="general">一般形 : y = ax² + bx + c</option>
           <option value="vertex">平方完成形 : y = a(x - p)² + q</option>
           <option value="factored">因数分解形 : y = a(x - α)(x - β)</option>
+          <option value="drag">👆 グラフドラッグ移動モード</option>
         </select>
       </div>
 
@@ -156,11 +174,11 @@
         </div>
         <div class="control-group">
           <label>b = <span id="valB1" class="slider-val">0</span></label>
-          <input type="range" id="sliderB1" min="-10" max="10" step="1" value="0">
+          <input type="range" id="sliderB1" min="-10" max="10" step="0.5" value="0">
         </div>
         <div class="control-group">
           <label>c = <span id="valC1" class="slider-val">0</span></label>
-          <input type="range" id="sliderC1" min="-10" max="10" step="1" value="0">
+          <input type="range" id="sliderC1" min="-10" max="10" step="0.5" value="0">
         </div>
       </div>
 
@@ -176,7 +194,7 @@
         </div>
         <div class="control-group">
           <label>q (頂点y座標) = <span id="valQ2" class="slider-val">0</span></label>
-          <input type="range" id="sliderQ2" min="-10" max="10" step="1" value="0">
+          <input type="range" id="sliderQ2" min="-10" max="10" step="0.5" value="0">
         </div>
       </div>
 
@@ -188,11 +206,22 @@
         </div>
         <div class="control-group">
           <label>α (x切片1) = <span id="valAlpha3" class="slider-val">-2</span></label>
-          <input type="range" id="sliderAlpha3" min="-10" max="10" step="1" value="-2">
+          <input type="range" id="sliderAlpha3" min="-10" max="10" step="0.5" value="-2">
         </div>
         <div class="control-group">
           <label>β (x切片2) = <span id="valBeta3" class="slider-val">2</span></label>
-          <input type="range" id="sliderBeta3" min="-10" max="10" step="1" value="2">
+          <input type="range" id="sliderBeta3" min="-10" max="10" step="0.5" value="2">
+        </div>
+      </div>
+
+      <!-- ドラッグモード操作ガイド -->
+      <div id="panelDrag" class="slider-panel">
+        <div class="drag-instruction">
+          🖱️ グラフをドラッグすると0.5刻みで移動し、<br>方程式の定数が自動更新されます！
+        </div>
+        <div class="control-group">
+          <label>a (開き具合・向き) = <span id="valA4" class="slider-val">1</span></label>
+          <input type="range" id="sliderA4" min="-5" max="5" step="0.5" value="1">
         </div>
       </div>
 
@@ -242,6 +271,8 @@
     const sliderAlpha3 = document.getElementById('sliderAlpha3'), valAlpha3 = document.getElementById('valAlpha3');
     const sliderBeta3 = document.getElementById('sliderBeta3'), valBeta3 = document.getElementById('valBeta3');
 
+    const sliderA4 = document.getElementById('sliderA4'), valA4 = document.getElementById('valA4');
+
     // 式表示領域
     const dispGeneral = document.getElementById('dispGeneral');
     const dispVertex = document.getElementById('dispVertex');
@@ -256,6 +287,13 @@
     const originX = canvas.width / 2;
     const originY = canvas.height / 2;
 
+    // 現在の内部状態（頂点p, qとaの値を保持）
+    let state = {
+      a: 1,
+      p: 0,
+      q: 0
+    };
+
     // 数値を小数点第2位までに丸めるヘルパー
     function roundVal(num) {
       return Math.round(num * 100) / 100;
@@ -269,6 +307,10 @@
       document.getElementById('panelGeneral').classList.toggle('active', mode === 'general');
       document.getElementById('panelVertex').classList.toggle('active', mode === 'vertex');
       document.getElementById('panelFactored').classList.toggle('active', mode === 'factored');
+      document.getElementById('panelDrag').classList.toggle('active', mode === 'drag');
+
+      // ドラッグモードのクラス設定
+      canvas.classList.toggle('drag-mode', mode === 'drag');
 
       // 選択中の表示をハイライト
       itemGeneral.classList.toggle('highlight', mode === 'general');
@@ -276,61 +318,69 @@
       itemFactored.classList.toggle('highlight', mode === 'factored');
 
       // モード変更時にパラメータの自動同期
-      syncSlidersFromCurrentState(mode);
+      syncSlidersFromState();
       draw();
     });
 
-    // モード切り替え時にスライダー位置を現在のグラフに合わせて更新
-    function syncSlidersFromCurrentState(targetMode) {
-      const { a, b, c } = getCurrentABC();
-      if (a === 0) return;
-
-      if (targetMode === 'vertex') {
-        const p = -b / (2 * a);
-        const q = c - (b * b) / (4 * a);
-        sliderA2.value = a;
-        sliderP2.value = Math.min(Math.max(roundVal(p), -10), 10);
-        sliderQ2.value = Math.min(Math.max(roundVal(q), -10), 10);
-      } else if (targetMode === 'factored') {
-        const D = b * b - 4 * a * c;
-        sliderA3.value = a;
-        if (D >= 0) {
-          const alpha = (-b - Math.sqrt(D)) / (2 * a);
-          const beta = (-b + Math.sqrt(D)) / (2 * a);
-          sliderAlpha3.value = Math.min(Math.max(roundVal(alpha), -10), 10);
-          sliderBeta3.value = Math.min(Math.max(roundVal(beta), -10), 10);
+    // 各スライダー操作時に内部Stateを更新
+    function updateStateFromInputs() {
+      const mode = modeSelect.value;
+      if (mode === 'general') {
+        const a = parseFloat(sliderA1.value);
+        const b = parseFloat(sliderB1.value);
+        const c = parseFloat(sliderC1.value);
+        state.a = a;
+        if (a !== 0) {
+          state.p = -b / (2 * a);
+          state.q = c - (b * b) / (4 * a);
         }
-      } else if (targetMode === 'general') {
-        sliderA1.value = a;
-        sliderB1.value = Math.min(Math.max(roundVal(b), -10), 10);
-        sliderC1.value = Math.min(Math.max(roundVal(c), -10), 10);
+      } else if (mode === 'vertex') {
+        state.a = parseFloat(sliderA2.value);
+        state.p = parseFloat(sliderP2.value);
+        state.q = parseFloat(sliderQ2.value);
+      } else if (mode === 'factored') {
+        const a = parseFloat(sliderA3.value);
+        const alpha = parseFloat(sliderAlpha3.value);
+        const beta = parseFloat(sliderBeta3.value);
+        state.a = a;
+        state.p = (alpha + beta) / 2;
+        state.q = -a * Math.pow((alpha - beta) / 2, 2);
+      } else if (mode === 'drag') {
+        state.a = parseFloat(sliderA4.value);
       }
     }
 
-    // 現在のモードから一般的な a, b, c 係数を算出
-    function getCurrentABC() {
-      const mode = modeSelect.value;
-      let a = 1, b = 0, c = 0;
+    // 内部StateからすべてのUIスライダーに値を反映
+    function syncSlidersFromState() {
+      const a = state.a;
+      const p = state.p;
+      const q = state.q;
 
-      if (mode === 'general') {
-        a = parseFloat(sliderA1.value);
-        b = parseFloat(sliderB1.value);
-        c = parseFloat(sliderC1.value);
-      } else if (mode === 'vertex') {
-        a = parseFloat(sliderA2.value);
-        const p = parseFloat(sliderP2.value);
-        const q = parseFloat(sliderQ2.value);
-        b = -2 * a * p;
-        c = a * p * p + q;
-      } else if (mode === 'factored') {
-        a = parseFloat(sliderA3.value);
-        const alpha = parseFloat(sliderAlpha3.value);
-        const beta = parseFloat(sliderBeta3.value);
-        b = -a * (alpha + beta);
-        c = a * alpha * beta;
+      const b = -2 * a * p;
+      const c = a * p * p + q;
+
+      // 一般形
+      sliderA1.value = a;
+      sliderB1.value = Math.min(Math.max(roundVal(b), -10), 10);
+      sliderC1.value = Math.min(Math.max(roundVal(c), -10), 10);
+
+      // 平方完成形
+      sliderA2.value = a;
+      sliderP2.value = Math.min(Math.max(roundVal(p), -10), 10);
+      sliderQ2.value = Math.min(Math.max(roundVal(q), -10), 10);
+
+      // 因数分解形
+      sliderA3.value = a;
+      const D = b * b - 4 * a * c;
+      if (D >= 0 && a !== 0) {
+        const alpha = (-b - Math.sqrt(D)) / (2 * a);
+        const beta = (-b + Math.sqrt(D)) / (2 * a);
+        sliderAlpha3.value = Math.min(Math.max(roundVal(alpha), -10), 10);
+        sliderBeta3.value = Math.min(Math.max(roundVal(beta), -10), 10);
       }
 
-      return { a, b, c };
+      // ドラッグモード
+      sliderA4.value = a;
     }
 
     // --- 各形式の数式文字列生成処理 ---
@@ -352,10 +402,10 @@
       return str;
     }
 
-    function formatVertex(a, b, c) {
+    function formatVertex(a, p, q) {
       if (a === 0) return 'y = 0';
-      const p = roundVal(-b / (2 * a));
-      const q = roundVal(c - (b * b) / (4 * a));
+      p = roundVal(p);
+      q = roundVal(q);
       a = roundVal(a);
 
       let str = 'y = ';
@@ -405,8 +455,14 @@
       return str;
     }
 
-    function updateDisplays(a, b, c) {
-      // スライダー値表示の更新
+    function updateDisplays() {
+      const a = state.a;
+      const p = state.p;
+      const q = state.q;
+      const b = -2 * a * p;
+      const c = a * p * p + q;
+
+      // スライダー値ラベルの更新
       valA1.textContent = sliderA1.value;
       valB1.textContent = sliderB1.value;
       valC1.textContent = sliderC1.value;
@@ -419,17 +475,23 @@
       valAlpha3.textContent = sliderAlpha3.value;
       valBeta3.textContent = sliderBeta3.value;
 
+      valA4.textContent = sliderA4.value;
+
       // 3形式の数式文字列更新
       dispGeneral.textContent = formatGeneral(a, b, c);
-      dispVertex.textContent = formatVertex(a, b, c);
+      dispVertex.textContent = formatVertex(a, p, q);
       dispFactored.textContent = formatFactored(a, b, c);
     }
 
     function draw() {
-      const { a, b, c } = getCurrentABC();
+      const a = state.a;
+      const p = state.p;
+      const q = state.q;
+      const b = -2 * a * p;
+      const c = a * p * p + q;
 
       // UI数値更新
-      updateDisplays(a, b, c);
+      updateDisplays();
 
       // キャンバスクリア
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -446,7 +508,7 @@
         let first = true;
         for (let pixelX = 0; pixelX <= canvas.width; pixelX++) {
           const x = (pixelX - originX) / scale;
-          const y = a * x * x + b * x + c;
+          const y = a * Math.pow(x - p, 2) + q;
           const pixelY = originY - (y * scale);
 
           if (first) {
@@ -479,7 +541,7 @@
       for (let y = 0; y <= canvas.height; y += scale) {
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(0, canvas.height);
+        ctx.lineTo(canvas.width, y);
         ctx.stroke();
       }
 
@@ -528,16 +590,79 @@
       }
     }
 
+    // --- ドラッグ操作処理 ---
+    let isDragging = false;
+    let dragStartPos = { x: 0, y: 0 };
+    let startStateP = 0;
+    let startStateQ = 0;
+
+    function getEventPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function startDrag(e) {
+      if (modeSelect.value !== 'drag') return;
+      isDragging = true;
+      dragStartPos = getEventPos(e);
+      startStateP = state.p;
+      startStateQ = state.q;
+    }
+
+    function doDrag(e) {
+      if (!isDragging || modeSelect.value !== 'drag') return;
+      const pos = getEventPos(e);
+      
+      const dx = (pos.x - dragStartPos.x) / scale;
+      const dy = -(pos.y - dragStartPos.y) / scale;
+
+      let newP = startStateP + dx;
+      let newQ = startStateQ + dy;
+
+      // 0.5刻みに四捨五入してスナップ（吸着）させる
+      state.p = Math.min(Math.max(Math.round(newP * 2) / 2, -10), 10);
+      state.q = Math.min(Math.max(Math.round(newQ * 2) / 2, -10), 10);
+
+      syncSlidersFromState();
+      draw();
+    }
+
+    function endDrag() {
+      isDragging = false;
+    }
+
+    // マウス・タッチイベントリスナー
+    canvas.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', doDrag);
+    window.addEventListener('mouseup', endDrag);
+
+    canvas.addEventListener('touchstart', startDrag);
+    window.addEventListener('touchmove', doDrag);
+    window.addEventListener('touchend', endDrag);
+
     // 全スライダーに描画イベントを付与
     const sliders = [
       sliderA1, sliderB1, sliderC1,
       sliderA2, sliderP2, sliderQ2,
-      sliderA3, sliderAlpha3, sliderBeta3
+      sliderA3, sliderAlpha3, sliderBeta3,
+      sliderA4
     ];
-    sliders.forEach(slider => slider.addEventListener('input', draw));
+    sliders.forEach(slider => {
+      slider.addEventListener('input', () => {
+        updateStateFromInputs();
+        syncSlidersFromState();
+        draw();
+      });
+    });
 
     // 初期化表示
     itemGeneral.classList.add('highlight');
+    updateStateFromInputs();
     draw();
   </script>
 </body>
