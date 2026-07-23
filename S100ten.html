@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>xy座標マスター！</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       max-width: 900px;
@@ -118,6 +116,7 @@
     }
     .result-correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .result-wrong { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .result-complete { background: #fff3cd; color: #856404; border: 2px solid #ffeeba; font-size: 1.1rem; }
 
     .canvas-container {
       flex: 0 0 auto;
@@ -146,6 +145,12 @@
       width: 0%;
       transition: width 0.3s;
     }
+    .stage-badge {
+      font-size: 0.85rem;
+      color: #e67e22;
+      font-weight: bold;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -173,9 +178,10 @@
           ( <input type="number" id="inputX" placeholder="x"> , <input type="number" id="inputY" placeholder="y"> )
         </div>
 
-        <!-- Mode 3用 進捗バー -->
+        <!-- Mode 3用 進捗表示 -->
         <div id="artProgress" style="display: none;">
-          <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+          <div id="stageBadge" class="stage-badge">ステージ 1/5</div>
+          <div class="progress-bar" style="margin-top:4px;"><div id="progressFill" class="progress-fill"></div></div>
           <div style="font-size:0.85rem; text-align:right; margin-top:4px; color:#7f8c8d;">
             完成まで: <span id="artStepText">0/0</span>
           </div>
@@ -203,6 +209,7 @@
     const artProgress = document.getElementById('artProgress');
     const progressFill = document.getElementById('progressFill');
     const artStepText = document.getElementById('artStepText');
+    const stageBadge = document.getElementById('stageBadge');
     const inputX = document.getElementById('inputX');
     const inputY = document.getElementById('inputY');
     const btnSubmit = document.getElementById('btnSubmit');
@@ -210,12 +217,12 @@
     const resultMsg = document.getElementById('resultMsg');
 
     const gridRange = 7; // -7 〜 +7
-    const scale = canvas.width / (gridRange * 2 + 2); // 1目盛りのピクセル数
+    const scale = canvas.width / (gridRange * 2 + 2);
     const originX = canvas.width / 2;
     const originY = canvas.height / 2;
 
-    // 点つなぎ用データセット（おうち、星、ロケット）
-    const artDataSets = [
+    // 点つなぎ用データセット（全5種類）
+    const masterArtData = [
       {
         name: "おうち",
         points: [
@@ -238,8 +245,28 @@
           {x: 0, y: 5}, {x: 0, y: -1}, {x: 5, y: -1}, {x: 0, y: 5},
           {x: -4, y: -2}, {x: 4, y: -2}, {x: 2, y: -5}, {x: -2, y: -5}, {x: -4, y: -2}
         ]
+      },
+      {
+        name: "ねこ",
+        points: [
+          {x: -2, y: 3}, {x: -4, y: 6}, {x: -1, y: 4}, {x: 1, y: 4},
+          {x: 4, y: 6}, {x: 2, y: 3}, {x: 3, y: 0}, {x: 2, y: -3},
+          {x: -2, y: -3}, {x: -3, y: 0}, {x: -2, y: 3}
+        ]
+      },
+      {
+        name: "ロケット",
+        points: [
+          {x: 0, y: 6}, {x: 2, y: 3}, {x: 2, y: -3}, {x: 4, y: -5},
+          {x: 2, y: -5}, {x: 0, y: -3}, {x: -2, y: -5}, {x: -4, y: -5},
+          {x: -2, y: -3}, {x: -2, y: 3}, {x: 0, y: 6}
+        ]
       }
     ];
+
+    // 点つなぎの進行状況を管理
+    let artQueue = [];       // 残りの絵柄インデックス
+    let artCompletedCount = 0; // クリアした数
 
     let quizState = {
       targetX: 0,
@@ -247,25 +274,44 @@
       userClickedX: null,
       userClickedY: null,
       isAnswered: false,
-      artIndex: 0,
+      currentArt: null,
       artStep: 0,
       artHistory: []
     };
 
+    // 配列をシャッフルする関数
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // 点つなぎキューの初期化（全絵柄をシャッフルしてセット）
+    function resetArtQueue() {
+      let indices = masterArtData.map((_, i) => i);
+      artQueue = shuffle(indices);
+      artCompletedCount = 0;
+    }
+
     // 初期化
     modeSelect.addEventListener('change', () => {
+      if (modeSelect.value === 'art') {
+        resetArtQueue();
+      }
       initQuiz();
     });
 
     btnNext.addEventListener('click', () => {
+      // コンプリート後に次へボタンを押したら最初からリセット
+      if (modeSelect.value === 'art' && artQueue.length === 0) {
+        resetArtQueue();
+      }
       initQuiz();
     });
 
-    btnSubmit.addEventListener('click', () => {
-      checkTypeAnswer();
-    });
-
-    // Enterキーでも解答できるようにする
+    btnSubmit.addEventListener('click', checkTypeAnswer);
     inputX.addEventListener('keypress', (e) => { if(e.key==='Enter') checkTypeAnswer(); });
     inputY.addEventListener('keypress', (e) => { if(e.key==='Enter') checkTypeAnswer(); });
 
@@ -311,18 +357,24 @@
         btnSubmit.style.display = 'none';
         artProgress.style.display = 'block';
 
-        if (!quizState.isArtActive) {
-          quizState.artIndex = Math.floor(Math.random() * artDataSets.length);
-          quizState.artStep = 0;
-          quizState.artHistory = [];
-          quizState.isArtActive = true;
+        if (artQueue.length === 0) {
+          resetArtQueue();
         }
 
-        const currentArt = artDataSets[quizState.artIndex];
+        // 新しい絵柄の開始
+        if (!quizState.currentArt) {
+          const artIndex = artQueue[0];
+          quizState.currentArt = masterArtData[artIndex];
+          quizState.artStep = 0;
+          quizState.artHistory = [];
+        }
+
+        const currentArt = quizState.currentArt;
         const target = currentArt.points[quizState.artStep];
         quizState.targetX = target.x;
         quizState.targetY = target.y;
 
+        stageBadge.textContent = `絵柄 ${artCompletedCount + 1} / ${masterArtData.length}`;
         quizQText.innerHTML = `点つなぎ (${quizState.artStep + 1}番目)<br><span class="coord-target">(${target.x}, ${target.y})</span> をクリック！`;
         
         artStepText.textContent = `${quizState.artStep}/${currentArt.points.length}`;
@@ -341,11 +393,9 @@
       const clickX = e.clientX - rect.left;
       const clickY = e.clientY - rect.top;
 
-      // クリック位置を最も近い整数座標に変換
       const gridX = Math.round((clickX - originX) / scale);
       const gridY = Math.round(-(clickY - originY) / scale);
 
-      // 範囲外クリック防止
       if (Math.abs(gridX) > gridRange || Math.abs(gridY) > gridRange) return;
 
       quizState.userClickedX = gridX;
@@ -364,24 +414,39 @@
         }
         btnNext.style.display = 'block';
       } else if (mode === 'art') {
-        const currentArt = artDataSets[quizState.artIndex];
+        const currentArt = quizState.currentArt;
 
         if (gridX === quizState.targetX && gridY === quizState.targetY) {
           quizState.artHistory.push({ x: gridX, y: gridY });
           quizState.artStep++;
 
           if (quizState.artStep >= currentArt.points.length) {
-            // 完成！
-            quizState.isAnswered = true;
-            quizState.isArtActive = false;
+            // 1つの絵柄を完成！
+            artCompletedCount++;
+            artQueue.shift(); // クリアした絵柄を取り除く
+            quizState.currentArt = null;
+
             resultMsg.style.display = 'block';
-            resultMsg.className = 'result-msg result-correct';
-            resultMsg.innerHTML = `🎨 すごい！「<strong>${currentArt.name}</strong>」が完成したよ！`;
+
+            if (artQueue.length === 0) {
+              // 全絵柄コンプリート！！
+              quizState.isAnswered = true;
+              resultMsg.className = 'result-msg result-complete';
+              resultMsg.innerHTML = `🏆 <b>全クリアおめでとう！</b><br>すべての点つなぎ絵柄をコンプリートしました！素晴らしい！`;
+              btnNext.textContent = '🔄 最初からもう一度あそぶ';
+            } else {
+              // 次の絵柄へ
+              quizState.isAnswered = true;
+              resultMsg.className = 'result-msg result-correct';
+              resultMsg.innerHTML = `🎨 「<strong>${currentArt.name}</strong>」が完成！<br>すごい！この調子で次へ進もう！`;
+              btnNext.textContent = '次の問題へ ➔';
+            }
+
             btnNext.style.display = 'block';
             artStepText.textContent = `${currentArt.points.length}/${currentArt.points.length}`;
             progressFill.style.width = `100%`;
           } else {
-            // 次の点へ
+            // 同じ絵柄の次の点へ
             const nextTarget = currentArt.points[quizState.artStep];
             quizState.targetX = nextTarget.x;
             quizState.targetY = nextTarget.y;
@@ -433,25 +498,21 @@
       const mode = modeSelect.value;
 
       if (mode === 'type') {
-        // 出題用の点を表示
         drawPoint(quizState.targetX, quizState.targetY, '#e74c3c', 7);
         if (quizState.isAnswered) {
           drawPointLabel(quizState.targetX, quizState.targetY, `(${quizState.targetX}, ${quizState.targetY})`, '#e74c3c');
         }
       } else if (mode === 'click') {
-        // 正解の場所（回答後表示）
         if (quizState.isAnswered) {
           drawPoint(quizState.targetX, quizState.targetY, '#2ecc71', 8);
           drawPointLabel(quizState.targetX, quizState.targetY, `正解 (${quizState.targetX}, ${quizState.targetY})`, '#2ecc71');
 
-          // 不正解だった場合の誤クリック位置
           if (quizState.userClickedX !== quizState.targetX || quizState.userClickedY !== quizState.targetY) {
             drawPoint(quizState.userClickedX, quizState.userClickedY, '#e74c3c', 7);
             drawPointLabel(quizState.userClickedX, quizState.userClickedY, `(${quizState.userClickedX}, ${quizState.userClickedY})`, '#e74c3c');
           }
         }
       } else if (mode === 'art') {
-        // これまでに繋いだ線と点を描画
         if (quizState.artHistory.length > 0) {
           ctx.beginPath();
           ctx.strokeStyle = '#e67e22';
@@ -467,7 +528,6 @@
           });
           ctx.stroke();
 
-          // 繋いだ点を描画
           quizState.artHistory.forEach((p) => {
             drawPoint(p.x, p.y, '#e67e22', 5);
           });
@@ -481,29 +541,23 @@
       ctx.lineWidth = 1;
 
       for (let i = -gridRange; i <= gridRange; i++) {
-        // 縦線
         let x = originX + i * scale;
         ctx.beginPath();
         ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
 
-        // 横線
         let y = originY - i * scale;
         ctx.beginPath();
         ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
-      // 軸の描画
       ctx.strokeStyle = '#2c3e50';
       ctx.lineWidth = 2;
 
-      // x軸
       ctx.beginPath();
       ctx.moveTo(0, originY); ctx.lineTo(canvas.width, originY); ctx.stroke();
-      // y軸
       ctx.beginPath();
       ctx.moveTo(originX, 0); ctx.lineTo(originX, canvas.height); ctx.stroke();
 
-      // 目盛り数値の描画
       ctx.fillStyle = '#7f8c8d';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
@@ -511,17 +565,13 @@
 
       for (let i = -gridRange; i <= gridRange; i++) {
         if (i === 0) continue;
-        // x軸目盛り
         ctx.fillText(i, originX + i * scale, originY + 4);
-        // y軸目盛り
         ctx.textAlign = 'right';
         ctx.fillText(i, originX - 4, originY - i * scale - 5);
         ctx.textAlign = 'center';
       }
-      // 原点 O
       ctx.textAlign = 'right';
       ctx.fillText('O', originX - 4, originY + 4);
-      // 軸ラベル
       ctx.font = 'bold 13px sans-serif';
       ctx.fillStyle = '#2c3e50';
       ctx.fillText('x', canvas.width - 10, originY + 4);
@@ -551,7 +601,8 @@
       ctx.fillText(text, px + 8, py - 8);
     }
 
-    // 初回起動
+    // 初回起動（キューを初期化）
+    resetArtQueue();
     initQuiz();
   </script>
 </body>
