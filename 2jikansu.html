@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2次関数グラフシミュレーター（多機能版）</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 950px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f7fa;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .controls {
+      flex: 1;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .control-group label {
+      font-weight: bold;
+    }
+    .slider-val {
+      color: #3498db;
+      font-weight: bold;
+    }
+    .mode-select-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .mode-select-group label {
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    select {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 2px solid #3498db;
+      background-color: #fff;
+      font-weight: bold;
+      color: #2c3e50;
+      cursor: pointer;
+    }
+    .slider-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+    }
+    .slider-panel.active {
+      display: flex;
+    }
+    /* 3つの式を並べるエリア */
+    .formula-card {
+      background: #eef6fb;
+      border-left: 4px solid #3498db;
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .formula-card-title {
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #2c3e50;
+      border-bottom: 1px dashed #b2d6ec;
+      padding-bottom: 4px;
+    }
+    .formula-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .formula-label {
+      font-size: 0.8rem;
+      color: #7f8c8d;
+    }
+    .formula-text {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #2c3e50;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .formula-item.highlight .formula-text {
+      color: #e74c3c;
+    }
+    .canvas-container {
+      flex: 2;
+      min-width: 300px;
+      display: flex;
+      justify-content: center;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #ffffff;
+    }
+    blockquote {
+      margin: 0;
+      padding: 10px;
+      background: #fff8e1;
+      border-left: 4px solid #f1c40f;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>2次関数グラフシミュレーター</h1>
+
+  <div class="container">
+    <div class="controls">
+      <!-- モード選択 -->
+      <div class="mode-select-group">
+        <label for="modeSelect">操作モード切り替え：</label>
+        <select id="modeSelect">
+          <option value="general">一般形 : y = ax² + bx + c</option>
+          <option value="vertex">平方完成形 : y = a(x - p)² + q</option>
+          <option value="factored">因数分解形 : y = a(x - α)(x - β)</option>
+        </select>
+      </div>
+
+      <!-- 一般形スライダー -->
+      <div id="panelGeneral" class="slider-panel active">
+        <div class="control-group">
+          <label>a = <span id="valA1" class="slider-val">1</span></label>
+          <input type="range" id="sliderA1" min="-5" max="5" step="0.5" value="1">
+        </div>
+        <div class="control-group">
+          <label>b = <span id="valB1" class="slider-val">0</span></label>
+          <input type="range" id="sliderB1" min="-10" max="10" step="1" value="0">
+        </div>
+        <div class="control-group">
+          <label>c = <span id="valC1" class="slider-val">0</span></label>
+          <input type="range" id="sliderC1" min="-10" max="10" step="1" value="0">
+        </div>
+      </div>
+
+      <!-- 平方完成形スライダー -->
+      <div id="panelVertex" class="slider-panel">
+        <div class="control-group">
+          <label>a = <span id="valA2" class="slider-val">1</span></label>
+          <input type="range" id="sliderA2" min="-5" max="5" step="0.5" value="1">
+        </div>
+        <div class="control-group">
+          <label>p (頂点x座標) = <span id="valP2" class="slider-val">0</span></label>
+          <input type="range" id="sliderP2" min="-10" max="10" step="0.5" value="0">
+        </div>
+        <div class="control-group">
+          <label>q (頂点y座標) = <span id="valQ2" class="slider-val">0</span></label>
+          <input type="range" id="sliderQ2" min="-10" max="10" step="1" value="0">
+        </div>
+      </div>
+
+      <!-- 因数分解形スライダー -->
+      <div id="panelFactored" class="slider-panel">
+        <div class="control-group">
+          <label>a = <span id="valA3" class="slider-val">1</span></label>
+          <input type="range" id="sliderA3" min="-5" max="5" step="0.5" value="1">
+        </div>
+        <div class="control-group">
+          <label>α (x切片1) = <span id="valAlpha3" class="slider-val">-2</span></label>
+          <input type="range" id="sliderAlpha3" min="-10" max="10" step="1" value="-2">
+        </div>
+        <div class="control-group">
+          <label>β (x切片2) = <span id="valBeta3" class="slider-val">2</span></label>
+          <input type="range" id="sliderBeta3" min="-10" max="10" step="1" value="2">
+        </div>
+      </div>
+
+      <!-- 3式の並べて表示エリア -->
+      <div class="formula-card">
+        <div class="formula-card-title">📊 3つの式の比較表示</div>
+        <div class="formula-item" id="itemGeneral">
+          <span class="formula-label">【一般形】</span>
+          <span class="formula-text" id="dispGeneral">y = x²</span>
+        </div>
+        <div class="formula-item" id="itemVertex">
+          <span class="formula-label">【平方完成形】</span>
+          <span class="formula-text" id="dispVertex">y = x²</span>
+        </div>
+        <div class="formula-item" id="itemFactored">
+          <span class="formula-label">【因数分解形】</span>
+          <span class="formula-text" id="dispFactored">y = (x + 2)(x - 2)</span>
+        </div>
+      </div>
+
+      <blockquote>
+        <small>💡 <strong>赤色の点</strong>：x座標・y座標が共に「整数」になる点（格子点）を表示しています。</small>
+      </blockquote>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="graphCanvas" width="500" height="500"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const modeSelect = document.getElementById('modeSelect');
+
+    // スライダー・値表示エレメント
+    const sliderA1 = document.getElementById('sliderA1'), valA1 = document.getElementById('valA1');
+    const sliderB1 = document.getElementById('sliderB1'), valB1 = document.getElementById('valB1');
+    const sliderC1 = document.getElementById('sliderC1'), valC1 = document.getElementById('valC1');
+
+    const sliderA2 = document.getElementById('sliderA2'), valA2 = document.getElementById('valA2');
+    const sliderP2 = document.getElementById('sliderP2'), valP2 = document.getElementById('valP2');
+    const sliderQ2 = document.getElementById('sliderQ2'), valQ2 = document.getElementById('valQ2');
+
+    const sliderA3 = document.getElementById('sliderA3'), valA3 = document.getElementById('valA3');
+    const sliderAlpha3 = document.getElementById('sliderAlpha3'), valAlpha3 = document.getElementById('valAlpha3');
+    const sliderBeta3 = document.getElementById('sliderBeta3'), valBeta3 = document.getElementById('valBeta3');
+
+    // 式表示領域
+    const dispGeneral = document.getElementById('dispGeneral');
+    const dispVertex = document.getElementById('dispVertex');
+    const dispFactored = document.getElementById('dispFactored');
+
+    const itemGeneral = document.getElementById('itemGeneral');
+    const itemVertex = document.getElementById('itemVertex');
+    const itemFactored = document.getElementById('itemFactored');
+
+    // 描画設定（中心が0,0、1目盛りが25px）
+    const scale = 25; 
+    const originX = canvas.width / 2;
+    const originY = canvas.height / 2;
+
+    // 数値を小数点第2位までに丸めるヘルパー
+    function roundVal(num) {
+      return Math.round(num * 100) / 100;
+    }
+
+    // モード切り替えイベント
+    modeSelect.addEventListener('change', (e) => {
+      const mode = e.target.value;
+      
+      // パネルの表示制御
+      document.getElementById('panelGeneral').classList.toggle('active', mode === 'general');
+      document.getElementById('panelVertex').classList.toggle('active', mode === 'vertex');
+      document.getElementById('panelFactored').classList.toggle('active', mode === 'factored');
+
+      // 選択中の表示をハイライト
+      itemGeneral.classList.toggle('highlight', mode === 'general');
+      itemVertex.classList.toggle('highlight', mode === 'vertex');
+      itemFactored.classList.toggle('highlight', mode === 'factored');
+
+      // モード変更時にパラメータの自動同期
+      syncSlidersFromCurrentState(mode);
+      draw();
+    });
+
+    // モード切り替え時にスライダー位置を現在のグラフに合わせて更新
+    function syncSlidersFromCurrentState(targetMode) {
+      const { a, b, c } = getCurrentABC();
+      if (a === 0) return;
+
+      if (targetMode === 'vertex') {
+        const p = -b / (2 * a);
+        const q = c - (b * b) / (4 * a);
+        sliderA2.value = a;
+        sliderP2.value = Math.min(Math.max(roundVal(p), -10), 10);
+        sliderQ2.value = Math.min(Math.max(roundVal(q), -10), 10);
+      } else if (targetMode === 'factored') {
+        const D = b * b - 4 * a * c;
+        sliderA3.value = a;
+        if (D >= 0) {
+          const alpha = (-b - Math.sqrt(D)) / (2 * a);
+          const beta = (-b + Math.sqrt(D)) / (2 * a);
+          sliderAlpha3.value = Math.min(Math.max(roundVal(alpha), -10), 10);
+          sliderBeta3.value = Math.min(Math.max(roundVal(beta), -10), 10);
+        }
+      } else if (targetMode === 'general') {
+        sliderA1.value = a;
+        sliderB1.value = Math.min(Math.max(roundVal(b), -10), 10);
+        sliderC1.value = Math.min(Math.max(roundVal(c), -10), 10);
+      }
+    }
+
+    // 現在のモードから一般的な a, b, c 係数を算出
+    function getCurrentABC() {
+      const mode = modeSelect.value;
+      let a = 1, b = 0, c = 0;
+
+      if (mode === 'general') {
+        a = parseFloat(sliderA1.value);
+        b = parseFloat(sliderB1.value);
+        c = parseFloat(sliderC1.value);
+      } else if (mode === 'vertex') {
+        a = parseFloat(sliderA2.value);
+        const p = parseFloat(sliderP2.value);
+        const q = parseFloat(sliderQ2.value);
+        b = -2 * a * p;
+        c = a * p * p + q;
+      } else if (mode === 'factored') {
+        a = parseFloat(sliderA3.value);
+        const alpha = parseFloat(sliderAlpha3.value);
+        const beta = parseFloat(sliderBeta3.value);
+        b = -a * (alpha + beta);
+        c = a * alpha * beta;
+      }
+
+      return { a, b, c };
+    }
+
+    // --- 各形式の数式文字列生成処理 ---
+    function formatGeneral(a, b, c) {
+      if (a === 0) return 'y = 0';
+      a = roundVal(a); b = roundVal(b); c = roundVal(c);
+      
+      let str = 'y = ';
+      if (a === 1) str += 'x²';
+      else if (a === -1) str += '-x²';
+      else str += `${a}x²`;
+
+      if (b > 0) str += ` + ${b === 1 ? '' : b}x`;
+      else if (b < 0) str += ` - ${Math.abs(b) === 1 ? '' : Math.abs(b)}x`;
+
+      if (c > 0) str += ` + ${c}`;
+      else if (c < 0) str += ` - ${Math.abs(c)}`;
+
+      return str;
+    }
+
+    function formatVertex(a, b, c) {
+      if (a === 0) return 'y = 0';
+      const p = roundVal(-b / (2 * a));
+      const q = roundVal(c - (b * b) / (4 * a));
+      a = roundVal(a);
+
+      let str = 'y = ';
+      if (a === -1) str += '-';
+      else if (a !== 1) str += `${a}`;
+
+      if (p === 0) {
+        str += 'x²';
+      } else if (p > 0) {
+        str += `(x - ${p})²`;
+      } else {
+        str += `(x + ${Math.abs(p)})²`;
+      }
+
+      if (q > 0) str += ` + ${q}`;
+      else if (q < 0) str += ` - ${Math.abs(q)}`;
+
+      return str;
+    }
+
+    function formatFactored(a, b, c) {
+      if (a === 0) return 'y = 0';
+      const D = b * b - 4 * a * c;
+      
+      if (D < -1e-6) {
+        return '（実数範囲で因数分解不可）';
+      }
+
+      let alpha = roundVal((-b - Math.sqrt(Math.max(0, D))) / (2 * a));
+      let beta = roundVal((-b + Math.sqrt(Math.max(0, D))) / (2 * a));
+      a = roundVal(a);
+
+      let str = 'y = ';
+      if (a === -1) str += '-';
+      else if (a !== 1) str += `${a}`;
+
+      if (Math.abs(alpha - beta) < 1e-4) {
+        if (alpha === 0) str += 'x²';
+        else if (alpha > 0) str += `(x - ${alpha})²`;
+        else str += `(x + ${Math.abs(alpha)})²`;
+      } else {
+        const t1 = alpha === 0 ? 'x' : (alpha > 0 ? `(x - ${alpha})` : `(x + ${Math.abs(alpha)})`);
+        const t2 = beta === 0 ? 'x' : (beta > 0 ? `(x - ${beta})` : `(x + ${Math.abs(beta)})`);
+        str += `${t1}${t2}`;
+      }
+
+      return str;
+    }
+
+    function updateDisplays(a, b, c) {
+      // スライダー値表示の更新
+      valA1.textContent = sliderA1.value;
+      valB1.textContent = sliderB1.value;
+      valC1.textContent = sliderC1.value;
+
+      valA2.textContent = sliderA2.value;
+      valP2.textContent = sliderP2.value;
+      valQ2.textContent = sliderQ2.value;
+
+      valA3.textContent = sliderA3.value;
+      valAlpha3.textContent = sliderAlpha3.value;
+      valBeta3.textContent = sliderBeta3.value;
+
+      // 3形式の数式文字列更新
+      dispGeneral.textContent = formatGeneral(a, b, c);
+      dispVertex.textContent = formatVertex(a, b, c);
+      dispFactored.textContent = formatFactored(a, b, c);
+    }
+
+    function draw() {
+      const { a, b, c } = getCurrentABC();
+
+      // UI数値更新
+      updateDisplays(a, b, c);
+
+      // キャンバスクリア
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. グリッド線と軸の描画
+      drawGrid();
+
+      // 2. 2次方程式のグラフ描画
+      if (a !== 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 2.5;
+
+        let first = true;
+        for (let pixelX = 0; pixelX <= canvas.width; pixelX++) {
+          const x = (pixelX - originX) / scale;
+          const y = a * x * x + b * x + c;
+          const pixelY = originY - (y * scale);
+
+          if (first) {
+            ctx.moveTo(pixelX, pixelY);
+            first = false;
+          } else {
+            ctx.lineTo(pixelX, pixelY);
+          }
+        }
+        ctx.stroke();
+
+        // 3. 整数座標（格子点）の描画とラベル表示
+        drawIntegerPoints(a, b, c);
+      }
+    }
+
+    function drawGrid() {
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+
+      // 縦線
+      for (let x = 0; x <= canvas.width; x += scale) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      // 横線
+      for (let y = 0; y <= canvas.height; y += scale) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(0, canvas.height);
+        ctx.stroke();
+      }
+
+      // x軸・y軸
+      ctx.strokeStyle = '#2c3e50';
+      ctx.lineWidth = 2;
+      
+      ctx.beginPath(); // X軸
+      ctx.moveTo(0, originY);
+      ctx.lineTo(canvas.width, originY);
+      ctx.stroke();
+
+      ctx.beginPath(); // Y軸
+      ctx.moveTo(originX, 0);
+      ctx.lineTo(originX, canvas.height);
+      ctx.stroke();
+    }
+
+    function drawIntegerPoints(a, b, c) {
+      const minX = Math.ceil((-originX) / scale);
+      const maxX = Math.floor((canvas.width - originX) / scale);
+
+      for (let x = minX; x <= maxX; x++) {
+        const y = a * x * x + b * x + c;
+
+        // yが整数かどうか判定
+        if (Math.abs(y - Math.round(y)) < 1e-6) {
+          const intY = Math.round(y);
+          const pixelX = originX + (x * scale);
+          const pixelY = originY - (intY * scale);
+
+          if (pixelY >= 0 && pixelY <= canvas.height) {
+            ctx.beginPath();
+            ctx.arc(pixelX, pixelY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#e74c3c';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#c0392b';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText(`(${x}, ${intY})`, pixelX + 7, pixelY - 7);
+          }
+        }
+      }
+    }
+
+    // 全スライダーに描画イベントを付与
+    const sliders = [
+      sliderA1, sliderB1, sliderC1,
+      sliderA2, sliderP2, sliderQ2,
+      sliderA3, sliderAlpha3, sliderBeta3
+    ];
+    sliders.forEach(slider => slider.addEventListener('input', draw));
+
+    // 初期化表示
+    itemGeneral.classList.add('highlight');
+    draw();
+  </script>
+</body>
+</html>
