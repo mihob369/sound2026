@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>1次関数・直線グラフシミュレーター</title>
   <style>
+    box-sizing: border-box;
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 950px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 20px;
       background-color: #f5f7fa;
@@ -16,6 +17,7 @@
     h1 {
       text-align: center;
       color: #2c3e50;
+      margin-top: 0;
     }
     .container {
       display: flex;
@@ -25,10 +27,11 @@
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      align-items: flex-start;
     }
     .controls {
-      flex: 1;
-      min-width: 280px;
+      flex: 1 1 320px;
+      min-width: 300px;
       display: flex;
       flex-direction: column;
       gap: 15px;
@@ -45,6 +48,23 @@
       color: #3498db;
       font-weight: bold;
     }
+    /* スライダー両端の数値レイアウト */
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slider-wrapper input[type="range"] {
+      flex: 1;
+    }
+    .slider-limit {
+      font-size: 0.85rem;
+      color: #7f8c8d;
+      font-weight: bold;
+      width: 24px;
+      text-align: center;
+    }
+
     .mode-select-group {
       display: flex;
       flex-direction: column;
@@ -86,6 +106,57 @@
       border: 1px solid #a3e4d7;
       text-align: center;
     }
+    
+    /* 出題モード用パネル */
+    .quiz-card {
+      background: #fff3cd;
+      border: 2px solid #ffeba2;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .quiz-title {
+      font-weight: bold;
+      color: #856404;
+      font-size: 1.05rem;
+    }
+    .quiz-q-text {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #2c3e50;
+      background: #ffffff;
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+      border: 1px solid #ffe8a1;
+      line-height: 1.4;
+    }
+    .btn {
+      padding: 10px 15px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary { background: #3498db; color: white; }
+    .btn-primary:hover { background: #2980b9; }
+    .btn-success { background: #2ecc71; color: white; }
+    .btn-success:hover { background: #27ae60; }
+    
+    .result-msg {
+      font-weight: bold;
+      font-size: 1.1rem;
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .result-correct { background: #d4edda; color: #155724; }
+    .result-wrong { background: #f8d7da; color: #721c24; }
+
     /* 式の並べて表示エリア */
     .formula-card {
       background: #eef6fb;
@@ -121,27 +192,25 @@
     .formula-item.highlight .formula-text {
       color: #e74c3c;
     }
+
+    /* キャンバスエリア */
     .canvas-container {
-      flex: 2;
-      min-width: 300px;
+      flex: 0 0 auto;
       display: flex;
       justify-content: center;
+      align-items: center;
     }
     canvas {
       border: 1px solid #ccc;
       border-radius: 8px;
       background-color: #ffffff;
       touch-action: none;
+      max-width: 100%;
+      height: auto;
     }
-    canvas.click-mode {
-      cursor: crosshair;
-    }
-    canvas.drag-mode {
-      cursor: grab;
-    }
-    canvas.drag-mode:active {
-      cursor: grabbing;
-    }
+    canvas.click-mode { cursor: crosshair; }
+    canvas.drag-mode { cursor: grab; }
+    canvas.drag-mode:active { cursor: grabbing; }
     blockquote {
       margin: 0;
       padding: 10px;
@@ -166,6 +235,7 @@
           <option value="standard">❷ 標準形 : ax + by = c</option>
           <option value="twopoints">❸ 2点を通る直線（クリック指定）</option>
           <option value="drag">❹ グラフドラッグ移動モード</option>
+          <option value="quiz">🎯 出題（問題）モード</option>
         </select>
       </div>
 
@@ -173,11 +243,19 @@
       <div id="panelSlope" class="slider-panel active">
         <div class="control-group">
           <label>a (傾き) = <span id="valA1" class="slider-val">1</span></label>
-          <input type="range" id="sliderA1" min="-5" max="5" step="0.5" value="1">
+          <div class="slider-wrapper">
+            <span class="slider-limit">-5</span>
+            <input type="range" id="sliderA1" min="-5" max="5" step="0.5" value="1">
+            <span class="slider-limit">5</span>
+          </div>
         </div>
         <div class="control-group">
           <label>b (y切片) = <span id="valB1" class="slider-val">0</span></label>
-          <input type="range" id="sliderB1" min="-10" max="10" step="0.5" value="0">
+          <div class="slider-wrapper">
+            <span class="slider-limit">-10</span>
+            <input type="range" id="sliderB1" min="-10" max="10" step="0.5" value="0">
+            <span class="slider-limit">10</span>
+          </div>
         </div>
       </div>
 
@@ -185,15 +263,27 @@
       <div id="panelStandard" class="slider-panel">
         <div class="control-group">
           <label>a = <span id="valA2" class="slider-val">1</span></label>
-          <input type="range" id="sliderA2" min="-5" max="5" step="0.5" value="1">
+          <div class="slider-wrapper">
+            <span class="slider-limit">-5</span>
+            <input type="range" id="sliderA2" min="-5" max="5" step="0.5" value="1">
+            <span class="slider-limit">5</span>
+          </div>
         </div>
         <div class="control-group">
           <label>b = <span id="valB2" class="slider-val">-1</span></label>
-          <input type="range" id="sliderB2" min="-5" max="5" step="0.5" value="-1">
+          <div class="slider-wrapper">
+            <span class="slider-limit">-5</span>
+            <input type="range" id="sliderB2" min="-5" max="5" step="0.5" value="-1">
+            <span class="slider-limit">5</span>
+          </div>
         </div>
         <div class="control-group">
           <label>c = <span id="valC2" class="slider-val">0</span></label>
-          <input type="range" id="sliderC2" min="-10" max="10" step="0.5" value="0">
+          <div class="slider-wrapper">
+            <span class="slider-limit">-10</span>
+            <input type="range" id="sliderC2" min="-10" max="10" step="0.5" value="0">
+            <span class="slider-limit">10</span>
+          </div>
         </div>
       </div>
 
@@ -215,12 +305,54 @@
         </div>
         <div class="control-group">
           <label>a (傾き) = <span id="valA4" class="slider-val">1</span></label>
-          <input type="range" id="sliderA4" min="-5" max="5" step="0.5" value="1">
+          <div class="slider-wrapper">
+            <span class="slider-limit">-5</span>
+            <input type="range" id="sliderA4" min="-5" max="5" step="0.5" value="1">
+            <span class="slider-limit">5</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🎯 出題モードパネル -->
+      <div id="panelQuiz" class="slider-panel">
+        <div class="quiz-card">
+          <div class="quiz-title">📝 問題</div>
+          <div id="quizQuestion" class="quiz-q-text">問題を作成中...</div>
+
+          <!-- パターン4用の式解答スライダー -->
+          <div id="quizEquationInputs" style="display:none; flex-direction:column; gap:8px; margin-top:5px;">
+            <div class="control-group">
+              <label>a (傾き) = <span id="valAQuiz" class="slider-val">1</span></label>
+              <div class="slider-wrapper">
+                <span class="slider-limit">-5</span>
+                <input type="range" id="sliderAQuiz" min="-5" max="5" step="0.5" value="1">
+                <span class="slider-limit">5</span>
+              </div>
+            </div>
+            <div class="control-group">
+              <label>b (y切片) = <span id="valBQuiz" class="slider-val">0</span></label>
+              <div class="slider-wrapper">
+                <span class="slider-limit">-10</span>
+                <input type="range" id="sliderBQuiz" min="-10" max="10" step="0.5" value="0">
+                <span class="slider-limit">10</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2点指定問題用ガイド -->
+          <div id="quizTwoPointsGuide" style="font-size:0.85rem; color:#2c3e50;">
+            選択中 ➔ 点1: <strong id="dispQuizP1" class="slider-val">未選択</strong>, 点2: <strong id="dispQuizP2" class="slider-val">未選択</strong>
+          </div>
+
+          <button id="btnCheckAnswer" class="btn btn-primary">解答する</button>
+          <button id="btnNextQuiz" class="btn btn-success" style="display:none;">次の問題へ ➔</button>
+
+          <div id="quizResult" class="result-msg" style="display:none;"></div>
         </div>
       </div>
 
       <!-- 式の並べて表示エリア -->
-      <div class="formula-card">
+      <div class="formula-card" id="formulaCard">
         <div class="formula-card-title">📊 方程式の比較表示</div>
         <div class="formula-item" id="itemSlope">
           <span class="formula-label">【傾き・切片形】</span>
@@ -268,58 +400,60 @@
     const itemSlope = document.getElementById('itemSlope');
     const itemStandard = document.getElementById('itemStandard');
 
-    // 描画設定（中心が0,0、1目盛りが25px）
+    // クイズ用エレメント
+    const quizQuestion = document.getElementById('quizQuestion');
+    const quizEquationInputs = document.getElementById('quizEquationInputs');
+    const quizTwoPointsGuide = document.getElementById('quizTwoPointsGuide');
+    const sliderAQuiz = document.getElementById('sliderAQuiz'), valAQuiz = document.getElementById('valAQuiz');
+    const sliderBQuiz = document.getElementById('sliderBQuiz'), valBQuiz = document.getElementById('valBQuiz');
+    const dispQuizP1 = document.getElementById('dispQuizP1');
+    const dispQuizP2 = document.getElementById('dispQuizP2');
+    const btnCheckAnswer = document.getElementById('btnCheckAnswer');
+    const btnNextQuiz = document.getElementById('btnNextQuiz');
+    const quizResult = document.getElementById('quizResult');
+
     const scale = 25; 
     const originX = canvas.width / 2;
     const originY = canvas.height / 2;
 
-    // 数学用ヘルパー（最大公約数・分数フォーマット）
     function gcd(a, b) {
-      a = Math.abs(a);
-      b = Math.abs(b);
-      while (b) {
-        let t = b;
-        b = a % b;
-        a = t;
-      }
+      a = Math.abs(a); b = Math.abs(b);
+      while (b) { let t = b; b = a % b; a = t; }
       return a;
     }
 
-    // 分数オブジェクト生成 { num: 分子, den: 分母 }
     function makeFraction(numerator, denominator) {
       if (denominator === 0) return { num: 0, den: 1 };
-      if (denominator < 0) {
-        numerator = -numerator;
-        denominator = -denominator;
-      }
+      if (denominator < 0) { numerator = -numerator; denominator = -denominator; }
       const g = gcd(Math.round(numerator), Math.round(denominator));
-      return {
-        num: Math.round(numerator) / (g || 1),
-        den: Math.round(denominator) / (g || 1)
-      };
+      return { num: Math.round(numerator) / (g || 1), den: Math.round(denominator) / (g || 1) };
     }
 
-    // 内部State (標準形 ax + by = c の各整数パラメータ)
     let state = {
-      // 直線の方程式 ax + by = c (整数比で保持)
-      a: 1,
-      b: -1,
-      c: 0,
-
-      // 2点モード用
+      a: 1, b: -1, c: 0,
       pointA: { x: -2, y: -2 },
       pointB: { x: 4, y: 8 },
       clickStep: 0,
-      
-      // カーソルフォーカス用座標
       hoverPos: null
+    };
+
+    // クイズ管理オブジェクト
+    let quizState = {
+      type: 1, // 1: y=ax+b引き, 2: y=k引き, 3: x=k引き, 4: 式解答
+      targetA: 1,
+      targetB: 0,
+      targetC: 0, // x=k 用
+      userP1: null,
+      userP2: null,
+      userAnsA: 1,
+      userAnsB: 0,
+      isAnswered: false
     };
 
     function snapToHalf(num) {
       return Math.round(num * 2) / 2;
     }
 
-    // モード切り替え
     modeSelect.addEventListener('change', (e) => {
       const mode = e.target.value;
       
@@ -327,8 +461,9 @@
       document.getElementById('panelStandard').classList.toggle('active', mode === 'standard');
       document.getElementById('panelTwoPoints').classList.toggle('active', mode === 'twopoints');
       document.getElementById('panelDrag').classList.toggle('active', mode === 'drag');
+      document.getElementById('panelQuiz').classList.toggle('active', mode === 'quiz');
 
-      canvas.classList.toggle('click-mode', mode === 'twopoints');
+      canvas.classList.toggle('click-mode', mode === 'twopoints' || mode === 'quiz');
       canvas.classList.toggle('drag-mode', mode === 'drag');
 
       itemSlope.classList.toggle('highlight', mode === 'slope');
@@ -337,6 +472,8 @@
       if (mode === 'twopoints') {
         state.clickStep = 0;
         updateFromTwoPoints();
+      } else if (mode === 'quiz') {
+        generateQuiz();
       } else {
         state.hoverPos = null;
       }
@@ -345,11 +482,7 @@
       draw();
     });
 
-    // 2点から直線方程式 ax + by = c (整数化) を算出
     function updateFromTwoPoints() {
-      // 2点 (x1, y1), (x2, y2)
-      // (y2 - y1)x - (x2 - x1)y = x1*y2 - x2*y1
-      // 0.5刻みに対応するため全て2倍して整数化
       const x1 = Math.round(state.pointA.x * 2);
       const y1 = Math.round(state.pointA.y * 2);
       const x2 = Math.round(state.pointB.x * 2);
@@ -357,61 +490,38 @@
 
       let A = y2 - y1;
       let B = -(x2 - x1);
-      let C = (x1 * y2 - x2 * y1) / 2; // スケール補正
+      let C = (x1 * y2 - x2 * y1) / 2;
 
-      if (A < 0 || (A === 0 && B < 0)) {
-        A = -A; B = -B; C = -C;
-      }
-      
-      // 整数化のための公約数処理
+      if (A < 0 || (A === 0 && B < 0)) { A = -A; B = -B; C = -C; }
       const g = gcd(gcd(A, B), C);
       state.a = A / (g || 1);
       state.b = B / (g || 1);
       state.c = C / (g || 1);
     }
 
-    // 入力変更処理
     function updateStateFromInputs() {
       const mode = modeSelect.value;
       if (mode === 'slope') {
         const slopeA = parseFloat(sliderA1.value);
         const slopeB = parseFloat(sliderB1.value);
-        
-        // y = ax + b  =>  ax - y = -b
-        // 0.5刻みを整数化
-        let A = Math.round(slopeA * 2);
-        let B = -2;
-        let C = Math.round(-slopeB * 2);
-
+        let A = Math.round(slopeA * 2), B = -2, C = Math.round(-slopeB * 2);
         const g = gcd(gcd(A, B), C);
-        state.a = A / g;
-        state.b = B / g;
-        state.c = C / g;
+        state.a = A / g; state.b = B / g; state.c = C / g;
       } else if (mode === 'standard') {
         let A = Math.round(parseFloat(sliderA2.value) * 2);
         let B = Math.round(parseFloat(sliderB2.value) * 2);
         let C = Math.round(parseFloat(sliderC2.value) * 2);
-
         const g = gcd(gcd(A, B), C);
-        state.a = A / (g || 1);
-        state.b = B / (g || 1);
-        state.c = C / (g || 1);
+        state.a = A / (g || 1); state.b = B / (g || 1); state.c = C / (g || 1);
       } else if (mode === 'drag') {
         const slopeA = parseFloat(sliderA4.value);
-        let A = Math.round(slopeA * 2);
-        let B = -2;
-        let C = Math.round(-state.dragB * 2);
-
+        let A = Math.round(slopeA * 2), B = -2, C = Math.round(-state.dragB * 2);
         const g = gcd(gcd(A, B), C);
-        state.a = A / (g || 1);
-        state.b = B / (g || 1);
-        state.c = C / (g || 1);
+        state.a = A / (g || 1); state.b = B / (g || 1); state.c = C / (g || 1);
       }
     }
 
-    // UIへ設定値の反映
     function syncSlidersFromState() {
-      // 傾き -A/B, 切片 C/B
       let slopeA = state.b !== 0 ? -state.a / state.b : 0;
       let slopeB = state.b !== 0 ? state.c / state.b : 0;
 
@@ -428,32 +538,12 @@
       sliderA4.value = Math.min(Math.max(Math.round(slopeA * 2) / 2, -5), 5);
     }
 
-    // 分数表記テキストの整形処理
     function formatFractionStr(frac, isFirst = false, varName = '') {
       if (frac.num === 0) return '';
-      
-      let sign = '';
-      if (frac.num < 0) {
-        sign = '-';
-      } else if (!isFirst) {
-        sign = ' + ';
-      }
-
-      const absNum = Math.abs(frac.num);
-      const absDen = frac.den;
-
-      let numStr = '';
-      if (absDen === 1) {
-        if (absNum === 1 && varName !== '') numStr = '';
-        else numStr = `${absNum}`;
-      } else {
-        numStr = `${absNum}/${absDen}`;
-      }
-
-      if (!isFirst && frac.num < 0) {
-        sign = ' - ';
-      }
-
+      let sign = frac.num < 0 ? '-' : (!isFirst ? ' + ' : '');
+      const absNum = Math.abs(frac.num), absDen = frac.den;
+      let numStr = absDen === 1 ? (absNum === 1 && varName !== '' ? '' : `${absNum}`) : `${absNum}/${absDen}`;
+      if (!isFirst && frac.num < 0) sign = ' - ';
       return `${sign}${numStr}${varName}`;
     }
 
@@ -461,50 +551,33 @@
       if (state.b === 0) {
         const xFrac = makeFraction(state.c, state.a);
         let valStr = xFrac.den === 1 ? `${xFrac.num}` : `${xFrac.num}/${xFrac.den}`;
-        return `x = ${valStr} (y軸に平行・1次関数ではない)`;
+        return `x = ${valStr}`;
       }
-
-      // y = (-a/b)x + (c/b)
       const aFrac = makeFraction(-state.a, state.b);
       const bFrac = makeFraction(state.c, state.b);
 
       let str = 'y = ';
       if (aFrac.num === 0) {
         if (bFrac.num === 0) return 'y = 0';
-        const bStr = bFrac.den === 1 ? `${bFrac.num}` : `${bFrac.num}/${bFrac.den}`;
-        return `y = ${bStr}`;
+        return `y = ${bFrac.den === 1 ? bFrac.num : bFrac.num + '/' + bFrac.den}`;
       }
-
       str += formatFractionStr(aFrac, true, 'x');
-
-      if (bFrac.num !== 0) {
-        str += formatFractionStr(bFrac, false, '');
-      }
-
+      if (bFrac.num !== 0) str += formatFractionStr(bFrac, false, '');
       return str;
     }
 
     function formatStandardForm() {
       if (state.a === 0 && state.b === 0) return `0 = ${state.c}`;
-
-      let str = '';
-      let isFirst = true;
-
+      let str = '', isFirst = true;
       if (state.a !== 0) {
-        const aFrac = makeFraction(state.a, 1);
-        str += formatFractionStr(aFrac, true, 'x');
+        str += formatFractionStr(makeFraction(state.a, 1), true, 'x');
         isFirst = false;
       }
-
       if (state.b !== 0) {
-        const bFrac = makeFraction(state.b, 1);
-        str += formatFractionStr(bFrac, isFirst, 'y');
+        str += formatFractionStr(makeFraction(state.b, 1), isFirst, 'y');
       }
-
       const cFrac = makeFraction(state.c, 1);
-      let cStr = cFrac.den === 1 ? `${cFrac.num}` : `${cFrac.num}/${cFrac.den}`;
-
-      return `${str} = ${cStr}`;
+      return `${str} = ${cFrac.den === 1 ? cFrac.num : cFrac.num + '/' + cFrac.den}`;
     }
 
     function updateDisplays() {
@@ -521,57 +594,285 @@
       dispStandard.textContent = formatStandardForm();
     }
 
+    // --- 出題モード（クイズ）ロジック ---
+    function generateQuiz() {
+      quizState.type = Math.floor(Math.random() * 4) + 1; // 1〜4
+      quizState.userP1 = null;
+      quizState.userP2 = null;
+      quizState.isAnswered = false;
+
+      quizResult.style.display = 'none';
+      btnCheckAnswer.style.display = 'block';
+      btnNextQuiz.style.display = 'none';
+
+      if (quizState.type === 1) {
+        // ❶ 傾き切片形 (y = ax + b)
+        const aList = [-3, -2, -1, -0.5, 0.5, 1, 2, 3];
+        quizState.targetA = aList[Math.floor(Math.random() * aList.length)];
+        quizState.targetB = Math.floor(Math.random() * 11) - 5; // -5 〜 5
+        
+        let expr = formatSlopeCustom(quizState.targetA, quizState.targetB);
+        quizQuestion.innerHTML = `【直線を描こう】<br>式: <span style="color:#e74c3c;">${expr}</span> の直線となるように2点をクリックしてください。`;
+
+        quizEquationInputs.style.display = 'none';
+        quizTwoPointsGuide.style.display = 'block';
+      } else if (quizState.type === 2) {
+        // ❷ x軸に平行 (y = k)
+        quizState.targetA = 0;
+        quizState.targetB = Math.floor(Math.random() * 13) - 6; // -6〜6 (0除く)
+        if (quizState.targetB === 0) quizState.targetB = 2;
+
+        quizQuestion.innerHTML = `【x軸に平行な直線】<br>式: <span style="color:#e74c3c;">y = ${quizState.targetB}</span> の直線を引きなさい。(2点をクリック)`;
+
+        quizEquationInputs.style.display = 'none';
+        quizTwoPointsGuide.style.display = 'block';
+      } else if (quizState.type === 3) {
+        // ❸ y軸に平行 (x = k)
+        quizState.targetC = Math.floor(Math.random() * 13) - 6; // -6〜6 (0除く)
+        if (quizState.targetC === 0) quizState.targetC = -4;
+
+        quizQuestion.innerHTML = `【y軸に平行な直線】<br>式: <span style="color:#e74c3c;">x = ${quizState.targetC}</span> の直線を引きなさい。(2点をクリック)`;
+
+        quizEquationInputs.style.display = 'none';
+        quizTwoPointsGuide.style.display = 'block';
+      } else if (quizState.type === 4) {
+        // ❹ グラフを見て式を答える（修正: $a$ や $b$ を分かりやすい文字に変更）
+        const aList = [-2, -1, -0.5, 0.5, 1, 2];
+        quizState.targetA = aList[Math.floor(Math.random() * aList.length)];
+        quizState.targetB = Math.floor(Math.random() * 9) - 4; // -4 〜 4
+
+        // 正解の直線を state にセットして描画
+        let A = Math.round(quizState.targetA * 2), B = -2, C = Math.round(-quizState.targetB * 2);
+        const g = gcd(gcd(A, B), C);
+        state.a = A / g; state.b = B / g; state.c = C / g;
+
+        quizQuestion.innerHTML = `【式を求めよう】<br>グラフに描かれた直線の式を「傾き a」と「切片 b」で設定しなさい。`;
+
+        quizEquationInputs.style.display = 'flex';
+        quizTwoPointsGuide.style.display = 'none';
+
+        sliderAQuiz.value = 1;
+        sliderBQuiz.value = 0;
+        valAQuiz.textContent = "1";
+        valBQuiz.textContent = "0";
+      }
+
+      updateQuizUI();
+      draw();
+    }
+
+    function formatSlopeCustom(a, b) {
+      let str = 'y = ';
+      if (a === 1) str += 'x';
+      else if (a === -1) str += '-x';
+      else str += `${a}x`;
+
+      if (b > 0) str += ` + ${b}`;
+      else if (b < 0) str += ` - ${Math.abs(b)}`;
+      return str;
+    }
+
+    function updateQuizUI() {
+      dispQuizP1.textContent = quizState.userP1 ? `(${quizState.userP1.x}, ${quizState.userP1.y})` : '未選択';
+      dispQuizP2.textContent = quizState.userP2 ? `(${quizState.userP2.x}, ${quizState.userP2.y})` : '未選択';
+    }
+
+    btnCheckAnswer.addEventListener('click', () => {
+      let isCorrect = false;
+      let detailMsg = '';
+
+      if (quizState.type === 1 || quizState.type === 2) {
+        if (!quizState.userP1 || !quizState.userP2) {
+          alert('グラフ上を2回クリックして2点を設定してください！');
+          return;
+        }
+        const dx = quizState.userP2.x - quizState.userP1.x;
+        const dy = quizState.userP2.y - quizState.userP1.y;
+
+        if (dx === 0) {
+          isCorrect = false;
+        } else {
+          const userA = dy / dx;
+          const userB = quizState.userP1.y - userA * quizState.userP1.x;
+
+          isCorrect = (Math.abs(userA - quizState.targetA) < 1e-5) && (Math.abs(userB - quizState.targetB) < 1e-5);
+        }
+      } else if (quizState.type === 3) {
+        if (!quizState.userP1 || !quizState.userP2) {
+          alert('グラフ上を2回クリックして2点を設定してください！');
+          return;
+        }
+        const dx = quizState.userP2.x - quizState.userP1.x;
+        isCorrect = (dx === 0 && quizState.userP1.x === quizState.targetC);
+      } else if (quizState.type === 4) {
+        const userA = parseFloat(sliderAQuiz.value);
+        const userB = parseFloat(sliderBQuiz.value);
+
+        isCorrect = (userA === quizState.targetA) && (userB === quizState.targetB);
+        detailMsg = `正解: ${formatSlopeCustom(quizState.targetA, quizState.targetB)}`;
+      }
+
+      quizState.isAnswered = true;
+      quizResult.style.display = 'block';
+      if (isCorrect) {
+        quizResult.className = 'result-msg result-correct';
+        quizResult.innerHTML = '🎉 正解です！素晴らしい！';
+      } else {
+        quizResult.className = 'result-msg result-wrong';
+        quizResult.innerHTML = '❌ 不正解... もう一度確認してみよう！ ' + (detailMsg ? `<br>${detailMsg}` : '');
+      }
+
+      btnCheckAnswer.style.display = 'none';
+      btnNextQuiz.style.display = 'block';
+      draw();
+    });
+
+    btnNextQuiz.addEventListener('click', () => {
+      generateQuiz();
+    });
+
+    sliderAQuiz.addEventListener('input', () => {
+      valAQuiz.textContent = sliderAQuiz.value;
+    });
+    sliderBQuiz.addEventListener('input', () => {
+      valBQuiz.textContent = sliderBQuiz.value;
+    });
+
     function draw() {
       updateDisplays();
-
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       drawGrid();
 
-      // 直線描画
-      ctx.beginPath();
-      ctx.strokeStyle = '#3498db';
-      ctx.lineWidth = 2.5;
+      const mode = modeSelect.value;
 
-      if (state.b === 0) {
-        if (state.a !== 0) {
-          const x = state.c / state.a;
-          const pixelX = originX + (x * scale);
-          ctx.moveTo(pixelX, 0);
-          ctx.lineTo(pixelX, canvas.height);
-        }
+      if (mode === 'quiz') {
+        drawQuizGraphics();
       } else {
-        const xMin = (-originX) / scale;
-        const xMax = (canvas.width - originX) / scale;
+        ctx.beginPath();
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 2.5;
 
-        const yMin = (state.c - state.a * xMin) / state.b;
-        const yMax = (state.c - state.a * xMax) / state.b;
+        if (state.b === 0) {
+          if (state.a !== 0) {
+            const x = state.c / state.a;
+            const pixelX = originX + (x * scale);
+            ctx.moveTo(pixelX, 0); ctx.lineTo(pixelX, canvas.height);
+          }
+        } else {
+          const xMin = (-originX) / scale;
+          const xMax = (canvas.width - originX) / scale;
+          const yMin = (state.c - state.a * xMin) / state.b;
+          const yMax = (state.c - state.a * xMax) / state.b;
 
-        ctx.moveTo(originX + (xMin * scale), originY - (yMin * scale));
-        ctx.lineTo(originX + (xMax * scale), originY - (yMax * scale));
-      }
-      ctx.stroke();
+          ctx.moveTo(originX + (xMin * scale), originY - (yMin * scale));
+          ctx.lineTo(originX + (xMax * scale), originY - (yMax * scale));
+        }
+        ctx.stroke();
 
-      // 2点モード時に設定した2点を強調描画
-      if (modeSelect.value === 'twopoints') {
-        drawPointMarker(state.pointA.x, state.pointA.y, '点A', '#9b59b6');
-        drawPointMarker(state.pointB.x, state.pointB.y, '点B', '#e67e22');
+        if (mode === 'twopoints') {
+          drawPointMarker(state.pointA.x, state.pointA.y, '点A', '#9b59b6');
+          drawPointMarker(state.pointB.x, state.pointB.y, '点B', '#e67e22');
+        }
 
-        // マウスフォーカスガイド描画
         if (state.hoverPos) {
           drawHoverGuide(state.hoverPos.x, state.hoverPos.y);
         }
+        drawIntegerPoints();
+      }
+    }
+
+    function drawQuizGraphics() {
+      if (quizState.type === 4) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 3;
+
+        const xMin = (-originX) / scale;
+        const xMax = (canvas.width - originX) / scale;
+        const yMin = quizState.targetA * xMin + quizState.targetB;
+        const yMax = quizState.targetA * xMax + quizState.targetB;
+
+        ctx.moveTo(originX + (xMin * scale), originY - (yMin * scale));
+        ctx.lineTo(originX + (xMax * scale), originY - (yMax * scale));
+        ctx.stroke();
+
+        drawIntegerPointsForQuiz(quizState.targetA, quizState.targetB, false);
+        return;
       }
 
-      // 格子点の描画
-      drawIntegerPoints();
+      if (quizState.userP1) {
+        drawPointMarker(quizState.userP1.x, quizState.userP1.y, '1', '#9b59b6');
+      }
+      if (quizState.userP2) {
+        drawPointMarker(quizState.userP2.x, quizState.userP2.y, '2', '#e67e22');
+      }
+
+      if (quizState.userP1 && quizState.userP2) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 2.5;
+
+        const dx = quizState.userP2.x - quizState.userP1.x;
+        const dy = quizState.userP2.y - quizState.userP1.y;
+
+        if (dx === 0) {
+          const pixelX = originX + (quizState.userP1.x * scale);
+          ctx.moveTo(pixelX, 0); ctx.lineTo(pixelX, canvas.height);
+        } else {
+          const uA = dy / dx;
+          const uB = quizState.userP1.y - uA * quizState.userP1.x;
+
+          const xMin = (-originX) / scale;
+          const xMax = (canvas.width - originX) / scale;
+          ctx.moveTo(originX + (xMin * scale), originY - ((uA * xMin + uB) * scale));
+          ctx.lineTo(originX + (xMax * scale), originY - ((uA * xMax + uB) * scale));
+        }
+        ctx.stroke();
+      }
+
+      if (quizState.isAnswered) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(46, 204, 113, 0.7)';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([6, 6]);
+
+        const xMin = (-originX) / scale;
+        const xMax = (canvas.width - originX) / scale;
+
+        if (quizState.type === 3) {
+          const px = originX + (quizState.targetC * scale);
+          ctx.moveTo(px, 0); ctx.lineTo(px, canvas.height);
+        } else {
+          const yMin = quizState.targetA * xMin + quizState.targetB;
+          const yMax = quizState.targetA * xMax + quizState.targetB;
+          ctx.moveTo(originX + (xMin * scale), originY - (yMin * scale));
+          ctx.lineTo(originX + (xMax * scale), originY - (yMax * scale));
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      if (state.hoverPos && !quizState.isAnswered) {
+        drawHoverGuide(state.hoverPos.x, state.hoverPos.y);
+      }
+    }
+
+    function drawIntegerPointsForQuiz(a, b, isVertical = false) {
+      const minX = Math.ceil((-originX) / scale);
+      const maxX = Math.floor((canvas.width - originX) / scale);
+
+      for (let x = minX; x <= maxX; x++) {
+        const y = a * x + b;
+        if (Math.abs(y - Math.round(y)) < 1e-6) {
+          drawRedDot(x, Math.round(y));
+        }
+      }
     }
 
     function drawHoverGuide(x, y) {
       const px = originX + (x * scale);
       const py = originY - (y * scale);
 
-      // 十字ガイド線
       ctx.strokeStyle = '#27ae60';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
@@ -580,9 +881,8 @@
       ctx.moveTo(px, 0); ctx.lineTo(px, canvas.height);
       ctx.moveTo(0, py); ctx.lineTo(canvas.width, py);
       ctx.stroke();
-      ctx.setLineDash([]); // 点線解除
+      ctx.setLineDash([]);
 
-      // ターゲット円
       ctx.beginPath();
       ctx.arc(px, py, 6, 0, Math.PI * 2);
       ctx.fillStyle = '#2ecc71';
@@ -591,7 +891,6 @@
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // 座標ポップアップ吹き出し
       const label = `(${x}, ${y})`;
       ctx.font = 'bold 13px sans-serif';
       const textWidth = ctx.measureText(label).width;
@@ -628,26 +927,20 @@
 
       for (let x = 0; x <= canvas.width; x += scale) {
         ctx.beginPath();
-        ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
-        ctx.stroke();
+        ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
-
       for (let y = 0; y <= canvas.height; y += scale) {
         ctx.beginPath();
-        ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
-        ctx.stroke();
+        ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
 
       ctx.strokeStyle = '#2c3e50';
       ctx.lineWidth = 2;
 
       ctx.beginPath();
-      ctx.moveTo(0, originY); ctx.lineTo(canvas.width, originY);
-      ctx.stroke();
-
+      ctx.moveTo(0, originY); ctx.lineTo(canvas.width, originY); ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(originX, 0); ctx.lineTo(originX, canvas.height);
-      ctx.stroke();
+      ctx.moveTo(originX, 0); ctx.lineTo(originX, canvas.height); ctx.stroke();
     }
 
     function drawIntegerPoints() {
@@ -659,18 +952,13 @@
           if (state.a !== 0 && x === state.c / state.a) {
             const minY = Math.ceil((-originY) / scale);
             const maxY = Math.floor((canvas.height - originY) / scale);
-            for (let iy = minY; iy <= maxY; iy++) {
-              drawRedDot(x, iy);
-            }
+            for (let iy = minY; iy <= maxY; iy++) drawRedDot(x, iy);
           }
           continue;
         }
-
-        // ax + by = c  =>  y = (c - ax) / b
         const num = state.c - state.a * x;
         if (num % state.b === 0) {
-          const y = num / state.b;
-          drawRedDot(x, y);
+          drawRedDot(x, num / state.b);
         }
       }
     }
@@ -698,22 +986,18 @@
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
-      };
+      return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-    // --- カーソル移動時の座標プレビュー処理 ---
     function updateHoverPos(e) {
-      if (modeSelect.value !== 'twopoints') return;
-      const pos = getEventPos(e);
-      const rawX = (pos.x - originX) / scale;
-      const rawY = -(pos.y - originY) / scale;
+      const mode = modeSelect.value;
+      if (mode !== 'twopoints' && mode !== 'quiz') return;
+      if (mode === 'quiz' && (quizState.type === 4 || quizState.isAnswered)) return;
 
+      const pos = getEventPos(e);
       state.hoverPos = {
-        x: snapToHalf(rawX),
-        y: snapToHalf(rawY)
+        x: snapToHalf((pos.x - originX) / scale),
+        y: snapToHalf(-(pos.y - originY) / scale)
       };
       draw();
     }
@@ -724,32 +1008,40 @@
       draw();
     });
 
-    // --- ❸ 2点クリック指定処理 ---
     canvas.addEventListener('click', (e) => {
-      if (modeSelect.value !== 'twopoints') return;
-
+      const mode = modeSelect.value;
       const pos = getEventPos(e);
       const snapX = snapToHalf((pos.x - originX) / scale);
       const snapY = snapToHalf(-(pos.y - originY) / scale);
 
-      if (state.clickStep === 0) {
-        state.pointA = { x: snapX, y: snapY };
-        state.clickStep = 1;
-      } else {
-        if (snapX === state.pointA.x && snapY === state.pointA.y) return;
-        state.pointB = { x: snapX, y: snapY };
-        state.clickStep = 0;
-      }
+      if (mode === 'twopoints') {
+        if (state.clickStep === 0) {
+          state.pointA = { x: snapX, y: snapY };
+          state.clickStep = 1;
+        } else {
+          if (snapX === state.pointA.x && snapY === state.pointA.y) return;
+          state.pointB = { x: snapX, y: snapY };
+          state.clickStep = 0;
+        }
+        updateFromTwoPoints();
+        syncSlidersFromState();
+        draw();
+      } else if (mode === 'quiz') {
+        if (quizState.type === 4 || quizState.isAnswered) return;
 
-      updateFromTwoPoints();
-      syncSlidersFromState();
-      draw();
+        if (!quizState.userP1) {
+          quizState.userP1 = { x: snapX, y: snapY };
+        } else {
+          if (snapX === quizState.userP1.x && snapY === quizState.userP1.y) return;
+          quizState.userP2 = { x: snapX, y: snapY };
+        }
+        updateQuizUI();
+        draw();
+      }
     });
 
-    // --- ❹ ドラッグ移動処理 ---
-    let isDragging = false;
-    let dragStartPos = { x: 0, y: 0 };
-    let startC = 0;
+    // ドラッグ移動処理
+    let isDragging = false, dragStartPos = { x: 0, y: 0 }, startC = 0;
 
     function startDrag(e) {
       if (modeSelect.value !== 'drag') return;
@@ -761,33 +1053,22 @@
     function doDrag(e) {
       if (!isDragging || modeSelect.value !== 'drag') return;
       const pos = getEventPos(e);
-
       const dy = -(pos.y - dragStartPos.y) / scale;
-      
-      // 平行移動量 (cの補正)
-      let shiftC = startC + Math.round(dy * 2) / 2 * state.b;
-      state.c = snapToHalf(shiftC);
-
+      state.c = snapToHalf(startC + Math.round(dy * 2) / 2 * state.b);
       syncSlidersFromState();
       draw();
     }
 
-    function endDrag() {
-      isDragging = false;
-    }
+    function endDrag() { isDragging = false; }
 
     canvas.addEventListener('mousedown', startDrag);
     window.addEventListener('mousemove', doDrag);
     window.addEventListener('mouseup', endDrag);
 
-    canvas.addEventListener('touchstart', (e) => {
-      updateHoverPos(e);
-      startDrag(e);
-    });
+    canvas.addEventListener('touchstart', (e) => { updateHoverPos(e); startDrag(e); });
     window.addEventListener('touchmove', doDrag);
     window.addEventListener('touchend', endDrag);
 
-    // スライダーイベント
     const sliders = [sliderA1, sliderB1, sliderA2, sliderB2, sliderC2, sliderA4];
     sliders.forEach(slider => {
       slider.addEventListener('input', () => {
