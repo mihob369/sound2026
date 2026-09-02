@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ライフゲーム・シミュレーター</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;background:#f4f6f8;color:#222}
+header{background:#263238;color:#fff;padding:14px 18px}
+header h1{margin:0;font-size:22px}
+main{max-width:1100px;margin:18px auto;padding:0 14px;display:grid;grid-template-columns:300px 1fr;gap:18px}
+.panel,.board-wrap{background:#fff;border-radius:12px;box-shadow:0 2px 10px #0001;padding:16px}
+h2{font-size:16px;margin:0 0 12px}
+.control{margin-bottom:15px}
+label{display:block;font-weight:600;margin-bottom:6px}
+select,input[type=number]{width:100%;padding:8px;border:1px solid #bbb;border-radius:7px;font-size:15px}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rule{border:1px solid #ddd;border-radius:8px;padding:8px}
+.rule label{font-size:13px;margin-bottom:4px}
+.rule input{width:100%;padding:6px;border:1px solid #bbb;border-radius:5px}
+button{border:0;border-radius:8px;padding:9px 12px;font-size:14px;cursor:pointer;background:#37474f;color:white}
+button:hover{opacity:.85}
+button.secondary{background:#78909c}
+button.danger{background:#c62828}
+.buttons{display:flex;gap:7px;flex-wrap:wrap}
+.status{background:#eceff1;border-radius:8px;padding:10px;margin-top:12px;font-size:14px}
+.board-wrap{text-align:center}
+#board{display:grid;margin:0 auto;max-width:min(72vw,720px);aspect-ratio:1;border:2px solid #37474f;background:#fff;touch-action:none}
+.cell{border-right:1px solid #ddd;border-bottom:1px solid #ddd;background:#fff;cursor:pointer}
+.cell.alive{background:#263238}
+.legend{margin-top:10px;font-size:13px;color:#555}
+.help{font-size:13px;line-height:1.65;color:#555}
+.result{font-weight:700}
+@media(max-width:800px){main{grid-template-columns:1fr}.board-wrap{order:-1}#board{max-width:92vw}}
+</style>
+</head>
+<body>
+<header><h1>ライフゲーム・シミュレーター</h1></header>
+
+<main>
+<section class="panel">
+  <h2>設定</h2>
+
+  <div class="control">
+    <label for="size">セルの数</label>
+    <select id="size">
+      <option value="10">10 × 10</option>
+      <option value="20">20 × 20</option>
+    </select>
+  </div>
+
+  <div class="control">
+    <h2>隣接セル数のルール</h2>
+    <div class="rules">
+      <div class="rule"><label>誕生（死→生）</label><input id="birth" type="text" value="3"></div>
+      <div class="rule"><label>生存（生→生）</label><input id="survive" type="text" value="2,3"></div>
+      <div class="rule"><label>過疎で死滅</label><input id="under" type="text" value="0,1"></div>
+      <div class="rule"><label>過密で死滅</label><input id="over" type="text" value="4,5,6,7,8"></div>
+    </div>
+  </div>
+
+  <div class="control">
+    <label for="interval">自動実行間隔（ms）</label>
+    <input id="interval" type="number" min="100" max="10000" step="100" value="2000">
+  </div>
+
+  <div class="buttons">
+    <button type="button" id="step">1世代進む</button>
+    <button type="button" id="start">自動実行</button>
+    <button type="button" id="stop" class="secondary">停止</button>
+    <button type="button" id="clear" class="danger">全消去</button>
+    <button type="button" id="random" class="secondary">ランダム</button>
+  </div>
+
+  <div class="status">
+    世代：<span id="generation">0</span><br>
+    生存セル：<span id="alive">0</span><br>
+    <span class="result" id="result"></span>
+  </div>
+
+  <p class="help">
+    セルをクリックして初期状態を作ります。<br>
+    「1世代進む」で状態を更新できます。<br>
+    同じ状態が再び現れた場合は「ループ」と判定します。
+  </p>
+</section>
+
+<section class="board-wrap">
+  <div id="board"></div>
+  <div class="legend">■ 生きたセル　□ 死んだセル</div>
+</section>
+</main>
+
+<script>
+(() => {
+  const boardEl = document.getElementById("board");
+  const sizeEl = document.getElementById("size");
+  const birthEl = document.getElementById("birth");
+  const surviveEl = document.getElementById("survive");
+  const underEl = document.getElementById("under");
+  const overEl = document.getElementById("over");
+  const intervalEl = document.getElementById("interval");
+  const genEl = document.getElementById("generation");
+  const aliveEl = document.getElementById("alive");
+  const resultEl = document.getElementById("result");
+
+  let n = 10, grid = newGrid(), generation = 0, timer = null, seen = new Set();
+
+  function parseRule(text) {
+    return new Set(
+      text.split(",")
+        .map(x => Number(x.trim()))
+        .filter(x => Number.isInteger(x) && x >= 0 && x <= 8)
+    );
+  }
+
+  function newGrid() {
+    return Array.from({length:n}, () => Array(n).fill(false));
+  }
+
+  function key(g) {
+    return g.map(row => row.map(v => v ? "1" : "0").join("")).join("/");
+  }
+
+  function buildBoard() {
+    boardEl.innerHTML = "";
+    boardEl.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    boardEl.style.gridTemplateRows = `repeat(${n}, 1fr)`;
+    for (let r=0;r<n;r++) {
+      for (let c=0;c<n;c++) {
+        const cell=document.createElement("div");
+        cell.className="cell";
+        cell.dataset.r=r;
+        cell.dataset.c=c;
+        cell.addEventListener("click", () => {
+          grid[r][c] = !grid[r][c];
+          // セルを手動編集したら、その状態を新しい初期状態として扱う
+          generation = 0;
+          seen = new Set([key(grid)]);
+          resultEl.textContent = "";
+          render();
+        });
+        boardEl.appendChild(cell);
+      }
+    }
+    render();
+  }
+
+  function render() {
+    const cells=boardEl.children;
+    let count=0;
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++) {
+      const v=grid[r][c];
+      if(v) count++;
+      cells[r*n+c].classList.toggle("alive",v);
+    }
+    genEl.textContent=generation;
+    aliveEl.textContent=count;
+  }
+
+  function neighbors(g,r,c) {
+    let count=0;
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) {
+      if(dr===0 && dc===0) continue;
+      const rr=r+dr, cc=c+dc;
+      if(rr>=0 && rr<n && cc>=0 && cc<n && g[rr][cc]) count++;
+    }
+    return count;
+  }
+
+  function step() {
+    const birth=parseRule(birthEl.value);
+    const survive=parseRule(surviveEl.value);
+    const under=parseRule(underEl.value);
+    const over=parseRule(overEl.value);
+
+    // 「生存」と「死滅」は、生きたセルについての結果を優先。
+    // 死んだセルは誕生ルールだけで判定する。
+    const next=newGrid();
+
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++) {
+      const count=neighbors(grid,r,c);
+      if(grid[r][c]) {
+        next[r][c]=survive.has(count) && !under.has(count) && !over.has(count);
+      } else {
+        next[r][c]=birth.has(count);
+      }
+    }
+
+    grid=next;
+    generation++;
+
+    const k=key(grid);
+    if(!grid.some(row=>row.some(Boolean))) {
+      resultEl.textContent="→ 絶滅しました";
+      stop();
+    } else if(seen.has(k)) {
+      resultEl.textContent="→ 過去と同じ状態：ループしています";
+      stop();
+    } else {
+      seen.add(k);
+      resultEl.textContent="";
+    }
+    render();
+  }
+
+  function resetTracking() {
+    generation=0;
+    seen=new Set([key(grid)]);
+    resultEl.textContent="";
+    render();
+  }
+
+  function stop() {
+    if(timer!==null){clearInterval(timer);timer=null;}
+  }
+
+  function start() {
+    stop();
+    const ms = Math.max(100, Number(intervalEl.value) || 2000);
+    timer = setInterval(step, ms);
+  }
+
+  function clearAll() {
+    stop();
+    grid=newGrid();
+    resetTracking();
+  }
+
+  function randomize() {
+    stop();
+    grid=newGrid();
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++) grid[r][c]=Math.random()<0.3;
+    resetTracking();
+  }
+
+  sizeEl.addEventListener("change",()=>{
+    stop();
+    n=Number(sizeEl.value);
+    grid=newGrid();
+    buildBoard();
+    resetTracking();
+  });
+
+  document.getElementById("step").addEventListener("click",step);
+  document.getElementById("start").addEventListener("click",start);
+  document.getElementById("stop").addEventListener("click",stop);
+  document.getElementById("clear").addEventListener("click",clearAll);
+  document.getElementById("random").addEventListener("click",randomize);
+
+  // ルール変更後は「現在の状態から」再判定できるようにする。
+  [birthEl,surviveEl,underEl,overEl].forEach(el=>{
+    el.addEventListener("change",()=>{
+      resultEl.textContent="";
+      seen=new Set([key(grid)]);
+    });
+  });
+
+  if (!grid || grid.length !== n) grid = newGrid();
+  buildBoard();
+  resetTracking();
+})();
+</script>
+</body>
+</html>
