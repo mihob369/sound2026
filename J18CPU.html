@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>教科書準拠：CPUと主記憶装置の動作モデル（修正版）</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f3f4f6;
+      color: #1f2937;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 { text-align: center; font-size: 20px; color: #1e3a8a; }
+    
+    .input-box {
+      background: #ffffff;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    input[type="number"] {
+      width: 70px;
+      padding: 6px;
+      font-size: 16px;
+      text-align: center;
+      margin: 0 5px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    button:hover { background: #1d4ed8; }
+
+    .sim-area {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .cpu {
+      flex: 1;
+      background: #eff6ff;
+      border: 3px solid #3b82f6;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .cpu-title { font-weight: bold; font-size: 18px; color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; }
+    
+    .register-box {
+      background: white;
+      border: 1px solid #93c5fd;
+      padding: 8px;
+      margin: 10px 0;
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+    .register-box.active {
+      background: #fef08a;
+      border-color: #eab308;
+      font-weight: bold;
+    }
+    .reg-title { font-size: 12px; color: #6b7280; }
+    .reg-val { font-size: 16px; font-weight: bold; font-family: monospace; }
+
+    .memory {
+      flex: 1;
+      background: #f0fdf4;
+      border: 3px solid #22c55e;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .mem-title { font-weight: bold; font-size: 18px; color: #15803d; border-bottom: 2px solid #22c55e; padding-bottom: 5px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px; text-align: center; font-size: 14px; }
+    th { background: #dcfce7; }
+    tr.active { background: #fef08a; font-weight: bold; }
+
+    .explanation {
+      background: #ffffff;
+      border-left: 5px solid #2563eb;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 16px;
+      min-height: 60px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>教科書準拠：加算処理のCPU動作シミュレーション（修正版）</h1>
+
+  <div class="input-box">
+    データ1（10番地）: <input type="number" id="num1" value="3">
+    ＋ 
+    データ2（11番地）: <input type="number" id="num2" value="5">
+    <button onclick="startSim()">① シミュレーション開始 / リセット</button>
+    <button onclick="nextStep()" id="stepBtn" style="background:#059669;" disabled>② 次のステップへ進む</button>
+  </div>
+
+  <div class="sim-area">
+    <div class="cpu">
+      <div class="cpu-title">CPU</div>
+      
+      <div class="register-box" id="box-pc">
+        <div class="reg-title">プログラムカウンタ</div>
+        <div class="reg-val" id="val-pc">1 番地</div>
+      </div>
+
+      <div class="register-box" id="box-ir">
+        <div class="reg-title">命令レジスタ（取り出した命令）</div>
+        <div class="reg-val" id="val-ir">-</div>
+      </div>
+
+      <div style="margin-top: 15px; font-size: 12px; color: #4b5563;">レジスタ群 (一時保存用)</div>
+      <div class="register-box" id="box-ra">
+        <div class="reg-title">レジスタ A</div>
+        <div class="reg-val" id="val-ra">-</div>
+      </div>
+      <div class="register-box" id="box-rb">
+        <div class="reg-title">レジスタ B</div>
+        <div class="reg-val" id="val-rb">-</div>
+      </div>
+      <div class="register-box" id="box-rc">
+        <div class="reg-title">レジスタ C (演算用)</div>
+        <div class="reg-val" id="val-rc">-</div>
+      </div>
+    </div>
+
+    <div class="memory">
+      <div class="mem-title">主記憶装置</div>
+      <table>
+        <thead>
+          <tr><th>番地</th><th>命令 / データ</th></tr>
+        </thead>
+        <tbody>
+          <tr id="m1"><td>1</td><td>読み出し（10番地）</td></tr>
+          <tr id="m2"><td>2</td><td>読み出し（11番地）</td></tr>
+          <tr id="m3"><td>3</td><td>加算（A＋B）</td></tr>
+          <tr id="m4"><td>4</td><td>保存（12番地へ）</td></tr>
+          <tr id="m5"><td>5</td><td>終了</td></tr>
+          <tr id="m10"><td>10</td><td id="m10-val">3</td></tr>
+          <tr id="m11"><td>11</td><td id="m11-val">5</td></tr>
+          <tr id="m12"><td>12</td><td id="m12-val">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="explanation" id="exp">
+    「シミュレーション開始」を押すと、教科書の図5と同じ流れで計算がはじまります。
+  </div>
+
+  <script>
+    let step = 0;
+    let n1 = 3;
+    let n2 = 5;
+
+    function startSim() {
+      n1 = parseInt(document.getElementById('num1').value) || 0;
+      n2 = parseInt(document.getElementById('num2').value) || 0;
+      
+      document.getElementById('m10-val').innerText = n1;
+      document.getElementById('m11-val').innerText = n2;
+      document.getElementById('m12-val').innerText = '-';
+
+      document.getElementById('val-pc').innerText = '1 番地';
+      document.getElementById('val-ir').innerText = '-';
+      document.getElementById('val-ra').innerText = '-';
+      document.getElementById('val-rb').innerText = '-';
+      document.getElementById('val-rc').innerText = '-';
+
+      step = 0;
+      document.getElementById('stepBtn').disabled = false;
+      document.getElementById('exp').innerText = '準備完了！「次のステップへ進む」を押してください。';
+      clearHighlights();
+    }
+
+    function clearHighlights() {
+      document.querySelectorAll('.register-box').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('tr').forEach(el => el.classList.remove('active'));
+    }
+
+    function nextStep() {
+      step++;
+      clearHighlights();
+
+      if (step === 1) {
+        // ❶ 1番地の処理実行（プログラムカウンタは「1番地」のまま）
+        document.getElementById('val-pc').innerText = '1 番地';
+        document.getElementById('val-ir').innerText = '読み出し (10番地)';
+        document.getElementById('val-ra').innerText = n1;
+
+        document.getElementById('box-pc').classList.add('active');
+        document.getElementById('box-ir').classList.add('active');
+        document.getElementById('box-ra').classList.add('active');
+        document.getElementById('m1').classList.add('active');
+        document.getElementById('m10').classList.add('active');
+
+        document.getElementById('exp').innerHTML = 
+          `<b>❶ 1番地の命令を実行：</b><br>プログラムカウンタが指す<b>1番地</b>の命令を読み込み、10番地のデータ「<b>${n1}</b>」を<b>レジスタA</b>に保存しました。<br>（実行完了後、プログラムカウンタは『2番地』に更新されます）`;
+
+      } else if (step === 2) {
+        // ❷ 2番地の処理実行
+        document.getElementById('val-pc').innerText = '2 番地';
+        document.getElementById('val-ir').innerText = '読み出し (11番地)';
+        document.getElementById('val-rb').innerText = n2;
+
+        document.getElementById('box-pc').classList.add('active');
+        document.getElementById('box-ir').classList.add('active');
+        document.getElementById('box-rb').classList.add('active');
+        document.getElementById('m2').classList.add('active');
+        document.getElementById('m11').classList.add('active');
+
+        document.getElementById('exp').innerHTML = 
+          `<b>❷ 2番地の命令を実行：</b><br>プログラムカウンタが指す<b>2番地</b>の命令を読み込み、11番地のデータ「<b>${n2}</b>」を<b>レジスタB</b>に保存しました。<br>（実行完了後、プログラムカウンタは『3番地』に更新されます）`;
+
+      } else if (step === 3) {
+        // ❸ 3番地の処理実行
+        let ans = n1 + n2;
+        document.getElementById('val-pc').innerText = '3 番地';
+        document.getElementById('val-ir').innerText = '加算';
+        document.getElementById('val-rc').innerText = ans;
+
+        document.getElementById('box-pc').classList.add('active');
+        document.getElementById('box-ir').classList.add('active');
+        document.getElementById('box-rc').classList.add('active');
+        document.getElementById('m3').classList.add('active');
+
+        document.getElementById('exp').innerHTML = 
+          `<b>❸ 3番地の命令を実行：</b><br>プログラムカウンタが指す<b>3番地</b>の命令を実行。レジスタAの「${n1}」とレジスタBの「${n2}」を加算し、結果の「<b>${ans}</b>」を<b>レジスタC</b>に保存しました。<br>（実行完了後、プログラムカウンタは『4番地』に更新されます）`;
+
+      } else if (step === 4) {
+        // ❹ 4番地の処理実行
+        let ans = n1 + n2;
+        document.getElementById('val-pc').innerText = '4 番地';
+        document.getElementById('val-ir').innerText = '保存 (12番地)';
+        document.getElementById('m12-val').innerText = ans;
+
+        document.getElementById('box-pc').classList.add('active');
+        document.getElementById('box-ir').classList.add('active');
+        document.getElementById('m4').classList.add('active');
+        document.getElementById('m12').classList.add('active');
+
+        document.getElementById('exp').innerHTML = 
+          `<b>❹ 4番地の命令を実行：</b><br>プログラムカウンタが指す<b>4番地</b>の命令を実行。レジスタCの結果「<b>${ans}</b>」を、主記憶装置の<b>12番地</b>に保存しました。<br>（実行完了後、プログラムカウンタは『5番地』に更新されます）`;
+
+      } else if (step === 5) {
+        // ❺ 5番地の処理実行
+        document.getElementById('val-pc').innerText = '5 番地';
+        document.getElementById('val-ir').innerText = '終了';
+        
+        document.getElementById('box-pc').classList.add('active');
+        document.getElementById('box-ir').classList.add('active');
+        document.getElementById('m5').classList.add('active');
+
+        document.getElementById('exp').innerHTML = 
+          `<b>❺ 5番地の命令を実行：</b><br>5番地の「終了」命令を読み込み、計算処理がすべて完了しました！`;
+        
+        document.getElementById('stepBtn').disabled = true;
+      }
+    }
+  </script>
+</body>
+</html>

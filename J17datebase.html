@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情報Ⅰ データベース学習アプリ</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --danger-color: #dc2626;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+            --accent-color: #16a34a;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* --- 上部固定ヘッダーエリア --- */
+        .sticky-header-container {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            border-bottom: 2px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            padding: 10px 20px 5px 20px;
+        }
+
+        .app-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 0 0 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+        }
+
+        .tab-btn {
+            padding: 8px 14px;
+            border: none;
+            background: #e2e8f0;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #475569;
+            cursor: pointer;
+            border-radius: 6px 6px 0 0;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* 固定表示するアクティブワークタイトル */
+        .active-work-title-bar {
+            background: #1e293b;
+            color: white;
+            padding: 6px 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        /* ワーク❺用 上部固定クエリ結果パネル */
+        .sticky-result-panel {
+            display: none;
+            background: #e0f2fe;
+            border: 2px solid #0284c7;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .sticky-result-panel h4 {
+            margin: 0 0 5px 0;
+            color: #0369a1;
+            font-size: 0.95rem;
+        }
+
+        /* --- メインコンテンツエリア --- */
+        .main-container {
+            max-width: 950px;
+            margin: 20px auto;
+            padding: 0 20px 50px 20px;
+        }
+
+        .tab-content {
+            display: none;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .demo-box {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: white;
+            font-size: 0.88rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 7px 10px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        th { background-color: #e2e8f0; }
+
+        /* 視覚的強調クラス */
+        .hl-table { outline: 4px solid #3b82f6 !important; }
+        .hl-row { background-color: #fef08a !important; font-weight: bold; }
+        .hl-col { background-color: #bae6fd !important; font-weight: bold; }
+        .hl-field { background-color: #bbf7d0 !important; font-weight: bold; border: 2px solid #16a34a !important; }
+        .hl-pk { background-color: #fbcfe8 !important; border: 2px solid #ec4899 !important; font-weight: bold; }
+
+        /* 連動修正アニメーション用 */
+        .highlight-flash {
+            background-color: #fef08a !important;
+            font-weight: bold;
+            transform: scale(1.02);
+        }
+
+        button.action-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin: 2px;
+        }
+
+        button.action-btn:hover { opacity: 0.9; }
+
+        .alert-box {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .alert-error { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+        .alert-success { background-color: #dcfce7; color: #166534; border: 1px solid #4ade80; }
+
+        .quiz-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .quiz-option {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin: 5px 0;
+            text-align: left;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .quiz-option:hover { background-color: #e0f2fe; }
+
+        .controls-group {
+            background: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .checkbox-label {
+            margin-right: 15px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        /* --- 帳票（インボイス/各種帳票）スタイル --- */
+        .invoice-paper {
+            background: #ffffff;
+            border: 2px solid #334155;
+            padding: 25px;
+            border-radius: 4px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-top: 15px;
+        }
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .invoice-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #0f172a;
+        }
+        .invoice-meta {
+            text-align: right;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+        .invoice-total-box {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 10px 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin: 15px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .badge-pk {
+            background: #ec4899;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 固定エリア（ヘッダー・タブ・タイトル・演算結果） -->
+<div class="sticky-header-container">
+    <div class="app-title">
+        <span>情報Ⅰ データベース学習アプリ</span>
+    </div>
+
+    <!-- ❶〜❼タブメニュー -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab(0)">❶ 非DBの限界</button>
+        <button class="tab-btn" onclick="switchTab(1)">❷ 非DB vs DB</button>
+        <button class="tab-btn" onclick="switchTab(2)">❸ 主キーの重要性</button>
+        <button class="tab-btn" onclick="switchTab(3)">❹ 専門用語ドリル</button>
+        <button class="tab-btn" onclick="switchTab(4)">❺ 基本操作 (選択/射影/結合)</button>
+        <button class="tab-btn" onclick="switchTab(5)">❻ 帳票自動作成</button>
+        <button class="tab-btn" onclick="switchTab(6)">❼ 関連用語学習</button>
+    </div>
+
+    <!-- 上部固定アクティブワークタイトル -->
+    <div class="active-work-title-bar" id="sticky-work-title">
+        ワーク❶：単一表（非DB形式）管理の不便さを体験
+    </div>
+
+    <!-- ワーク❺専用 上部固定リアルタイム演算結果パネル -->
+    <div class="sticky-result-panel" id="sticky-result-panel">
+        <h4>⚡ 【固定表示】関係代数演算（クエリ）の実行結果</h4>
+        <div id="op-result-table-sticky"></div>
+    </div>
+</div>
+
+<!-- スクロール可能なメインコンテンツ -->
+<div class="main-container">
+
+    <!-- ❶ エクセルのような非データベースの不便体験 -->
+    <div class="tab-content active">
+        <p>1つの表に全ての情報を詰め込むと、同じデータが何度も出現します。顧客「佐藤」さんの電話番号が変更された場合を体験してみましょう。</p>
+        
+        <div class="demo-box">
+            <h3>注文管理表（単一表）</h3>
+            <table id="excel-table">
+                <thead>
+                    <tr><th>注文ID</th><th>顧客名</th><th>電話番号</th><th>商品名</th><th>金額</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>101</td><td>佐藤</td><td class="tel-cell">090-1111-XXXX</td><td>ノートPC</td><td>80,000</td></tr>
+                    <tr><td>102</td><td>鈴木</td><td>090-2222-XXXX</td><td>マウス</td><td>3,000</td></tr>
+                    <tr><td>103</td><td>佐藤</td><td class="tel-cell">090-1111-XXXX</td><td>キーボード</td><td>5,000</td></tr>
+                    <tr><td>104</td><td>佐藤</td><td class="tel-cell">090-1111-XXXX</td><td>モニター</td><td>25,000</td></tr>
+                </tbody>
+            </table>
+            <div>
+                新電話番号: <input type="text" id="new-tel" value="090-9999-9999">
+                <button class="action-btn" onclick="updateExcelStyle()">1箇所だけ更新してみる</button>
+            </div>
+            <div id="excel-alert"></div>
+        </div>
+        <div style="background: #fffbebfb; padding: 12px; border-left: 4px solid #f59e0b;">
+            <strong>学習ノート：</strong> データを1つの表でまとめて管理すると、**「更新漏れによるデータの矛盾（表記揺れ・不整合）」**が発生します。これを防ぐためにテーブルを分割（正規化）します。
+        </div>
+    </div>
+
+    <!-- ❷ 非データベースとデータベースの違い（視覚的連動の強化） -->
+    <div class="tab-content">
+        <h3>❷-(1) 顧客マスターの一元管理と視覚的連動（マルチリレーション）</h3>
+        <p>顧客情報を分離・一元管理することで、顧客マスターの電話番号を**1箇所変更するだけ**で、それに関連した複数の注文参照データが**同時に自動更新**されます。</p>
+        
+        <div class="demo-box" style="border: 2px solid var(--primary-color); background: #eff6ff;">
+            <h3>① 顧客テーブル（マスターデータ）</h3>
+            <table>
+                <thead>
+                    <tr><th>顧客ID <span class="badge-pk">主キー</span></th><th>顧客名</th><th>電話番号</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>C01</td><td>佐藤</td><td id="db-tel" style="font-size: 1.05rem;">090-1111-XXXX</td></tr>
+                    <tr><td>C02</td><td>鈴木</td><td>090-2222-XXXX</td></tr>
+                </tbody>
+            </table>
+            <div style="margin-top: 10px;">
+                佐藤さんの新電話番号: <input type="text" id="db-new-tel" value="090-9999-9999" style="font-size: 0.95rem; padding: 4px;">
+                <button class="action-btn" onclick="updateDBStyle()">顧客テーブルを1箇所更新する</button>
+            </div>
+            <div id="db-alert"></div>
+        </div>
+
+        <div class="demo-box">
+            <h3>② 注文履歴表示ビュー（顧客マスターを参照・結合して動的表示）</h3>
+            <p style="font-size: 0.85rem; color: #475569;">※顧客ID「C01」を参照している複数の行（黄枠）が自動的に最新情報に更新されます。</p>
+            <table id="db-orders-view-table">
+                <thead>
+                    <tr><th>注文ID</th><th>顧客ID (参照)</th><th>顧客名</th><th>電話番号 (顧客マスターより動的取得)</th><th>注文商品</th></tr>
+                </thead>
+                <tbody>
+                    <tr class="c01-row"><td>101</td><td>C01</td><td>佐藤</td><td class="view-tel-c01">090-1111-XXXX</td><td>ノートPC</td></tr>
+                    <tr><td>102</td><td>C02</td><td>鈴木</td><td>090-2222-XXXX</td><td>マウス</td></tr>
+                    <tr class="c01-row"><td>103</td><td>C01</td><td>佐藤</td><td class="view-tel-c01">090-1111-XXXX</td><td>キーボード</td></tr>
+                    <tr class="c01-row"><td>104</td><td>C01</td><td>佐藤</td><td class="view-tel-c01">090-1111-XXXX</td><td>27インチモニター</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <hr style="margin: 25px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+        <h3>❷-(2) 商品マスターの単価変更と自動合計金額修正</h3>
+        <p>「商品テーブル」の定価を変更すると、その商品を参照しているすべての「注文データ」および全体の「合計売り上げ」が即座に自動再計算されます。</p>
+
+        <div class="demo-box">
+            <h3>商品テーブル（マスターデータ）</h3>
+            <table>
+                <thead>
+                    <tr><th>商品ID</th><th>商品名</th><th>単価 (円)</th><th>単価の変更</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>P01</td><td>ノートPC</td>
+                        <td><span id="price-p01-val">80000</span>円</td>
+                        <td><input type="number" id="input-p01" value="85000" style="width: 80px;"> <button class="action-btn" onclick="updateProductPrice('P01')">変更</button></td>
+                    </tr>
+                    <tr>
+                        <td>P02</td><td>マウス</td>
+                        <td><span id="price-p02-val">3000</span>円</td>
+                        <td><input type="number" id="input-p02" value="3500" style="width: 80px;"> <button class="action-btn" onclick="updateProductPrice('P02')">変更</button></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>注文テーブル（トランザクション）</h3>
+            <table id="order-calc-table">
+                <thead>
+                    <tr><th>注文ID</th><th>顧客名</th><th>商品ID</th><th>商品名</th><th>数量</th><th>小計金額</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div style="text-align: right; font-size: 1.1rem; font-weight: bold; margin-top: 10px;">
+                注文合計金額: <span id="total-sum-val" style="color: var(--primary-color); font-size: 1.3rem;">0</span> 円
+            </div>
+            <div id="calc-alert"></div>
+        </div>
+    </div>
+
+    <!-- ❸ 新規追加：主キー（Primary Key）の重要性を学ぶ対話ワーク -->
+    <div class="tab-content">
+        <h3>🔑 主キー（Primary Key）がないとどうなるか？</h3>
+        <p>データベースにおいて「主キー」は、レコードを絶対に一意（1件だけ）に特定するために必須の項目です。<br>
+        「主キーがない世界」と「主キーがある世界」で、特定のデータを更新した時の挙動の違いを体験しましょう。</p>
+
+        <!-- 主キー無し体験 -->
+        <div class="demo-box" style="border-left: 5px solid var(--danger-color);">
+            <h4 style="color: var(--danger-color); margin-top:0;">❌ 1. 主キー（識別番号）がない生徒表</h4>
+            <p style="font-size: 0.9rem;">「田中 太郎」さんが同姓同名で2人存在します。<br>
+            <strong>【操作】</strong>「1人目の田中 太郎さん」の部活を【サッカー部】から【野球部】に変更してみましょう。</p>
+
+            <table>
+                <thead>
+                    <tr><th>氏名</th><th>学年</th><th>組</th><th>部活動</th></tr>
+                </thead>
+                <tbody>
+                    <tr id="nopk-row-0"><td>田中 太郎</td><td>2</td><td>A</td><td class="nopk-club-0">サッカー部</td></tr>
+                    <tr id="nopk-row-1"><td>佐藤 花子</td><td>2</td><td>A</td><td>吹奏楽部</td></tr>
+                    <tr id="nopk-row-2"><td>田中 太郎</td><td>2</td><td>A</td><td class="nopk-club-2">バスケ部</td></tr>
+                </tbody>
+            </table>
+            <button class="action-btn" style="background-color: var(--danger-color);" onclick="updateWithoutPK()">条件：「氏名=田中太郎」で部活動を「野球部」に更新</button>
+            <div id="nopk-alert"></div>
+        </div>
+
+        <!-- 主キー有り体験 -->
+        <div class="demo-box" style="border-left: 5px solid var(--accent-color);">
+            <h4 style="color: var(--accent-color); margin-top:0;">✅ 2. 主キー（生徒ID）が存在する生徒表</h4>
+            <p style="font-size: 0.9rem;">一人ひとりに重複しない固有の「生徒ID」を割り振っています。<br>
+            <strong>【操作】</strong>生徒ID「S001」の田中 太郎さんの部活を【野球部】に変更してみましょう。</p>
+
+            <table>
+                <thead>
+                    <tr><th>生徒ID <span class="badge-pk">主キー</span></th><th>氏名</th><th>学年</th><th>組</th><th>部活動</th></tr>
+                </thead>
+                <tbody>
+                    <tr id="pk-row-0"><td><b>S001</b></td><td>田中 太郎</td><td>2</td><td>A</td><td class="pk-club-0">サッカー部</td></tr>
+                    <tr id="pk-row-1"><td><b>S002</b></td><td>佐藤 花子</td><td>2</td><td>A</td><td>吹奏楽部</td></tr>
+                    <tr id="pk-row-2"><td><b>S003</b></td><td>田中 太郎</td><td>2</td><td>A</td><td class="pk-club-2">バスケ部</td></tr>
+                </tbody>
+            </table>
+            <button class="action-btn" style="background-color: var(--accent-color);" onclick="updateWithPK()">条件：「生徒ID=S001」で部活動を「野球部」に更新</button>
+            <div id="pk-alert"></div>
+        </div>
+
+        <div style="background: #e0f2fe; padding: 12px; border-radius: 6px; font-size: 0.9rem;">
+            <strong>💡 共通テスト突破の要点：</strong>
+            主キー（Primary Key）は**「唯一性（重複不可）」**と**「非空（NOT NULL・空欄不可）」**の2大原則を持ちます。SQLの `WHERE` 句で主キーを指定することで、狙った1件だけを確実に更新・削除・抽出することができます。
+        </div>
+    </div>
+
+    <!-- ❹ 専門用語ドリル & 視覚的フォーカス -->
+    <div class="tab-content">
+        <p>ボタンをクリックして、各用語が「具体的にどこを指すのか」を視覚的に確認しましょう。</p>
+
+        <div class="demo-box" style="text-align: center;">
+            <button class="action-btn" onclick="focusElement('table')">① テーブル全体</button>
+            <button class="action-btn" onclick="focusElement('record')">② レコード (行)</button>
+            <button class="action-btn" onclick="focusElement('column')">③ カラム (列)</button>
+            <button class="action-btn" onclick="focusElement('field')">④ フィールド (1セル)</button>
+            <button class="action-btn" onclick="focusElement('pk')">⑤ 主キー (PK)</button>
+            <button class="action-btn" style="background: #64748b;" onclick="focusElement('clear')">クリア</button>
+        </div>
+
+        <div class="demo-box">
+            <h3 id="focus-title">生徒情報テーブル</h3>
+            <table id="vis-table">
+                <thead>
+                    <tr>
+                        <th class="col-pk col-id">生徒ID (主キー)</th>
+                        <th class="col-name">氏名</th>
+                        <th class="col-grade">学年</th>
+                        <th class="col-score">得点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="row-1">
+                        <td class="col-pk col-id">S001</td>
+                        <td class="col-name">愛知 太郎</td>
+                        <td class="col-grade">2</td>
+                        <td class="col-score cell-target">85</td>
+                    </tr>
+                    <tr class="row-2">
+                        <td class="col-pk col-id">S002</td>
+                        <td class="col-name">静岡 花子</td>
+                        <td class="col-grade">1</td>
+                        <td class="col-score">92</td>
+                    </tr>
+                    <tr class="row-3">
+                        <td class="col-pk col-id">S003</td>
+                        <td class="col-name">三重 次郎</td>
+                        <td class="col-grade">2</td>
+                        <td class="col-score">78</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div id="focus-explanation" style="font-weight: bold; color: var(--primary-color); margin-top: 8px;">
+                ボタンを押すと説明と強調表示が切り替わります。
+            </div>
+        </div>
+
+        <h3>全用語暗記ドリル（全10問）</h3>
+        <div id="quiz-container"></div>
+    </div>
+
+    <!-- ❺ データベースの基本操作 -->
+    <div class="tab-content">
+        <p style="background: #e0f2fe; padding: 10px; border-radius: 4px; font-weight: bold; color: #0369a1;">
+            💡 以下の設定を変更すると、画面上部に「演算（クエリ）の実行結果」がリアルタイムに固定表示されます！
+        </p>
+
+        <!-- インタラクティブ操作パネル -->
+        <div class="controls-group">
+            <h4 style="margin-top:0;">1. 【選択 (Selection)】 行の絞り込み</h4>
+            <label>抽出条件：金額が <b><span id="select-val-disp">10000</span> 円以上</b> のレコード</label><br>
+            <input type="range" id="select-range" min="0" max="100000" step="5000" value="10000" oninput="runOperations()" style="width: 70%;">
+        </div>
+
+        <div class="controls-group">
+            <h4 style="margin-top:0;">2. 【射影 (Projection)】 列の指定</h4>
+            <label>表示したい項目（カラム）を選択：</label><br>
+            <label class="checkbox-label"><input type="checkbox" class="proj-cb" value="注文ID" checked onchange="runOperations()"> 注文ID</label>
+            <label class="checkbox-label"><input type="checkbox" class="proj-cb" value="顧客名" checked onchange="runOperations()"> 顧客名</label>
+            <label class="checkbox-label"><input type="checkbox" class="proj-cb" value="商品名" checked onchange="runOperations()"> 商品名</label>
+            <label class="checkbox-label"><input type="checkbox" class="proj-cb" value="金額" checked onchange="runOperations()"> 金額</label>
+        </div>
+
+        <div class="controls-group">
+            <h4 style="margin-top:0;">3. 【結合 (Join)】 テーブル同士の合体</h4>
+            <label>結合モード：</label>
+            <select id="join-mode" onchange="runOperations()" style="padding: 5px; font-size: 0.95rem;">
+                <option value="none">結合しない（注文データのみ）</option>
+                <option value="customer">注文 ＋ 顧客テーブル（顧客IDで結合）</option>
+                <option value="full">注文 ＋ 顧客 ＋ 商品マスター（完全結合）</option>
+            </select>
+        </div>
+
+        <!-- データベースの全貌データ -->
+        <h3 style="margin-top: 30px;">📂 データベースに記録されている全貌テーブル（元データ）</h3>
+        <p>※【選択】条件に合致したレコード（行）は、以下の全貌テーブル上でも黄色のハイライト表示になります。</p>
+        
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px;">
+                <h4>顧客テーブル</h4>
+                <table id="master-cust-table">
+                    <tr><th>顧客ID</th><th>顧客名</th></tr>
+                    <tr id="mc-C01"><td>C01</td><td>佐藤</td></tr>
+                    <tr id="mc-C02"><td>C02</td><td>鈴木</td></tr>
+                    <tr id="mc-C03"><td>C03</td><td>高橋</td></tr>
+                </table>
+            </div>
+            <div style="flex: 1; min-width: 250px;">
+                <h4>商品テーブル</h4>
+                <table id="master-prod-table">
+                    <tr><th>商品ID</th><th>商品名</th><th>単価</th></tr>
+                    <tr id="mp-P01"><td>P01</td><td>ノートPC</td><td>80,000</td></tr>
+                    <tr id="mp-P02"><td>P02</td><td>マウス</td><td>3,000</td></tr>
+                    <tr id="mp-P03"><td>P03</td><td>キーボード</td><td>5,000</td></tr>
+                    <tr id="mp-P04"><td>P04</td><td>27インチモニター</td><td>35,000</td></tr>
+                    <tr id="mp-P05"><td>P05</td><td>Webカメラ</td><td>8,500</td></tr>
+                </table>
+            </div>
+        </div>
+        <div>
+            <h4>注文テーブル (全件)</h4>
+            <table id="master-ord-table">
+                <thead>
+                    <tr><th>注文ID</th><th>顧客ID</th><th>商品ID</th><th>金額</th></tr>
+                </thead>
+                <tbody>
+                    <tr id="mo-101"><td>101</td><td>C01</td><td>P01</td><td>80,000</td></tr>
+                    <tr id="mo-102"><td>102</td><td>C02</td><td>P02</td><td>3,000</td></tr>
+                    <tr id="mo-103"><td>103</td><td>C01</td><td>P03</td><td>5,000</td></tr>
+                    <tr id="mo-104"><td>104</td><td>C01</td><td>P01</td><td>80,000</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ❻ 帳票自動作成 -->
+    <div class="tab-content">
+        <h3>❻ データベース連携による帳票自動発行機能</h3>
+        <p>データベース上のテーブル（下部に表示）を動的に結合・集計し、用途に応じた3種類の帳票を出力します。</p>
+        
+        <div class="demo-box" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+            <div>
+                <label><strong>1. 出力帳票種別：</strong></label><br>
+                <select id="report-type-select" onchange="toggleReportOptions()" style="padding: 8px; font-size: 0.95rem; font-weight: bold;">
+                    <option value="invoice">請求書（個別の取引明細）</option>
+                    <option value="customer_list">顧客名簿（顧客一覧データ）</option>
+                    <option value="daily_sales">日別売り上げ一覧（集計帳票）</option>
+                </select>
+            </div>
+
+            <div id="invoice-opt-box">
+                <label><strong>2. 対象顧客を選択：</strong></label><br>
+                <select id="invoice-cust-select" onchange="renderSelectedReport()" style="padding: 8px; font-size: 0.95rem;"></select>
+            </div>
+        </div>
+
+        <!-- 帳票出力表示エリア -->
+        <div id="report-output"></div>
+
+        <!-- 元データベーステーブル群 -->
+        <div style="margin-top: 40px; border-top: 2px dashed var(--border-color); padding-top: 20px;">
+            <h3 style="color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                🗄️ 帳票生成の元となるデータベース（リレーショナルデータベース）
+            </h3>
+            <p style="font-size: 0.88rem; color: #475569;">
+                上の帳票は、以下の「顧客マスター」「商品マスター」「注文トランザクション」の各テーブルから、SQLの結合（JOIN）や集計（GROUP BY）等の処理を経て動的に自動生成されています。
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                <div style="background: #f8fafc; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px;">
+                    <h4 style="margin: 0 0 8px 0; color: #1e3a8a;">① 顧客マスターテーブル (Customer_Master)</h4>
+                    <div id="source-table-customer" style="overflow-x: auto;"></div>
+                </div>
+
+                <div style="background: #f8fafc; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px;">
+                    <h4 style="margin: 0 0 8px 0; color: #1e3a8a;">② 商品マスターテーブル (Product_Master)</h4>
+                    <div id="source-table-product" style="overflow-x: auto;"></div>
+                </div>
+
+                <div style="background: #f8fafc; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px;">
+                    <h4 style="margin: 0 0 8px 0; color: #1e3a8a;">③ 注文トランザクションテーブル (Order_Transaction)</h4>
+                    <div id="source-table-orders" style="overflow-x: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ❼ 関連用語学習 -->
+    <div class="tab-content">
+        <h3>❼ 関連用語確認ドリル</h3>
+        <p>現代のデータ社会や情報システムを支える関連用語についての理解度を確認しましょう。</p>
+        <div id="tech-quiz-container"></div>
+    </div>
+</div>
+
+<script>
+    const workTitles = [
+        "ワーク❶：単一表（非DB形式）管理の不便さを体験",
+        "ワーク❷：非DB vs DB の決定的な違い（一元管理と動的計算）",
+        "ワーク❸：主キー（Primary Key）の決定的な重要性を体験",
+        "ワーク❹：視覚で覚える構造 ＆ 全用語暗記ドリル",
+        "ワーク❺：データベースの基本操作（選択・射影・結合）",
+        "ワーク❻：データベース連携による帳票自動生成体験",
+        "ワーク❼：社会で活用されるDB技術・関連用語ドリル"
+    ];
+
+    // --- タブ切り替え ---
+    function switchTab(index) {
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+        const titleBar = document.getElementById('sticky-work-title');
+        const stickyPanel = document.getElementById('sticky-result-panel');
+
+        tabs.forEach((tab, i) => {
+            tab.classList.toggle('active', i === index);
+            contents[i].classList.toggle('active', i === index);
+        });
+
+        titleBar.innerText = workTitles[index];
+
+        if (index === 4) {
+            stickyPanel.style.display = 'block';
+            runOperations();
+        } else {
+            stickyPanel.style.display = 'none';
+        }
+
+        if (index === 5) {
+            initReportTab();
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- ワーク❶ ---
+    function updateExcelStyle() {
+        const cells = document.querySelectorAll('.tel-cell');
+        const newTel = document.getElementById('new-tel').value;
+        cells[0].innerText = newTel;
+        const alertBox = document.getElementById('excel-alert');
+        alertBox.className = 'alert-box alert-error';
+        alertBox.innerHTML = '⚠️ 不整合が発生！1行目のみ更新されたため、同じ佐藤さんなのに他の注文（103, 104）と電話番号の矛盾が生じました。';
+    }
+
+    // --- ワーク❷-(1) 視覚的連動処理 ---
+    function updateDBStyle() {
+        const newTel = document.getElementById('db-new-tel').value;
+        document.getElementById('db-tel').innerText = newTel;
+        
+        // 注文履歴ビュー側の対象セル（C01の全行）を更新＆黄色フラッシュ演出
+        const viewCells = document.querySelectorAll('.view-tel-c01');
+        const viewRows = document.querySelectorAll('.c01-row');
+
+        viewCells.forEach(cell => {
+            cell.innerText = newTel;
+        });
+
+        viewRows.forEach(row => {
+            row.classList.add('highlight-flash');
+            setTimeout(() => {
+                row.classList.remove('highlight-flash');
+            }, 1500);
+        });
+
+        const alertBox = document.getElementById('db-alert');
+        alertBox.className = 'alert-box alert-success';
+        alertBox.innerHTML = '⚡ 一元管理の威力！顧客マスターを【1箇所】変更しただけで、それを取り込む【3箇所の注文履歴表示】も同時に自動更新されました！';
+    }
+
+    // --- ワーク❷-(2) 動的計算 ---
+    let products = {
+        'P01': { name: 'ノートPC', price: 80000 },
+        'P02': { name: 'マウス', price: 3000 }
+    };
+    let orders = [
+        { id: 201, cust: '佐藤', pId: 'P01', qty: 1 },
+        { id: 202, cust: '鈴木', pId: 'P02', qty: 2 },
+        { id: 203, cust: '佐藤', pId: 'P02', qty: 5 },
+        { id: 204, cust: '田中', pId: 'P01', qty: 2 }
+    ];
+
+    function renderOrderCalcTable() {
+        const tbody = document.querySelector('#order-calc-table tbody');
+        tbody.innerHTML = '';
+        let total = 0;
+
+        orders.forEach(o => {
+            const prod = products[o.pId];
+            const subtotal = prod.price * o.qty;
+            total += subtotal;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${o.id}</td>
+                <td>${o.cust}</td>
+                <td>${o.pId}</td>
+                <td>${prod.name}</td>
+                <td>${o.qty}</td>
+                <td>${subtotal.toLocaleString()} 円</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('total-sum-val').innerText = total.toLocaleString();
+    }
+
+    function updateProductPrice(pId) {
+        const newPrice = parseInt(document.getElementById(`input-${pId.toLowerCase()}`).value);
+        if (isNaN(newPrice) || newPrice < 0) return;
+
+        products[pId].price = newPrice;
+        document.getElementById(`price-${pId.toLowerCase()}-val`).innerText = newPrice.toLocaleString();
+        renderOrderCalcTable();
+
+        const alertBox = document.getElementById('calc-alert');
+        alertBox.className = 'alert-box alert-success';
+        alertBox.innerHTML = `⚡ 商品[${pId}] の単価を ${newPrice.toLocaleString()} 円に変更しました。注文テーブルの金額および全体の合計金額が即時に修正されました！`;
+    }
+
+    // --- ワーク❸ 主キーの重要性デモ ---
+    function updateWithoutPK() {
+        const c0 = document.querySelector('.nopk-club-0');
+        const c2 = document.querySelector('.nopk-club-2');
+        c0.innerText = '野球部';
+        c2.innerText = '野球部';
+
+        document.getElementById('nopk-row-0').classList.add('highlight-flash');
+        document.getElementById('nopk-row-2').classList.add('highlight-flash');
+
+        const alertBox = document.getElementById('nopk-alert');
+        alertBox.className = 'alert-box alert-error';
+        alertBox.innerHTML = '⚠️ 大失敗！主キーがないため「氏名=田中太郎」の条件で指定すると、同姓同名の別の生徒（バスケ部だった2人目）まで勝手に野球部に書き換わってしまいました！';
+    }
+
+    function updateWithPK() {
+        const c0 = document.querySelector('.pk-club-0');
+        c0.innerText = '野球部';
+
+        document.getElementById('pk-row-0').classList.add('highlight-flash');
+
+        const alertBox = document.getElementById('pk-alert');
+        alertBox.className = 'alert-box alert-success';
+        alertBox.innerHTML = '🎉 大成功！「生徒ID=S001」という主キーを指定したため、同姓同名の別人（S003）に影響を与えることなく、1件だけを確実に更新できました！';
+    }
+
+    // --- ワーク❹ 視覚的フォーカス ＆ ドリル ---
+    function focusElement(type) {
+        const table = document.getElementById('vis-table');
+        const rows = document.querySelectorAll('#vis-table tbody tr');
+        const cols = document.querySelectorAll('#vis-table .col-score');
+        const targetCell = document.querySelector('.cell-target');
+        const pks = document.querySelectorAll('#vis-table .col-pk');
+        const exp = document.getElementById('focus-explanation');
+
+        table.classList.remove('hl-table');
+        rows.forEach(r => r.classList.remove('hl-row'));
+        document.querySelectorAll('#vis-table td, #vis-table th').forEach(el => {
+            el.classList.remove('hl-col', 'hl-field', 'hl-pk');
+        });
+
+        if (type === 'table') {
+            table.classList.add('hl-table');
+            exp.innerHTML = '【テーブル (Table)】データベース内でデータを管理する「表全体」のことです。';
+        } else if (type === 'record') {
+            rows[0].classList.add('hl-row');
+            exp.innerHTML = '【レコード (Record) / 行】横方向の1行。1件分のデータ（例：愛知太郎さんのデータ全項目）を指します。';
+        } else if (type === 'column') {
+            cols.forEach(c => c.classList.add('hl-col'));
+            exp.innerHTML = '【カラム (Column) / 列】縦方向の1列全体。属性項目（例：得点という項目列）を指します。';
+        } else if (type === 'field') {
+            targetCell.classList.add('hl-field');
+            exp.innerHTML = '【フィールド (Field) / 1セル】行と列が交差する「1つのマス目（具体的なデータ値）」。例：愛知太郎さんの得点「85」という値そのもの。';
+        } else if (type === 'pk') {
+            pks.forEach(p => p.classList.add('hl-pk'));
+            exp.innerHTML = '【主キー (Primary Key)】レコードを意図通りに唯一特定（識別）するための重複しない識別子です。';
+        } else {
+            exp.innerText = 'ボタンを押すと説明と強調表示が切り替わります。';
+        }
+    }
+
+    // 用語ドリル（全10問）
+    const quizData = [
+        { q: "Q1. データベースにおいて、横1行分の「1件のデータのかたまり」を表す用語はどれ？", options: ["フィールド", "レコード", "主キー", "テーブル"], ans: 1 },
+        { q: "Q2. 縦の1列全体を指し、「氏名」や「得点」といったデータの属性項目を表す用語はどれ？", options: ["レコード", "主キー", "カラム（列）", "フィールド"], ans: 2 },
+        { q: "Q3. 行と列が交差する「1つのマス目（具体的なデータ値）」を表す用語はどれ？", options: ["フィールド (Field)", "テーブル", "カラム", "主キー"], ans: 0 },
+        { q: "Q4. レコードを唯一識別し、他と絶対に重複しないように設定する列項目（生徒IDなど）を何と呼ぶ？", options: ["主キー (Primary Key)", "外部キー", "レコード", "インデックス"], ans: 0 },
+        { q: "Q5. データベースの操作や管理、検索・更新などを効率的かつ安全に行うための専門ソフトウェアを何と呼ぶ？", options: ["OS (オペレーティングシステム)", "DBMS (データベース管理システム)", "Webサーバー", "表計算ソフト"], ans: 1 },
+        { q: "Q6. 不正なアクセスや漏洩を防ぐため、ユーザーごとにアクセス権限を設定・制御するDBMSの機能を何と呼ぶ？", options: ["セキュリティ機能", "ロールバック機能", "排他制御機能", "障害回復機能"], ans: 0 },
+        { q: "Q7. 関連する複数の処理（例：送金時の引き落としと振り込み）を、一体不可分の「1つの処理単位」として扱う機能を何と呼ぶ？", options: ["トランザクション機能", "セッション機能", "バッチ処理機能", "正規化機能"], ans: 0 },
+        { q: "Q8. トランザクション処理の途中でエラーが発生した場合、処理を開始する前の状態にデータを書き戻す操作を何と呼ぶ？", options: ["ロールバック (Rollback)", "コミット (Commit)", "バックアップ (Backup)", "フォーマット (Format)"], ans: 0 },
+        { q: "Q9. 存在しない顧客IDでの注文入力を拒否したり、主キーの重複を防ぎ、データの矛盾を防止するDBMSの機能を何と呼ぶ？", options: ["セキュリティ機能", "整合性制約機能", "バックアップ機能", "排他制御機能"], ans: 1 },
+        { q: "Q10. 複数のユーザーが同時に同じデータを更新しようとした際、データの矛盾が生じないよう一時的にロックをかける機能を何と呼ぶ？", options: ["排他制御機能", "アクセス制御機能", "データ復元機能", "インデックス機能"], ans: 0 }
+    ];
+
+    function renderQuiz() {
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = '';
+        quizData.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = 'quiz-card';
+            let optsHtml = '';
+            q.options.forEach((opt, oIdx) => {
+                optsHtml += `<button class="quiz-option" onclick="checkQuizAnswer(${idx}, ${oIdx})">${opt}</button>`;
+            });
+            card.innerHTML = `<strong>${q.q}</strong>${optsHtml}<div id="q-ans-${idx}"></div>`;
+            container.appendChild(card);
+        });
+    }
+
+    function checkQuizAnswer(qIdx, selectedOpt) {
+        const ansDiv = document.getElementById(`q-ans-${qIdx}`);
+        if (selectedOpt === quizData[qIdx].ans) {
+            ansDiv.className = 'alert-box alert-success';
+            ansDiv.innerText = '⭕ 正解！正しい理解です。';
+        } else {
+            ansDiv.className = 'alert-box alert-error';
+            ansDiv.innerText = '❌ 不正解。もう一度確認してみましょう。';
+        }
+    }
+
+    // --- ワーク❺ データベースの基本操作 ---
+    const rawOrders = [
+        { ordId: 101, cId: 'C01', cName: '佐藤', pId: 'P01', pName: 'ノートPC', price: 80000 },
+        { ordId: 102, cId: 'C02', cName: '鈴木', pId: 'P02', pName: 'マウス', price: 3000 },
+        { ordId: 103, cId: 'C01', cName: '佐藤', pId: 'P03', pName: 'キーボード', price: 5000 },
+        { ordId: 104, cId: 'C01', cName: '佐藤', pId: 'P01', pName: 'ノートPC', price: 80000 }
+    ];
+
+    function runOperations() {
+        const threshold = parseInt(document.getElementById('select-range').value);
+        document.getElementById('select-val-disp').innerText = threshold.toLocaleString();
+
+        const selectedProj = Array.from(document.querySelectorAll('.proj-cb:checked')).map(cb => cb.value);
+        const joinMode = document.getElementById('join-mode').value;
+
+        document.querySelectorAll('#master-ord-table tbody tr').forEach(tr => tr.style.backgroundColor = '');
+
+        const filtered = rawOrders.filter(item => {
+            const match = item.price >= threshold;
+            if(match) {
+                const tr = document.getElementById(`mo-${item.ordId}`);
+                if(tr) tr.style.backgroundColor = '#fef08a';
+            }
+            return match;
+        });
+
+        const containerSticky = document.getElementById('op-result-table-sticky');
+        
+        if (selectedProj.length === 0) {
+            containerSticky.innerHTML = '<p style="color:red; margin:0;">※表示する項目（カラム）を1つ以上選択してください。</p>';
+            return;
+        }
+
+        let availableCols = [];
+        if(joinMode === 'none') {
+            availableCols = ['注文ID', '金額'];
+        } else if(joinMode === 'customer') {
+            availableCols = ['注文ID', '顧客名', '金額'];
+        } else {
+            availableCols = ['注文ID', '顧客名', '商品名', '金額'];
+        }
+
+        const activeCols = selectedProj.filter(c => availableCols.includes(c));
+
+        if(activeCols.length === 0) {
+            containerSticky.innerHTML = '<p style="color:red; margin:0;">※現在の結合モードに含まれる項目がチェックされていません。</p>';
+            return;
+        }
+
+        let html = '<table><thead><tr>';
+        activeCols.forEach(c => { html += `<th>${c}</th>`; });
+        html += '</tr></thead><tbody>';
+
+        filtered.forEach(row => {
+            html += '<tr>';
+            activeCols.forEach(col => {
+                if(col === '注文ID') html += `<td>${row.ordId}</td>`;
+                if(col === '顧客名') html += `<td>${row.cName}</td>`;
+                if(col === '商品名') html += `<td>${row.pName}</td>`;
+                if(col === '金額') html += `<td>${row.price.toLocaleString()} 円</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+
+        containerSticky.innerHTML = html;
+    }
+
+    // --- ワーク❻ 帳票機能 ---
+    const dbCustomers = [
+        { id: 'C01', name: '株式会社 テックソリューションズ', zip: '100-0001', address: '東京都千代田区千代田1-1', dept: '開発部 佐藤様', tel: '03-1234-5678' },
+        { id: 'C02', name: 'グローバルアカデミー 学園', zip: '460-0008', address: '愛知県名古屋市中区栄2-3-1', dept: '情報教育課 鈴木様', tel: '052-987-6543' },
+        { id: 'C03', name: '合同会社 イノベーションラボ', zip: '530-0001', address: '大阪府大阪市北区梅田3-1-1', dept: '購買部 高橋様', tel: '06-6543-2109' },
+        { id: 'C04', name: '未来クリエイト 株式会社', zip: '810-0001', address: '福岡県福岡市中央区天神1-4-2', dept: '総務課 田中様', tel: '092-111-2222' }
+    ];
+
+    const dbProducts = {
+        'P01': { name: '15.6インチノートPC', price: 85000 },
+        'P02': { name: '静音ワイヤレスマウス', price: 3500 },
+        'P03': { name: 'メカニカルキーボード', price: 12000 },
+        'P04': { name: '27インチ4Kモニター', price: 42000 },
+        'P05': { name: 'フルHD Webカメラ', price: 8800 }
+    };
+
+    const dbOrders = [
+        { invId: 'INV-2026-001', cId: 'C01', date: '2026-09-15', items: [{ pId: 'P01', qty: 2 }, { pId: 'P03', qty: 2 }, { pId: 'P04', qty: 1 }] },
+        { invId: 'INV-2026-002', cId: 'C02', date: '2026-09-15', items: [{ pId: 'P02', qty: 10 }, { pId: 'P05', qty: 5 }] },
+        { invId: 'INV-2026-003', cId: 'C03', date: '2026-09-16', items: [{ pId: 'P01', qty: 5 }, { pId: 'P04', qty: 3 }] },
+        { invId: 'INV-2026-004', cId: 'C04', date: '2026-09-16', items: [{ pId: 'P03', qty: 3 }, { pId: 'P05', qty: 3 }] }
+    ];
+
+    function initReportTab() {
+        const select = document.getElementById('invoice-cust-select');
+        select.innerHTML = '';
+        dbCustomers.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.innerText = `${c.id} : ${c.name}`;
+            select.appendChild(opt);
+        });
+        toggleReportOptions();
+        renderSourceTables();
+    }
+
+    function toggleReportOptions() {
+        const type = document.getElementById('report-type-select').value;
+        const optBox = document.getElementById('invoice-opt-box');
+        if (type === 'invoice') {
+            optBox.style.display = 'block';
+        } else {
+            optBox.style.display = 'none';
+        }
+        renderSelectedReport();
+    }
+
+    function renderSelectedReport() {
+        const type = document.getElementById('report-type-select').value;
+        const output = document.getElementById('report-output');
+
+        if (type === 'invoice') {
+            renderInvoice(output);
+        } else if (type === 'customer_list') {
+            renderCustomerList(output);
+        } else if (type === 'daily_sales') {
+            renderDailySales(output);
+        }
+    }
+
+    function renderInvoice(output) {
+        const selectedCId = document.getElementById('invoice-cust-select').value;
+        const cust = dbCustomers.find(c => c.id === selectedCId);
+        const orderData = dbOrders.find(o => o.cId === selectedCId);
+
+        if (!orderData) {
+            output.innerHTML = '<p>該当する取引データがありません。</p>';
+            return;
+        }
+
+        let itemsHtml = '';
+        let subtotal = 0;
+
+        orderData.items.forEach(item => {
+            const prod = dbProducts[item.pId];
+            const lineTotal = prod.price * item.qty;
+            subtotal += lineTotal;
+            itemsHtml += `
+                <tr style="border-bottom: 1px solid #cbd5e1;">
+                    <td style="padding: 8px;">${item.pId}</td>
+                    <td style="padding: 8px; font-weight: bold;">${prod.name}</td>
+                    <td style="padding: 8px; text-align: right;">¥${prod.price.toLocaleString()}</td>
+                    <td style="padding: 8px; text-align: right;">${item.qty}</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold;">¥${lineTotal.toLocaleString()}</td>
+                </tr>
+            `;
+        });
+
+        const tax = Math.floor(subtotal * 0.1);
+        const grandTotal = subtotal + tax;
+
+        output.innerHTML = `
+            <div class="invoice-paper">
+                <div class="invoice-header">
+                    <div>
+                        <div class="invoice-title">御 請 求 書</div>
+                        <div style="font-size: 0.85rem; color: #475569; margin-top: 5px;">請求番号: ${orderData.invId}</div>
+                    </div>
+                    <div class="invoice-meta">
+                        発行日: ${orderData.date}<br>
+                        <strong>情報Ⅰ デモ商事株式会社</strong><br>
+                        〒100-0005 東京都千代田区丸の内1-1
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="font-size: 1.1rem; font-weight: bold; border-bottom: 2px solid #0f172a; display: inline-block; padding-bottom: 3px;">
+                        ${cust.name} 御中
+                    </div>
+                    <div style="font-size: 0.85rem; color: #475569; margin-top: 5px;">
+                        〒${cust.zip} ${cust.address}<br>${cust.dept}
+                    </div>
+                </div>
+                <div class="invoice-total-box">
+                    <span>ご請求合計金額 (税込)</span>
+                    <span>¥${grandTotal.toLocaleString()} -</span>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr style="background: #e2e8f0; border-bottom: 2px solid #475569;">
+                            <th style="padding: 8px; text-align: left;">商品コード</th>
+                            <th style="padding: 8px; text-align: left;">品名</th>
+                            <th style="padding: 8px; text-align: right;">単価</th>
+                            <th style="padding: 8px; text-align: right;">数量</th>
+                            <th style="padding: 8px; text-align: right;">金額</th>
+                        </tr>
+                    </thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div style="margin-top: 15px; text-align: right; font-size: 0.9rem;">
+                    小計: ¥${subtotal.toLocaleString()} / 消費税(10%): ¥${tax.toLocaleString()}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCustomerList(output) {
+        let rowsHtml = '';
+        dbCustomers.forEach(c => {
+            rowsHtml += `
+                <tr style="border-bottom: 1px solid #cbd5e1;">
+                    <td style="padding: 8px; font-weight: bold; text-align: center;">${c.id}</td>
+                    <td style="padding: 8px; font-weight: bold;">${c.name}</td>
+                    <td style="padding: 8px;">〒${c.zip} ${c.address}</td>
+                    <td style="padding: 8px;">${c.tel}</td>
+                    <td style="padding: 8px;">${c.dept}</td>
+                </tr>
+            `;
+        });
+
+        output.innerHTML = `
+            <div class="invoice-paper">
+                <div class="invoice-header">
+                    <div>
+                        <div class="invoice-title">顧客名簿一覧</div>
+                        <div style="font-size: 0.85rem; color: #475569; margin-top: 5px;">マスタデータ照会</div>
+                    </div>
+                    <div class="invoice-meta">
+                        出力日: 2026-09-15<br>
+                        情報管理部
+                    </div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #e2e8f0; border-bottom: 2px solid #475569;">
+                            <th style="padding: 8px; text-align: center;">顧客ID</th>
+                            <th style="padding: 8px; text-align: left;">顧客名 (法人・団体名)</th>
+                            <th style="padding: 8px; text-align: left;">住所</th>
+                            <th style="padding: 8px; text-align: left;">電話番号</th>
+                            <th style="padding: 8px; text-align: left;">担当部署・者</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    function renderDailySales(output) {
+        let salesByDate = {};
+
+        dbOrders.forEach(o => {
+            if (!salesByDate[o.date]) {
+                salesByDate[o.date] = { count: 0, total: 0 };
+            }
+            let orderSum = 0;
+            o.items.forEach(i => {
+                orderSum += dbProducts[i.pId].price * i.qty;
+            });
+            salesByDate[o.date].count += 1;
+            salesByDate[o.date].total += Math.floor(orderSum * 1.1);
+        });
+
+        let rowsHtml = '';
+        let grandTotal = 0;
+        let grandCount = 0;
+
+        Object.keys(salesByDate).sort().forEach(date => {
+            const data = salesByDate[date];
+            grandTotal += data.total;
+            grandCount += data.count;
+            rowsHtml += `
+                <tr style="border-bottom: 1px solid #cbd5e1;">
+                    <td style="padding: 8px; font-weight: bold; text-align: center;">${date}</td>
+                    <td style="padding: 8px; text-align: right;">${data.count} 件</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold;">¥${data.total.toLocaleString()}</td>
+                </tr>
+            `;
+        });
+
+        output.innerHTML = `
+            <div class="invoice-paper">
+                <div class="invoice-header">
+                    <div>
+                        <div class="invoice-title">日別売上集計表</div>
+                        <div style="font-size: 0.85rem; color: #475569; margin-top: 5px;">トランザクション集計レポート</div>
+                    </div>
+                    <div class="invoice-meta">
+                        出力日: 2026-09-15<br>
+                        売上管理システム
+                    </div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #e2e8f0; border-bottom: 2px solid #475569;">
+                            <th style="padding: 8px; text-align: center;">売上日付</th>
+                            <th style="padding: 8px; text-align: right;">取引件数</th>
+                            <th style="padding: 8px; text-align: right;">売上合計金額 (税込)</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                    <tfoot>
+                        <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #0f172a;">
+                            <td style="padding: 8px; text-align: center;">総合計</td>
+                            <td style="padding: 8px; text-align: right;">${grandCount} 件</td>
+                            <td style="padding: 8px; text-align: right; color: var(--primary-color); font-size: 1.1rem;">¥${grandTotal.toLocaleString()}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+    }
+
+    function renderSourceTables() {
+        let custHtml = '<table><thead><tr><th>顧客ID(PK)</th><th>顧客名</th><th>郵便番号</th><th>住所</th><th>担当</th><th>電話番号</th></tr></thead><tbody>';
+        dbCustomers.forEach(c => {
+            custHtml += `<tr><td><b>${c.id}</b></td><td>${c.name}</td><td>${c.zip}</td><td>${c.address}</td><td>${c.dept}</td><td>${c.tel}</td></tr>`;
+        });
+        custHtml += '</tbody></table>';
+        document.getElementById('source-table-customer').innerHTML = custHtml;
+
+        let prodHtml = '<table><thead><tr><th>商品ID(PK)</th><th>商品名</th><th>単価(円)</th></tr></thead><tbody>';
+        Object.keys(dbProducts).forEach(pId => {
+            const p = dbProducts[pId];
+            prodHtml += `<tr><td><b>${pId}</b></td><td>${p.name}</td><td>¥${p.price.toLocaleString()}</td></tr>`;
+        });
+        prodHtml += '</tbody></table>';
+        document.getElementById('source-table-product').innerHTML = prodHtml;
+
+        let ordHtml = '<table><thead><tr><th>請求ID(PK)</th><th>顧客ID(FK)</th><th>取引日付</th><th>購入明細データ（商品IDと数量）</th></tr></thead><tbody>';
+        dbOrders.forEach(o => {
+            const itemsStr = o.items.map(i => `[${i.pId} × ${i.qty}]`).join(', ');
+            ordHtml += `<tr><td><b>${o.invId}</b></td><td>${o.cId}</td><td>${o.date}</td><td>${itemsStr}</td></tr>`;
+        });
+        ordHtml += '</tbody></table>';
+        document.getElementById('source-table-orders').innerHTML = ordHtml;
+    }
+
+    // --- ワーク❼ 関連用語学習 ---
+    const techQuizData = [
+        { q: "Q1. レジで商品のバーコードを読み取ることで、「いつ・どの商品が・いくらで売れたか」を即時に記録・集計するシステムはどれ？", options: ["POSシステム", "ETCシステム", "GPSシステム", "CADシステム"], ans: 0 },
+        { q: "Q2. 巨大なデータ量（Volume）、更新速度（Velocity）、多様性（Variety）の3つのVを特徴とするデータ群を何と呼ぶ？", options: ["オープンデータ", "ビッグデータ", "メタデータ", "マスターデータ"], ans: 1 },
+        { q: "Q3. 自動車の有料道路の料金所で使われ、車両情報や通行履歴を即座にデータベースへ記録・参照する仕組みはどれ？", options: ["GPS", "ETC", "RFID", "NFC"], ans: 1 },
+        { q: "Q4. インターネット上の通信で、データが盗聴・改ざんされるのを防ぐために、ブラウザとサーバー間の通信を暗号化するプロトコルはどれ？", options: ["HTTP", "HTTPS (SSL/TLS)", "FTP", "SMTP"], ans: 1 }
+    ];
+
+    function renderTechQuiz() {
+        const container = document.getElementById('tech-quiz-container');
+        container.innerHTML = '';
+        techQuizData.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = 'quiz-card';
+            let optsHtml = '';
+            q.options.forEach((opt, oIdx) => {
+                optsHtml += `<button class="quiz-option" onclick="checkTechQuizAnswer(${idx}, ${oIdx})">${opt}</button>`;
+            });
+            card.innerHTML = `<strong>${q.q}</strong>${optsHtml}<div id="tq-ans-${idx}"></div>`;
+            container.appendChild(card);
+        });
+    }
+
+    function checkTechQuizAnswer(qIdx, selectedOpt) {
+        const ansDiv = document.getElementById(`tq-ans-${qIdx}`);
+        if (selectedOpt === techQuizData[qIdx].ans) {
+            ansDiv.className = 'alert-box alert-success';
+            ansDiv.innerText = '⭕ 正解！理解できています。';
+        } else {
+            ansDiv.className = 'alert-box alert-error';
+            ansDiv.innerText = '❌ 不正解。選択肢を見直してみましょう。';
+        }
+    }
+
+    window.onload = function() {
+        renderOrderCalcTable();
+        renderQuiz();
+        renderTechQuiz();
+    };
+</script>
+</body>
+</html>
