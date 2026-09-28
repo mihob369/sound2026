@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情報Ⅰ対応：両手10桁 2進数・指カウント学習アプリ</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --border: #cbd5e1;
+      --active-finger: #ef4444;
+      --inactive-finger: #e2e8f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      margin-top: 0;
+      color: var(--primary);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: #f1f5f9;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .display-section {
+      text-align: center;
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .decimal-display {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+
+    .binary-display {
+      font-size: 2.8rem;
+      font-weight: bold;
+      letter-spacing: 6px;
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--primary);
+      word-break: break-all;
+    }
+
+    .hex-display {
+      font-size: 1.1rem;
+      color: #059669;
+      margin-top: 6px;
+      font-weight: bold;
+    }
+
+    .hands-wrapper {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .hand-box {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hand-title {
+      font-weight: bold;
+      color: #475569;
+      margin-bottom: 20px; /* 余白を確保して重複を防止 */
+      font-size: 0.95rem;
+    }
+
+    .fingers-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      height: 140px; /* 指の高さをコンテナ内に収まるよう微調整 */
+    }
+
+    .finger-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .finger {
+      width: 28px;
+      border-radius: 14px 14px 4px 4px;
+      background-color: var(--inactive-finger);
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 6px;
+      color: white;
+      font-weight: bold;
+      font-size: 0.75rem;
+      border: 2px solid #cbd5e1;
+    }
+
+    .finger.active {
+      background-color: var(--active-finger);
+      border-color: #dc2626;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+      transform: translateY(-8px);
+    }
+
+    /* 指の高さ設定 */
+    .f-thumb  { height: 60px; }
+    .f-index  { height: 100px; }
+    .f-middle { height: 120px; }
+    .f-ring   { height: 110px; }
+    .f-pinky  { height: 80px; }
+
+    .finger-label {
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: #64748b;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .formula-box {
+      background: #fffbebfb;
+      border: 1px solid #fde68a;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: #78350f;
+      word-break: break-all;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #64748b; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+
+    .speed-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+      color: #475569;
+      font-size: 0.9rem;
+    }
+
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>高校情報Ⅰ：両手10桁 2進数・指カウントツール</h1>
+  <div class="subtitle">右手親指（1桁目: 2⁰）〜 左手親指（10桁目: 2⁹）で数える 0 〜 1023 の体験学習</div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchMode('manual')">① インタラクティブ操作（手動）</button>
+    <button class="tab-btn" onclick="switchMode('count')">② 自動カウントアップ（桁上がり観察）</button>
+  </div>
+
+  <div class="display-section">
+    <div class="decimal-display">10進数: <span id="dec-val">0</span></div>
+    <div class="binary-display" id="bin-val">0000000000</div>
+    <div class="hex-display">16進数換算: <span id="hex-val">0x000</span></div>
+  </div>
+
+  <div class="hands-wrapper">
+    <!-- 左手 -->
+    <div class="hand-box">
+      <div class="hand-title">  ・  </div>
+      <div class="fingers-container" id="left-hand"></div>
+    </div>
+
+    <!-- 右手 -->
+    <div class="hand-box">
+      <div class="hand-title">  ・  </div>
+      <div class="fingers-container" id="right-hand"></div>
+    </div>
+  </div>
+
+  <div class="formula-box" id="formula-display">
+    10進数展開式: 0
+  </div>
+
+  <div id="panel-manual" class="mode-panel active">
+    <div class="controls">
+      <button class="btn btn-danger" onclick="changeValue(-10)">-10</button>
+      <button class="btn btn-primary" onclick="changeValue(-1)">-1</button>
+      <button class="btn btn-primary" onclick="changeValue(1)">+1</button>
+      <button class="btn btn-danger" onclick="changeValue(10)">+10</button>
+      <button class="btn btn-secondary" onclick="resetValue()">リセット (0)</button>
+    </div>
+  </div>
+
+  <div id="panel-count" class="mode-panel">
+    <div class="controls">
+      <button class="btn btn-primary" id="start-btn" onclick="toggleAutoCount()">カウント開始</button>
+      <button class="btn btn-secondary" onclick="resetValue()">リセット (0)</button>
+    </div>
+    <div class="speed-control">
+      <label for="speed">カウント速度:</label>
+      <input type="range" id="speed" min="200" max="1500" value="800" step="100">
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentValue = 0;
+  let isCounting = false;
+  let countTimer = null;
+
+  const leftFingerDefs = [
+    { bit: 9, name: '親指', type: 'f-thumb', digit: 10 },
+    { bit: 8, name: '人さし', type: 'f-index', digit: 9 },
+    { bit: 7, name: '中指', type: 'f-middle', digit: 8 },
+    { bit: 6, name: '薬指', type: 'f-ring', digit: 7 },
+    { bit: 5, name: '小指', type: 'f-pinky', digit: 6 }
+  ];
+
+  const rightFingerDefs = [
+    { bit: 4, name: '小指', type: 'f-pinky', digit: 5 },
+    { bit: 3, name: '薬指', type: 'f-ring', digit: 4 },
+    { bit: 2, name: '中指', type: 'f-middle', digit: 3 },
+    { bit: 1, name: '人さし', type: 'f-index', digit: 2 },
+    { bit: 0, name: '親指', type: 'f-thumb', digit: 1 }
+  ];
+
+  function createFingers(containerId, fingerDefs) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    fingerDefs.forEach(f => {
+      const weight = Math.pow(2, f.bit);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'finger-wrapper';
+      wrapper.onclick = () => toggleBit(f.bit);
+
+      wrapper.innerHTML = `
+        <div class="finger ${f.type}" id="finger-${f.bit}">2<sup>${f.bit}</sup></div>
+        <div class="finger-label">
+          <strong>${f.digit}桁目</strong><br>
+          ${f.name}<br>
+          (${weight})
+        </div>
+      `;
+      container.appendChild(wrapper);
+    });
+  }
+
+  function updateDisplay() {
+    document.getElementById('dec-val').innerText = currentValue;
+
+    const rawBin = currentValue.toString(2).padStart(10, '0');
+    document.getElementById('bin-val').innerText = rawBin;
+
+    document.getElementById('hex-val').innerText = '0x' + currentValue.toString(16).toUpperCase().padStart(3, '0');
+
+    for (let i = 0; i < 10; i++) {
+      const bitValue = (currentValue >> i) & 1;
+      const fingerElem = document.getElementById(`finger-${i}`);
+      if (fingerElem) {
+        if (bitValue === 1) {
+          fingerElem.classList.add('active');
+        } else {
+          fingerElem.classList.remove('active');
+        }
+      }
+    }
+
+    let terms = [];
+    for (let i = 9; i >= 0; i--) {
+      if ((currentValue >> i) & 1) {
+        terms.push(`2<sup>${i}</sup>(${Math.pow(2, i)})`);
+      }
+    }
+    const formulaDisplay = document.getElementById('formula-display');
+    if (terms.length > 0) {
+      formulaDisplay.innerHTML = `10進数展開式: ` + terms.join(' + ') + ` = <strong>${currentValue}</strong>`;
+    } else {
+      formulaDisplay.innerHTML = `10進数展開式: 0`;
+    }
+  }
+
+  function toggleBit(bitIndex) {
+    currentValue ^= (1 << bitIndex);
+    updateDisplay();
+  }
+
+  function changeValue(delta) {
+    currentValue += delta;
+    if (currentValue > 1023) currentValue = 1023;
+    if (currentValue < 0) currentValue = 0;
+    updateDisplay();
+  }
+
+  function resetValue() {
+    currentValue = 0;
+    updateDisplay();
+  }
+
+  function switchMode(mode) {
+    stopAutoCount();
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.mode-panel').forEach(panel => panel.classList.remove('active'));
+
+    if (mode === 'manual') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('panel-manual').classList.add('active');
+    } else {
+      document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      document.getElementById('panel-count').classList.add('active');
+    }
+  }
+
+  function toggleAutoCount() {
+    if (isCounting) {
+      stopAutoCount();
+    } else {
+      startAutoCount();
+    }
+  }
+
+  function startAutoCount() {
+    isCounting = true;
+    document.getElementById('start-btn').innerText = '一時停止';
+    
+    function step() {
+      if (!isCounting) return;
+      currentValue = (currentValue + 1) % 1024;
+      updateDisplay();
+      const speed = 1700 - document.getElementById('speed').value;
+      countTimer = setTimeout(step, speed);
+    }
+    
+    const speed = 1700 - document.getElementById('speed').value;
+    countTimer = setTimeout(step, speed);
+  }
+
+  function stopAutoCount() {
+    isCounting = false;
+    if (countTimer) clearTimeout(countTimer);
+    document.getElementById('start-btn').innerText = 'カウント開始';
+  }
+
+  createFingers('left-hand', leftFingerDefs);
+  createFingers('right-hand', rightFingerDefs);
+  updateDisplay();
+</script>
+
+</body>
+</html>

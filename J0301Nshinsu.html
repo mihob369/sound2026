@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情報Ⅰ：N進数・基数変換インタラクティブ学習ツール</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --accent: #d97706;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --border: #cbd5e1;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary);
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #64748b;
+      margin-bottom: 25px;
+      font-size: 0.95rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    /* 基数選択ヘッダー */
+    .base-selector-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      background: var(--primary-light);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #bfdbfe;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    .base-selector-group label {
+      font-weight: bold;
+      color: #1e40af;
+      font-size: 1.1rem;
+    }
+    select {
+      padding: 8px 16px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      border: 2px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 16px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-main { background: var(--primary); color: white; }
+    .btn-sub { background: #64748b; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+
+    /* 各桁の表示エリア */
+    .digits-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+    .digit-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #f1f5f9;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 8px;
+      min-width: 65px;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .digit-box.active {
+      background: #fef3c7;
+      border-color: var(--accent);
+    }
+    .digit-power {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .digit-weight {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .digit-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border-radius: 8px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+      color: var(--text);
+    }
+    .digit-box.active .digit-value {
+      color: var(--accent);
+      border: 2px solid var(--accent);
+    }
+    .digit-btn-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .mini-btn {
+      width: 22px;
+      height: 22px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      background: #cbd5e1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mini-btn:hover { background: #94a3b8; color: white; }
+
+    /* 結果表示エリア */
+    .display-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .display-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+    }
+    .display-box.highlight { border-left-color: var(--accent); }
+    .display-label {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+    .display-val {
+      font-size: 1.5rem;
+      font-weight: bold;
+      word-break: break-all;
+    }
+
+    /* 計算式ボックス */
+    .formula-box {
+      background: #fffbebfb;
+      border: 1px solid #fde68a;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: "Courier New", monospace;
+      font-size: 0.95rem;
+      color: #78350f;
+      word-break: break-all;
+      margin-top: 20px;
+    }
+    .formula-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-sans-serif: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>高校情報Ⅰ：N進数学習ツール</h1>
+  <div class="subtitle">2進数〜10進数・16進数の「N進数の概念・桁上がり・10進数展開」を視覚的にマスター</div>
+
+  <div class="card">
+    <!-- 基数設定 -->
+    <div class="base-selector-group">
+      <label for="baseSelect">学習する基数（N進数）を選択：</label>
+      <select id="baseSelect" onchange="onBaseChange()">
+        <option value="2">2進数 (0, 1)</option>
+        <option value="3">3進数 (0 〜 2)</option>
+        <option value="4">4進数 (0 〜 3)</option>
+        <option value="5">5進数 (0 〜 4)</option>
+        <option value="6">6進数 (0 〜 5)</option>
+        <option value="7">7進数 (0 〜 6)</option>
+        <option value="8">8進数 (0 〜 7)</option>
+        <option value="9">9進数 (0 〜 8)</option>
+        <option value="10">10進数 (0 〜 9)</option>
+        <option value="16">16進数 (0 〜 F)</option>
+      </select>
+    </div>
+
+    <!-- カウント操作ボタン -->
+    <div class="controls">
+      <button class="btn btn-danger" onclick="changeValue(-10)">-10</button>
+      <button class="btn btn-main" onclick="changeValue(-1)">-1</button>
+      <button class="btn btn-main" onclick="changeValue(1)">+1</button>
+      <button class="btn btn-danger" onclick="changeValue(10)">+10</button>
+      <button class="btn btn-sub" onclick="resetValue()">リセット (0)</button>
+    </div>
+
+    <!-- N進数の桁表示（最大6桁） -->
+    <div class="digits-container" id="digitsContainer"></div>
+
+    <!-- 10進数・各進数での表記一覧 -->
+    <div class="display-grid">
+      <div class="display-box highlight">
+        <div class="display-label">10進数 換算値</div>
+        <div class="display-val" id="decVal">0</div>
+      </div>
+      <div class="display-box">
+        <div class="display-label"><span id="currentBaseLabel">N進数</span> 表記</div>
+        <div class="display-val" id="baseVal">0</div>
+      </div>
+      <div class="display-box">
+        <div class="display-label">2進数 表記</div>
+        <div class="display-val" id="binVal">0</div>
+      </div>
+      <div class="display-box">
+        <div class="display-label">16進数 表記</div>
+        <div class="display-val" id="hexVal">0x0</div>
+      </div>
+    </div>
+
+    <!-- 10進数への展開式 -->
+    <div class="formula-box">
+      <div class="formula-title">10進数への展開計算式：</div>
+      <div id="formulaContent">0</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentBase = 2;
+  let currentValue = 0; // 内部表現は常に10進数の数値
+  const maxDigits = 6;  // 表示する桁数
+
+  // 16進数用の数字表現マップ
+  const hexChars = "0123456789ABCDEF";
+
+  function onBaseChange() {
+    currentBase = parseInt(document.getElementById('baseSelect').value);
+    document.getElementById('currentBaseLabel').textContent = `${currentBase}進数`;
+    render();
+  }
+
+  function changeValue(delta) {
+    const maxVal = Math.pow(currentBase, maxDigits) - 1;
+    currentValue = Math.max(0, Math.min(maxVal, currentValue + delta));
+    render();
+  }
+
+  function changeDigitValue(power, delta) {
+    const weight = Math.pow(currentBase, power);
+    // 現在のその桁の値を取得
+    const currentDigit = Math.floor(currentValue / weight) % currentBase;
+    
+    let newDigit = currentDigit + delta;
+    if (newDigit >= currentBase) newDigit = 0;
+    if (newDigit < 0) newDigit = currentBase - 1;
+
+    // 差分を反映
+    const diff = (newDigit - currentDigit) * weight;
+    const maxVal = Math.pow(currentBase, maxDigits) - 1;
+    currentValue = Math.max(0, Math.min(maxVal, currentValue + diff));
+    render();
+  }
+
+  function resetValue() {
+    currentValue = 0;
+    render();
+  }
+
+  function render() {
+    const container = document.getElementById('digitsContainer');
+    container.innerHTML = '';
+
+    let formulaTerms = [];
+
+    // 上位桁（左）から下位桁（右）へ描画 (power: maxDigits-1 〜 0)
+    for (let i = maxDigits - 1; i >= 0; i--) {
+      const weight = Math.pow(currentBase, i);
+      const digitValNum = Math.floor(currentValue / weight) % currentBase;
+      const digitChar = hexChars[digitValNum]; // 10以上はA, B, C...
+
+      const isActive = digitValNum > 0;
+
+      const box = document.createElement('div');
+      box.className = `digit-box ${isActive ? 'active' : ''}`;
+
+      box.innerHTML = `
+        <div class="digit-power">${currentBase}<sup>${i}</sup>の桁</div>
+        <div class="digit-weight">（${weight}）</div>
+        <div class="digit-value">${digitChar}</div>
+        <div class="digit-btn-group">
+          <button class="mini-btn" onclick="changeDigitValue(${i}, -1)">-</button>
+          <button class="mini-btn" onclick="changeDigitValue(${i}, 1)">+</button>
+        </div>
+      `;
+      container.appendChild(box);
+
+      if (isActive) {
+        formulaTerms.push(`(${digitChar} × ${currentBase}<sup>${i}</sup>)`);
+      }
+    }
+
+    // 数値表示の更新
+    document.getElementById('decVal').textContent = currentValue;
+    document.getElementById('baseVal').textContent = currentValue.toString(currentBase).toUpperCase();
+    document.getElementById('binVal').textContent = currentValue.toString(2);
+    document.getElementById('hexVal').textContent = '0x' + currentValue.toString(16).toUpperCase();
+
+    // 展開式の更新
+    const formulaContent = document.getElementById('formulaContent');
+    if (formulaTerms.length > 0) {
+      formulaContent.innerHTML = formulaTerms.join(' + ') + ` = <strong>${currentValue}</strong>`;
+    } else {
+      formulaContent.innerHTML = '0';
+    }
+  }
+
+  // 初回レンダリング
+  onBaseChange();
+</script>
+</body>
+</html>
